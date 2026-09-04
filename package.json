@@ -1,0 +1,13 @@
+{
+  "name": "friendly-photo-booth",
+  "private": true,
+  "description": "Internal photo booth operating platform for Friendly Party Rental. See README.md and docs/ before adding code.",
+  "packageManager": "pnpm@9.0.0",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "//": "Placeholder only. Real scripts land with the Phase 1 app scaffolding in docs/development.md."
+  }
+}
