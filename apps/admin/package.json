@@ -2,15 +2,17 @@
   "name": "@friendly-photo-booth/admin",
   "private": true,
   "version": "0.1.0",
-  "description": "Placeholder Next.js admin app. Real admin shell lands in Phase 1 (see docs/phases.md).",
+  "description": "Admin app for Friendly Photo Booth. Real admin shell lands in Phase 1 (see docs/phases.md).",
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
-    "start": "next start -p ${PORT:-3000}"
+    "build": "prisma generate --schema=../../packages/database/schema.prisma && next build",
+    "start": "prisma db push --schema=../../packages/database/schema.prisma --accept-data-loss --skip-generate && next start -p ${PORT:-3000}"
   },
   "dependencies": {
     "next": "14.2.35",
     "react": "18.3.1",
-    "react-dom": "18.3.1"
+    "react-dom": "18.3.1",
+    "@prisma/client": "5.20.0",
+    "prisma": "5.20.0"
   }
 }
