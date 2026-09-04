@@ -1,0 +1,33 @@
+# Dependencies
+node_modules/
+
+# Build output
+.next/
+.turbo/
+dist/
+build/
+out/
+
+# Env files - never commit real secrets
+.env
+.env.local
+.env.*.local
+
+# Logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+
+# OS/editor
+.DS_Store
+.idea/
+
+# Generated Prisma client
+packages/database/generated/
+prisma/generated/
+
+# TypeScript build info
+*.tsbuildinfo
+
+# Vercel/Railway local artifacts
+.vercel/
