@@ -1,21 +1,17 @@
+import Link from "next/link";
+
 export default function Home() {
   return (
-    <main
-      style={{
-        minHeight: '100vh',
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        justifyContent: 'center',
-        gap: '1rem',
-        padding: '2rem',
-        textAlign: 'center',
-      }}
-    >
-      <h1 style={{ fontSize: '2rem', margin: 0 }}>Friendly Photo Booth</h1>
-      <p style={{ opacity: 0.7, maxWidth: 480 }}>
-        Admin dashboard placeholder. Phase 1 scaffolding is in progress — see
-        docs/phases.md in the repository for current status.
+    <main style={{ padding: "40px" }}>
+      <h1>Friendly Photo Booth</h1>
+      <p>
+        Phase 1 admin scaffolding is live. Use the navigation on the left to
+        explore the placeholder sections while real features are built out.
+      </p>
+      <p>
+        <Link href="/dashboard" style={{ color: "#8ab4f8" }}>
+          Go to Dashboard &rarr;
+        </Link>
       </p>
     </main>
   );
