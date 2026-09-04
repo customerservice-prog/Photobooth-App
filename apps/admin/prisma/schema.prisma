@@ -1,0 +1,419 @@
+// Friendly Photo Booth — Database Schema (Phase 0/1 draft)
+// Status: DESIGN ONLY. Not yet migrated against a real database.
+// Single-tenant for Phase 1: exactly one Organization row (Friendly Party Rental).
+// organizationId exists on tenant-scoped models to avoid a painful migration later,
+// but there is no org management UI / signup flow / multi-tenant logic in Phase 1.
+//
+// NOTE: This is a working copy of packages/database/schema.prisma, duplicated here
+// because Railway's build for apps/admin only has access to apps/admin/** (Root
+// Directory scoping excludes sibling packages/ from the build context). Keep this
+// file in sync with packages/database/schema.prisma until proper workspace build
+// tooling replaces this duplication.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  OWNER
+  ADMIN
+}
+
+enum EmployeeRole {
+  EMPLOYEE
+  DRIVER
+}
+
+enum EventStatus {
+  DRAFT
+  NEEDS_SETUP
+  CONFIGURED
+  LOADED_TO_BOOTH
+  ACTIVE
+  COMPLETED
+  ARCHIVED
+}
+
+enum CaptureMode {
+  PHOTO
+  GIF
+  BOOMERANG
+  VIDEO
+}
+
+enum GalleryPrivacy {
+  PUBLIC
+  PRIVATE
+  PIN_PROTECTED
+  DISABLED
+}
+
+enum PrintJobStatus {
+  QUEUED
+  SENDING
+  SENT_TO_PRINT_SYSTEM
+  COMPLETED
+  FAILED
+  CANCELED
+}
+
+enum SyncState {
+  PENDING
+  UPLOADING
+  SYNCED
+  FAILED
+  RETRY_SCHEDULED
+}
+
+enum BoothStatus {
+  ONLINE
+  OFFLINE
+  MAINTENANCE
+}
+
+model Organization {
+  id        String   @id @default(cuid())
+  name      String   @default("Friendly Party Rental")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  users     User[]
+  employees Employee[]
+  customers Customer[]
+  events    Event[]
+  booths    Booth[]
+  templates Template[]
+}
+
+model User {
+  id             String       @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  name           String
+  email          String       @unique
+  role           UserRole     @default(ADMIN)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  activityLogs   ActivityLog[]
+}
+
+model Employee {
+  id             String       @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  name           String
+  email          String       @unique
+  phone          String?
+  role           EmployeeRole @default(EMPLOYEE)
+  pinHash        String // hashed PIN for hidden operator-panel access on the booth
+  active         Boolean      @default(true)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  setupChecklists EventSetupChecklist[]
+  activityLogs    ActivityLog[]
+}
+
+model Customer {
+  id             String       @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  name           String
+  email          String?
+  phone          String?
+  notes          String?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  events         Event[]
+}
+
+model Booth {
+  id                String      @id @default(cuid())
+  organizationId    String
+  organization      Organization @relation(fields: [organizationId], references: [id])
+  name              String // e.g. "Booth 01"
+  status            BoothStatus @default(OFFLINE)
+  printerAdapter    String      @default("canon_selphy")
+  softwareVersion   String?
+  createdAt         DateTime    @default(now())
+  updatedAt         DateTime    @updatedAt
+
+  devices           Device[]
+  events            Event[]
+  heartbeats        Heartbeat[]
+  printJobs         PrintJob[]
+}
+
+model Device {
+  id           String   @id @default(cuid())
+  boothId      String
+  booth        Booth    @relation(fields: [boothId], references: [id])
+  deviceLabel  String? // e.g. "iPad - Booth 01"
+  lastSeenAt   DateTime?
+  appVersion   String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  heartbeats   Heartbeat[]
+}
+
+// Versioned JSON layout; see packages/templates for the TS schema this maps to.
+model Template {
+  id             String   @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  name           String
+  category       String // Wedding, Birthday, Graduation, etc.
+  format         String // "4x6_portrait" | "4x6_landscape" | "2x6_strip" | ...
+  templateVersion Int     @default(1)
+  layout         Json // canvasWidth, canvasHeight, orientation, layers[]
+  previewImageUrl String?
+  archived       Boolean  @default(false)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  elements       TemplateElement[]
+  events         Event[]
+}
+
+// Optional normalized rows for elements that benefit from being queryable;
+// the authoritative render source is still Template.layout (JSON).
+model TemplateElement {
+  id         String   @id @default(cuid())
+  templateId String
+  template   Template @relation(fields: [templateId], references: [id])
+  type       String // photo_area | text | image | logo | shape | qr | background
+  x          Float
+  y          Float
+  width      Float
+  height     Float
+  rotation   Float    @default(0)
+  zIndex     Int      @default(0)
+  style      Json?
+  data       Json?
+}
+
+model Event {
+  id               String       @id @default(cuid())
+  organizationId   String
+  organization     Organization @relation(fields: [organizationId], references: [id])
+  customerId       String
+  customer         Customer     @relation(fields: [customerId], references: [id])
+  boothId          String?
+  booth            Booth?       @relation(fields: [boothId], references: [id])
+  templateId       String?
+  template         Template?    @relation(fields: [templateId], references: [id])
+
+  name             String // Event name, e.g. "Smith Wedding"
+  eventType        String? // wedding, birthday, corporate, etc.
+  date             DateTime
+  startTime        DateTime
+  endTime          DateTime
+  venueName        String?
+  venueAddress     String?
+  internalNotes    String?
+
+  captureMode      CaptureMode  @default(PHOTO)
+  countdownSeconds Int          @default(3)
+  numberOfPhotos   Int          @default(1)
+  allowRetake      Boolean      @default(true)
+  maxRetakes       Int          @default(1)
+
+  printingEnabled  Boolean      @default(true)
+  maxPrints        Int?
+  copiesPerPrint   Int          @default(1)
+  allowReprint     Boolean      @default(false)
+  autoPrint        Boolean      @default(false)
+  displayPrintButton Boolean    @default(true)
+
+  qrSharingEnabled    Boolean   @default(true)
+  emailSharingEnabled Boolean   @default(false)
+  smsSharingEnabled   Boolean   @default(false)
+
+  galleryEnabled   Boolean      @default(true)
+  galleryPrivacy   GalleryPrivacy @default(PRIVATE)
+  galleryPinHash   String?
+
+  welcomeMessage   String?
+  customerNames    String?
+  logoUrl          String?
+  theme            Json?
+
+  status           EventStatus  @default(DRAFT)
+
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+
+  setupChecklist   EventSetupChecklist?
+  sessions         PhotoSession[]
+  galleries        Gallery[]
+  heartbeats       Heartbeat[]
+  activityLogs     ActivityLog[]
+  printJobs        PrintJob[]
+}
+
+model EventSetupChecklist {
+  id               String    @id @default(cuid())
+  eventId          String    @unique
+  event            Event     @relation(fields: [eventId], references: [id])
+  employeeId       String?
+  employee         Employee? @relation(fields: [employeeId], references: [id])
+
+  items            Json // checklist item -> boolean, keeps items configurable
+  setupPhotoUrl    String?
+  testSessionId    String?
+  testPrintPassed  Boolean?
+  gpsLat           Float?
+  gpsLng           Float?
+  completedAt      DateTime?
+
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+}
+
+// A single guest interaction end-to-end. This is the primary troubleshooting unit.
+model PhotoSession {
+  id            String    @id // client-generated ULID, offline-safe
+  eventId       String
+  event         Event     @relation(fields: [eventId], references: [id])
+
+  startedAt     DateTime
+  completedAt   DateTime?
+  qrViewed      Boolean   @default(false)
+
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  captures      Capture[]
+  renderedPhotos RenderedPhoto[]
+  printJobs     PrintJob[]
+  shares        Share[]
+  syncRecords   SyncRecord[]
+}
+
+model Capture {
+  id            String       @id // client-generated ULID
+  sessionId     String
+  session       PhotoSession @relation(fields: [sessionId], references: [id])
+  originalUrl   String? // set once uploaded; local path tracked client-side until then
+  capturedAt    DateTime
+  sequenceIndex Int          @default(0) // for multi-photo layouts
+  createdAt     DateTime     @default(now())
+}
+
+model RenderedPhoto {
+  id            String       @id // client-generated ULID
+  sessionId     String
+  session       PhotoSession @relation(fields: [sessionId], references: [id])
+  captureId     String?
+  finalUrl      String?
+  thumbnailUrl  String?
+  templateId    String?
+  width         Int
+  height        Int
+  createdAt     DateTime     @default(now())
+}
+
+model PrintJob {
+  id             String         @id // client-generated ULID (idempotency key)
+  eventId        String
+  event          Event          @relation(fields: [eventId], references: [id])
+  sessionId      String
+  session        PhotoSession   @relation(fields: [sessionId], references: [id])
+  photoId        String? // RenderedPhoto id
+  boothId        String
+  booth          Booth          @relation(fields: [boothId], references: [id])
+  printerId      String? // adapter-specific printer identifier
+  numberOfCopies Int            @default(1)
+  status         PrintJobStatus @default(QUEUED)
+  attempts       Int            @default(0)
+  errorMessage   String?
+  createdAt      DateTime       @default(now())
+  startedAt      DateTime?
+  completedAt    DateTime?
+}
+
+model Share {
+  id          String       @id @default(cuid())
+  sessionId   String
+  session     PhotoSession @relation(fields: [sessionId], references: [id])
+  method      String // qr | email | sms
+  destination String? // email address or phone number, never used for marketing
+  consentMarketing Boolean @default(false)
+  createdAt   DateTime     @default(now())
+}
+
+model Gallery {
+  id         String         @id @default(cuid())
+  eventId    String
+  event      Event          @relation(fields: [eventId], references: [id])
+  slug       String         @unique
+  privacy    GalleryPrivacy @default(PRIVATE)
+  pinHash    String?
+  disabled   Boolean        @default(false)
+  createdAt  DateTime       @default(now())
+  updatedAt  DateTime       @updatedAt
+}
+
+model Heartbeat {
+  id                 String   @id @default(cuid())
+  deviceId           String
+  device             Device   @relation(fields: [deviceId], references: [id])
+  boothId            String
+  booth              Booth    @relation(fields: [boothId], references: [id])
+  eventId            String?
+  event              Event?   @relation(fields: [eventId], references: [id])
+
+  batteryPercent     Int?
+  charging           Boolean?
+  networkStatus      String? // online | offline
+  printerStatus      String? // connected | disconnected | unknown
+  cameraStatus       String? // ready | error | unknown
+  localStorageFreePct Int?
+  unsyncedPhotoCount Int?
+  pendingPrintCount  Int?
+  lastSessionAt      DateTime?
+  appVersion         String?
+
+  createdAt          DateTime @default(now())
+}
+
+// Operationally useful, timestamped events only — not a firehose of every UI interaction.
+model ActivityLog {
+  id         String    @id @default(cuid())
+  eventId    String?
+  event      Event?    @relation(fields: [eventId], references: [id])
+  userId     String?
+  user       User?     @relation(fields: [userId], references: [id])
+  employeeId String?
+  employee   Employee? @relation(fields: [employeeId], references: [id])
+
+  type       String // EVENT_STARTED | SESSION_STARTED | PHOTO_CAPTURED | PRINT_FAILED | ...
+  message    String?
+  metadata   Json?
+  occurredAt DateTime
+  createdAt  DateTime  @default(now())
+}
+
+// Local-first sync queue mirror on the server side (server-of-record for sync state).
+model SyncRecord {
+  id         String       @id @default(cuid())
+  sessionId  String?
+  session    PhotoSession? @relation(fields: [sessionId], references: [id])
+  entityType String // capture | rendered_photo | session | activity_log | share
+  entityId   String // matches the client-generated ULID of the entity
+  state      SyncState    @default(PENDING)
+  attempts   Int          @default(0)
+  lastError  String?
+  createdAt  DateTime     @default(now())
+  updatedAt  DateTime     @updatedAt
+
+  @@unique([entityType, entityId])
+}
