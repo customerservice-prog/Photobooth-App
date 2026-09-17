@@ -1,0 +1,7 @@
+{
+  "name":"@friendly-photo-booth/booth",
+  "private":true,
+  "version":"0.1.0",
+  "scripts":{"dev":"next dev","build":"next build","start":"next start -p ${PORT:-3000}"},
+  "dependencies":{"next":"14.2.35","react":"18.3.1","react-dom":"18.3.1"}
+}
