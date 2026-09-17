@@ -1,12 +1,14 @@
-export default function DashboardPage() {
-  return (
-    <main style={{ padding: "40px" }}>
-      <h1>Dashboard</h1>
-      <p>
-        This is a placeholder for the Dashboard. In a later phase it will show
-        live booth status, today's events, and monthly photo and print
-        counts at a glance.
-      </p>
-    </main>
-  );
+import Link from "next/link";
+import { prisma } from "../../lib/prisma";
+export const dynamic = "force-dynamic";
+
+export default async function DashboardPage(){
+ let events=[],templates=[],booths=[]; try{[events,templates,booths]=await Promise.all([prisma.event.findMany({include:{customer:true},orderBy:{date:"asc"},take:6}),prisma.template.findMany({take:1}),prisma.booth.findMany({take:20})])}catch(e){}
+ const active=booths.filter(b=>String(b.status).toLowerCase().includes("active")||String(b.status).toLowerCase().includes("online")).length;
+ return <main className="page">
+   <div style={{display:"flex",justifyContent:"space-between",gap:20,alignItems:"end",flexWrap:"wrap"}}><div><div className="eyebrow">Operations command center</div><h1 className="title">Good evening.</h1><div className="muted">Everything you need to run a polished photo booth event from one place.</div></div><div style={{display:"flex",gap:10}}><Link className="btn btn2" href="/templates">Design Studio</Link><Link className="btn" href="/events/new">＋ New Event</Link></div></div>
+   <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(190px,1fr))",gap:14,marginTop:32}}>{[["Upcoming events",events.length,"◈"],["Booths online",active,"◉"],["Design library",templates.length?"Ready":"Setup","◇"],["System", "Ready", "✓"]].map(([l,v,i])=><div className="card" key={l} style={{padding:20}}><div style={{display:"flex",justifyContent:"space-between",color:"#8d8981",fontSize:12}}><span>{l}</span><span style={{color:"#c8a760"}}>{i}</span></div><div style={{fontFamily:"Georgia,serif",fontSize:29,marginTop:10,color:"#fff"}}>{v}</div></div>)}</div>
+   <div style={{display:"grid",gridTemplateColumns:"minmax(0,1.6fr) minmax(280px,.7fr)",gap:18,marginTop:18}}><section className="card" style={{padding:24}}><div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}><div><div className="eyebrow">Event desk</div><h2 style={{fontFamily:"Georgia,serif",fontWeight:400,margin:"6px 0 0"}}>Upcoming events</h2></div><Link href="/events" style={{color:"#c9a963",fontSize:12,textDecoration:"none"}}>View all →</Link></div><div style={{marginTop:18}}>{events.length?events.map(e=><Link key={e.id} href={`/events/${e.id}`} style={{display:"grid",gridTemplateColumns:"70px 1fr auto",gap:16,alignItems:"center",padding:"15px 4px",borderTop:"1px solid #282923",textDecoration:"none"}}><div style={{textAlign:"center",borderRight:"1px solid #2c2c28"}}><strong style={{display:"block",fontSize:20}}>{new Date(e.date).getDate()}</strong><small className="muted">{new Date(e.date).toLocaleString("en",{month:"short"}).toUpperCase()}</small></div><div><strong>{e.name}</strong><div className="muted" style={{fontSize:12,marginTop:4}}>{e.customer?.name||"Customer"}</div></div><span style={{fontSize:10,textTransform:"uppercase",letterSpacing:1,color:"#c8a760"}}>{e.status}</span></Link>):<div style={{padding:"35px 0",textAlign:"center"}}><div style={{fontSize:28,color:"#c8a760"}}>✦</div><h3>No events scheduled</h3><p className="muted" style={{fontSize:13}}>Create tomorrow's wedding and configure the booth before leaving the warehouse.</p><Link className="btn" href="/events/new">Create Event</Link></div>}</div></section>
+   <aside className="card" style={{padding:24}}><div className="eyebrow">Pre-event check</div><h2 style={{fontFamily:"Georgia,serif",fontWeight:400}}>Wedding ready</h2>{["Create event & customer","Choose 4×6 wedding design","Confirm booth assignment","Test camera capture","Test SELPHY print","Confirm offline fallback"].map((x,i)=><div key={x} style={{display:"flex",gap:10,padding:"11px 0",borderTop:"1px solid #282923",fontSize:13,color:"#c8c3b8"}}><span style={{color:"#c8a760"}}>{i+1}</span>{x}</div>)}<Link href="/events/new" className="btn" style={{width:"100%",marginTop:14}}>Prepare Tomorrow's Event</Link></aside></div>
+ </main>
 }
