@@ -75,3 +75,21 @@ linear-gradient(90deg,rgba(213,164,78,.72),rgba(239,176,199,.62),rgba(188,173,23
 @keyframes cardShine{0%,72%{transform:translateX(-120%)}88%,100%{transform:translateX(120%)}}
 @media(max-width:760px){.installIpad{margin-top:12px}.installCard{padding:24px 18px 18px;border-radius:24px}.installSteps{gap:7px}.installSteps>div{padding:9px 10px}.printTagline{font-size:5px;letter-spacing:1.7px}}
 @media print{.printTagline{font-size:.045in!important;margin-top:.025in!important}.installPanel,.installIpad,.partyLights{display:none!important}}
+
+
+/* Preserve distinct keepsake personalities after the richer border treatment. */
+.premiumPreview .template-ivory{background:
+radial-gradient(circle at 8% 7%,rgba(244,181,204,.24),transparent 18%),
+radial-gradient(circle at 92% 8%,rgba(195,180,242,.20),transparent 19%),
+radial-gradient(circle at 90% 94%,rgba(237,196,102,.22),transparent 20%),
+linear-gradient(160deg,#fffef9 0%,#fff9ef 100%)!important}
+.premiumPreview .template-blush{background:
+radial-gradient(circle at 8% 7%,rgba(241,150,185,.34),transparent 20%),
+radial-gradient(circle at 92% 8%,rgba(211,178,232,.22),transparent 19%),
+radial-gradient(circle at 88% 93%,rgba(247,192,205,.30),transparent 21%),
+linear-gradient(160deg,#fff9fb 0%,#fbe3ec 100%)!important}
+.premiumPreview .template-champagne{background:
+radial-gradient(circle at 10% 8%,rgba(240,198,102,.32),transparent 20%),
+radial-gradient(circle at 90% 9%,rgba(247,222,157,.30),transparent 19%),
+radial-gradient(circle at 88% 92%,rgba(209,169,76,.25),transparent 21%),
+linear-gradient(155deg,#fffdf4 0%,#f3deb0 100%)!important}
