@@ -93,3 +93,126 @@ radial-gradient(circle at 10% 8%,rgba(240,198,102,.32),transparent 20%),
 radial-gradient(circle at 90% 9%,rgba(247,222,157,.30),transparent 19%),
 radial-gradient(circle at 88% 92%,rgba(209,169,76,.25),transparent 21%),
 linear-gradient(155deg,#fffdf4 0%,#f3deb0 100%)!important}
+
+
+/* Final event-night visual pass: brighter celebration, premium keepsake reveal */
+.booth{background:#fffaf7!important}
+.booth::before{opacity:1!important;background:
+radial-gradient(circle at 8% 13%,rgba(255,170,202,.68),transparent 20%),
+radial-gradient(circle at 92% 12%,rgba(184,164,244,.58),transparent 21%),
+radial-gradient(circle at 84% 86%,rgba(255,208,110,.60),transparent 23%),
+radial-gradient(circle at 12% 86%,rgba(118,218,211,.42),transparent 21%),
+linear-gradient(135deg,#fffdf9 0%,#fff3f8 38%,#f8f2ff 67%,#fff8df 100%)!important}
+.grain{opacity:.02!important}
+.corner{opacity:.24!important}
+.readyDot{background:rgba(255,255,255,.72);padding:7px 10px;border-radius:999px;box-shadow:0 7px 22px rgba(116,70,90,.08)}
+.welcomeParty .monogram{background:linear-gradient(145deg,#fff,#fff0f6)!important;color:#ba6789!important;border:1px solid #e9ba75!important;box-shadow:0 18px 45px rgba(214,121,158,.18),0 0 0 10px rgba(255,255,255,.52)!important}
+.welcomeParty .sub{color:#715763!important;font-weight:550}
+.experienceCard.featured{background:rgba(255,255,255,.94)!important;border:1px solid rgba(213,156,178,.30)!important;box-shadow:0 18px 48px rgba(151,82,110,.10),0 4px 14px rgba(255,255,255,.85) inset!important}
+.experienceCard.featured:nth-child(2){background:linear-gradient(145deg,#fff,#f7f2ff)!important}
+.experienceCard.featured:nth-child(3){background:linear-gradient(145deg,#fff,#fff8df)!important}
+
+/* Camera/countdown should feel bright, flattering and fun — not moody. */
+.booth:has(.count:not([style])) .shade{background:
+linear-gradient(180deg,rgba(91,44,69,.14),transparent 24%,transparent 74%,rgba(91,44,69,.16)),
+radial-gradient(circle at 50% 52%,transparent 0 58%,rgba(92,44,67,.08) 100%)!important}
+.booth:has(.count:not([style]))::after{background:
+radial-gradient(circle at 8% 22%,rgba(255,170,204,.34) 0 5%,transparent 18%),
+radial-gradient(circle at 92% 20%,rgba(186,168,244,.30) 0 5%,transparent 19%),
+radial-gradient(circle at 86% 82%,rgba(255,207,111,.30) 0 5%,transparent 20%),
+radial-gradient(circle at 14% 82%,rgba(118,218,211,.22) 0 5%,transparent 18%),
+linear-gradient(180deg,rgba(255,255,255,.06),rgba(255,255,255,.015))!important}
+.booth:has(.count:not([style])) .camera{filter:saturate(1.18) contrast(1.01) brightness(1.08)!important}
+.count:not([style]){background:radial-gradient(circle at 42% 28%,rgba(255,255,255,.76),rgba(255,238,246,.50) 30%,rgba(228,192,235,.26) 53%,rgba(237,192,108,.19) 72%,rgba(255,255,255,.12) 100%)!important;border-color:rgba(255,250,230,.96)!important;box-shadow:
+0 0 0 9px rgba(255,255,255,.24),
+0 0 0 11px rgba(239,195,111,.48),
+0 0 0 22px rgba(255,200,220,.16),
+0 0 118px rgba(251,174,207,.46),
+0 30px 74px rgba(93,49,70,.18),
+inset 0 0 88px rgba(255,255,255,.18)!important}
+.captureTop{top:34px!important}
+.captureTop strong{color:#fff!important;text-shadow:0 2px 0 rgba(107,56,80,.20),0 0 22px rgba(255,177,210,.58),0 3px 20px rgba(64,28,46,.30)!important}
+.captureTop div{color:#fff7d8!important}
+
+/* Big celebratory reveal behind final print */
+.premiumPreview{position:relative;isolation:isolate;background:
+radial-gradient(circle at 10% 10%,rgba(255,180,207,.64),transparent 27%),
+radial-gradient(circle at 90% 12%,rgba(193,176,247,.54),transparent 28%),
+radial-gradient(circle at 86% 88%,rgba(255,210,123,.58),transparent 28%),
+radial-gradient(circle at 12% 86%,rgba(126,219,212,.36),transparent 25%),
+linear-gradient(135deg,#fffdf9 0%,#fff3f8 45%,#fff8e5 100%)!important}
+.celebrationConfetti{position:absolute;z-index:0;inset:0;pointer-events:none;opacity:.46;background:
+radial-gradient(circle at 6% 17%,#ef8fb7 0 3px,transparent 4px),
+radial-gradient(circle at 14% 39%,#e6b94f 0 3px,transparent 4px),
+radial-gradient(circle at 25% 8%,#a98de5 0 3px,transparent 4px),
+radial-gradient(circle at 39% 13%,#78cfc9 0 2px,transparent 3px),
+radial-gradient(circle at 73% 11%,#ef8fb7 0 3px,transparent 4px),
+radial-gradient(circle at 88% 29%,#e6b94f 0 3px,transparent 4px),
+radial-gradient(circle at 93% 66%,#a98de5 0 3px,transparent 4px),
+radial-gradient(circle at 80% 88%,#78cfc9 0 3px,transparent 4px),
+radial-gradient(circle at 23% 90%,#ef8fb7 0 3px,transparent 4px);
+animation:confettiDrift 7s ease-in-out infinite alternate}
+.premiumPreview .photoPane{z-index:1;padding:34px 34px 42px!important;background:
+radial-gradient(circle at 18% 18%,rgba(255,182,211,.62),transparent 27%),
+radial-gradient(circle at 84% 16%,rgba(193,176,247,.50),transparent 27%),
+radial-gradient(circle at 82% 84%,rgba(255,212,122,.55),transparent 29%),
+radial-gradient(circle at 17% 82%,rgba(135,219,213,.32),transparent 25%),
+linear-gradient(145deg,rgba(255,255,255,.88),rgba(255,246,250,.90) 52%,rgba(255,251,233,.90))!important}
+.previewBadge{position:absolute;top:20px;left:50%;transform:translateX(-50%);z-index:8;padding:9px 15px;border-radius:999px;background:rgba(255,255,255,.90);border:1px solid rgba(210,156,178,.30);color:#9c5874;font-size:9px;font-weight:850;letter-spacing:2.2px;text-transform:uppercase;box-shadow:0 10px 28px rgba(135,78,100,.10)}
+.premiumPreview .luxuryPrint{height:min(80vh,760px)!important;aspect-ratio:2/3!important;border-radius:18px!important;padding:26px!important;transform:none!important;box-shadow:
+0 38px 100px rgba(103,57,78,.22),
+0 12px 30px rgba(146,94,115,.12),
+0 0 0 1px rgba(208,158,84,.48),
+0 0 0 12px rgba(255,255,255,.82)!important}
+.premiumPreview .luxuryPrint::before{inset:13px!important;border:1px solid rgba(201,151,73,.82)!important;border-radius:10px!important;box-shadow:inset 0 0 0 5px rgba(255,255,255,.70),inset 0 0 0 7px rgba(235,194,117,.18)!important}
+.premiumPreview .luxuryPrint::after{inset:19px!important;border-radius:8px!important}
+.floralCorner{position:absolute;z-index:8;font-family:Georgia,serif;font-size:18px;line-height:1;color:#d891aa;text-shadow:12px 5px 0 #e6bd62,4px 13px 0 #b6a2e8;pointer-events:none;opacity:.85}
+.floralTL{left:24px;top:24px;transform:rotate(-18deg)}.floralTR{right:24px;top:24px;transform:rotate(18deg) scaleX(-1)}
+.premiumPreview .photoFrame{height:72%!important;border:10px solid #fff!important;outline:1px solid rgba(190,137,64,.55)!important;border-radius:10px!important;box-shadow:0 18px 42px rgba(100,55,74,.13),0 0 0 4px rgba(253,228,237,.56)!important}
+.premiumPreview .photoFrame img{border-radius:3px;transform:scale(1.01)!important}
+.premiumPreview .printText{height:28%!important;border-top:0!important;padding:10px 22px 8px!important;background:
+radial-gradient(circle at 20% 35%,rgba(248,198,217,.22),transparent 25%),
+radial-gradient(circle at 80% 35%,rgba(235,205,131,.20),transparent 25%),
+linear-gradient(180deg,rgba(255,255,255,.30),rgba(255,249,245,.92))!important}
+.printCrest{width:42px!important;height:42px!important;font-size:20px!important;margin-bottom:5px!important;background:linear-gradient(145deg,#fff,#fff0f5)!important;border:1px solid #d4a44d!important;color:#a85f7a!important;box-shadow:0 0 0 6px rgba(255,255,255,.72),0 8px 22px rgba(164,93,119,.12)!important}
+.premiumPreview .printText strong{font-size:clamp(25px,2.9vw,38px)!important;line-height:1!important;color:#55343f!important}
+.printDivider{font-size:8px!important;color:#cf9e43!important;letter-spacing:6px!important;margin:6px 0!important}
+.premiumPreview .printText small{font-size:7.5px!important;color:#956d7a!important;letter-spacing:2.7px!important}
+.printTagline{font-size:6.5px!important;letter-spacing:2.6px!important;margin-top:7px!important}
+.keepsakeLabel{bottom:15px!important;color:#8f6171!important;background:rgba(255,255,255,.70);padding:6px 10px;border-radius:999px;box-shadow:0 8px 18px rgba(105,63,80,.07)}
+.premiumPreview .actions.studio{z-index:2;background:rgba(255,255,255,.94)!important;border-left:0!important;box-shadow:-18px 0 60px rgba(126,74,95,.08)!important;padding:34px!important}
+.premiumPreview .studio .kicker{color:#b06a83!important}
+.premiumPreview .studio h2{font-size:48px!important;line-height:.98!important;color:#4d303b!important;margin:9px 0 10px!important}
+.premiumPreview .studioIntro{font-size:13px!important;color:#78616a!important;margin-bottom:16px!important}
+.templateGrid{gap:9px!important}
+.templateChip{min-height:72px!important;border-radius:16px!important;background:#fff!important;border:1px solid #ead3dc!important;box-shadow:0 9px 22px rgba(109,64,82,.06)!important}
+.templateChip.selected{background:linear-gradient(145deg,#fff,#fff1f6)!important;border-color:#d59ab0!important;box-shadow:0 12px 30px rgba(186,108,138,.16),0 0 0 2px #fff inset!important}
+.templateSwatch{width:42px!important;height:24px!important;border-radius:7px!important}
+.filterChip{min-height:54px;border-radius:13px!important}
+.premiumPreview .action{border-radius:15px!important;padding:16px!important}
+.premiumPreview .primary{background:linear-gradient(115deg,#f7bfd3 0%,#f0d2e4 28%,#d6c3f1 53%,#efd58f 78%,#f0b8cc 100%)!important;border-color:#e2b767!important;color:#513541!important;box-shadow:0 14px 35px rgba(194,116,147,.20)!important}
+.premiumPreview .shareBtn{background:linear-gradient(120deg,#f7f1ff,#fff8fb)!important;border-color:#d8c9ef!important}
+
+/* iPad portrait/landscape: give the actual print more screen and keep controls bright */
+@media(min-width:761px) and (max-width:1180px){
+  .premiumPreview{grid-template-columns:minmax(0,1.15fr) minmax(350px,.85fr)!important}
+  .premiumPreview .photoPane{padding:44px 22px 38px!important}
+  .premiumPreview .luxuryPrint{height:min(72vh,680px)!important;padding:20px!important}
+  .premiumPreview .actions.studio{padding:25px!important}
+  .premiumPreview .studio h2{font-size:40px!important}
+  .templateChip{min-height:64px!important}
+}
+@media(max-width:760px){
+  .premiumPreview .photoPane{height:61dvh!important;padding:42px 12px 28px!important}
+  .premiumPreview .luxuryPrint{height:54dvh!important;padding:14px!important;border-radius:13px!important}
+  .premiumPreview .photoFrame{border-width:6px!important}
+  .previewBadge{top:10px;font-size:7px;letter-spacing:1.6px;padding:7px 10px}
+  .premiumPreview .actions.studio{min-height:39dvh!important;padding:16px!important}
+  .premiumPreview .studio h2{font-size:30px!important}
+}
+@keyframes confettiDrift{from{transform:translateY(0)}to{transform:translateY(-10px)}}
+@media print{
+  .celebrationConfetti,.previewBadge,.floralCorner{display:none!important}
+  .premiumPreview .luxuryPrint{border-radius:0!important;padding:.12in!important;box-shadow:none!important}
+  .premiumPreview .photoFrame{border-width:.06in!important;border-radius:0!important}
+}
