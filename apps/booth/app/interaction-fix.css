@@ -216,3 +216,73 @@ linear-gradient(180deg,rgba(255,255,255,.30),rgba(255,249,245,.92))!important}
   .premiumPreview .luxuryPrint{border-radius:0!important;padding:.12in!important;box-shadow:none!important}
   .premiumPreview .photoFrame{border-width:.06in!important;border-radius:0!important}
 }
+
+
+/* Adaptive event themes: same booth flow, different event personality */
+.eventTypeGrid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:12px}
+.eventTypeChip{padding:11px 9px;border-radius:12px;border:1px solid #e8d8df;background:#fff;color:#6f5962;font-size:10px;font-weight:750;cursor:pointer}
+.eventTypeChip.selected{border-color:#c889a2;background:linear-gradient(145deg,#fff,#fff0f5);color:#8e5268;box-shadow:0 8px 18px rgba(178,103,132,.12)}
+.operatorPanel .input{background:#fff!important;color:#553b46!important;border-color:#e6d2da!important}
+.operatorPanel option{color:#2f2026}
+
+/* Wedding = blush / champagne */
+.theme-wedding.booth::before{background:
+radial-gradient(circle at 8% 13%,rgba(255,170,202,.68),transparent 20%),
+radial-gradient(circle at 92% 12%,rgba(184,164,244,.58),transparent 21%),
+radial-gradient(circle at 84% 86%,rgba(255,208,110,.60),transparent 23%),
+radial-gradient(circle at 12% 86%,rgba(118,218,211,.42),transparent 21%),
+linear-gradient(135deg,#fffdf9 0%,#fff3f8 38%,#f8f2ff 67%,#fff8df 100%)!important}
+
+/* Birthday = brighter confetti / candy palette */
+.theme-birthday.booth::before{background:
+radial-gradient(circle at 8% 14%,rgba(255,124,169,.72),transparent 20%),
+radial-gradient(circle at 90% 12%,rgba(116,174,255,.56),transparent 22%),
+radial-gradient(circle at 85% 85%,rgba(255,205,73,.64),transparent 23%),
+radial-gradient(circle at 14% 84%,rgba(80,218,187,.46),transparent 21%),
+linear-gradient(135deg,#fffdf8 0%,#fff0f6 34%,#eef6ff 66%,#fff7d9 100%)!important}
+.theme-birthday .welcomeParty .hero{background:linear-gradient(90deg,#df5f91,#7b74d8,#2fa7ae,#e3a127,#df5f91);-webkit-background-clip:text;background-clip:text;color:transparent!important}
+.theme-birthday .count:not([style])::before{background:conic-gradient(#ff76a8,#78a8ff,#6ed6c6,#ffd05b,#c28bf3,#ff8b63,#ff76a8)}
+.theme-birthday .premiumPreview .primary{background:linear-gradient(115deg,#ffb2cf,#d8c3ff 30%,#a8e2da 58%,#f6d577 82%,#ffb2cf)!important}
+.theme-birthday .printCrest{color:#cc4f7d!important;border-color:#e0a32a!important}
+
+/* Bar/Bat Mitzvah = jewel tones, navy, teal, silver-gold */
+.theme-mitzvah.booth::before{background:
+radial-gradient(circle at 10% 14%,rgba(76,120,210,.30),transparent 21%),
+radial-gradient(circle at 91% 13%,rgba(35,176,176,.30),transparent 22%),
+radial-gradient(circle at 85% 84%,rgba(232,190,84,.38),transparent 24%),
+radial-gradient(circle at 15% 83%,rgba(130,111,214,.26),transparent 22%),
+linear-gradient(135deg,#fbfdff 0%,#eef5ff 36%,#eefbfa 67%,#fff9e8 100%)!important}
+.theme-mitzvah .welcomeParty .hero{background:linear-gradient(90deg,#305ca8,#287e85,#b58a2e,#6a58ad,#305ca8);-webkit-background-clip:text;background-clip:text;color:transparent!important}
+.theme-mitzvah .experienceCard.featured{border-color:rgba(72,114,173,.24)!important}
+.theme-mitzvah .count:not([style])::before{background:conic-gradient(#315da8,#37a6a6,#d9b24e,#7863c4,#7db4e8,#315da8)}
+.theme-mitzvah .premiumPreview{background:linear-gradient(135deg,#f8fbff,#edf7ff 45%,#f1fbf9 72%,#fff8e8)!important}
+.theme-mitzvah .premiumPreview .primary{background:linear-gradient(115deg,#b9d2ff,#a9dfda 38%,#ead18a 75%,#c8bdf0)!important}
+
+/* Graduation = school-spirit feel without assuming school colors */
+.theme-graduation.booth::before{background:
+radial-gradient(circle at 10% 14%,rgba(67,94,156,.30),transparent 22%),
+radial-gradient(circle at 90% 13%,rgba(229,181,68,.36),transparent 22%),
+radial-gradient(circle at 86% 85%,rgba(126,89,168,.23),transparent 23%),
+linear-gradient(135deg,#fbfcff 0%,#f1f4fb 44%,#fff8e7 100%)!important}
+.theme-graduation .welcomeParty .hero{background:linear-gradient(90deg,#394f84,#8c68a8,#c8952d,#394f84);-webkit-background-clip:text;background-clip:text;color:transparent!important}
+.theme-graduation .count:not([style])::before{background:conic-gradient(#40588f,#c8952d,#7d65a4,#8aa5d7,#40588f)}
+.theme-graduation .premiumPreview .primary{background:linear-gradient(115deg,#c8d6f4,#ead49b 50%,#d0c3e4)!important}
+
+/* Corporate = clean modern neutral */
+.theme-corporate.booth::before{background:
+radial-gradient(circle at 12% 15%,rgba(91,144,196,.24),transparent 22%),
+radial-gradient(circle at 88% 16%,rgba(102,180,163,.20),transparent 22%),
+linear-gradient(135deg,#fbfdff 0%,#f4f8fb 48%,#f5fbf8 100%)!important}
+.theme-corporate .welcomeParty .hero{background:linear-gradient(90deg,#385b78,#4c7f76,#6c7884,#385b78);-webkit-background-clip:text;background-clip:text;color:transparent!important}
+.theme-corporate .count:not([style])::before{background:conic-gradient(#5b84a7,#69a99d,#a7b4bf,#5b84a7)}
+.theme-corporate .premiumPreview .primary{background:linear-gradient(115deg,#d6e6f2,#d8eee8 55%,#e7ecef)!important}
+
+/* Other = flexible celebration spectrum */
+.theme-other.booth::before{background:
+radial-gradient(circle at 9% 15%,rgba(246,161,195,.50),transparent 21%),
+radial-gradient(circle at 90% 13%,rgba(170,158,235,.44),transparent 22%),
+radial-gradient(circle at 83% 85%,rgba(245,201,102,.48),transparent 23%),
+radial-gradient(circle at 14% 84%,rgba(106,207,201,.34),transparent 22%),
+linear-gradient(135deg,#fffdf9,#fff4f8 40%,#f5f3ff 69%,#fff9e8)!important}
+
+@media(max-width:760px){.eventTypeGrid{grid-template-columns:repeat(2,1fr)}}
