@@ -469,3 +469,65 @@ linear-gradient(135deg,#fffdf9,#fff4f8 46%,#fff9e7);color:#4d3440;font-family:In
   .premiumPreview .actions.studio{height:auto!important;min-height:48dvh!important;overflow:visible!important;padding-bottom:calc(80px + env(safe-area-inset-bottom))!important}
   .eventCustomizer{margin-top:2px!important}
 }
+
+
+/* True event-specific animated celebration scenes on keepsake preview */
+.eventScene{position:absolute;z-index:1;inset:0;overflow:hidden;pointer-events:none}
+.eventScene .decor{position:absolute;display:block;will-change:transform,opacity}
+.eventScene .d1{left:5%;top:12%}.eventScene .d2{left:15%;top:70%}.eventScene .d3{left:34%;top:5%}.eventScene .d4{left:46%;top:82%}.eventScene .d5{right:36%;top:9%}.eventScene .d6{right:16%;top:73%}.eventScene .d7{right:6%;top:18%}.eventScene .d8{right:8%;top:56%}
+
+/* Wedding: petals, flowers, paired rings, shimmer */
+.scene-wedding .decor{width:18px;height:28px;border-radius:70% 25% 70% 25%;background:linear-gradient(145deg,#f7c7d8,#fff2f7);box-shadow:0 8px 20px rgba(181,107,137,.16);opacity:.76;animation:weddingPetal 6.8s ease-in-out infinite}
+.scene-wedding .d2,.scene-wedding .d6{width:22px;height:22px;border-radius:50%;background:radial-gradient(circle,#fff 0 22%,#f3c7d6 23% 34%,transparent 35%),radial-gradient(circle at 30% 70%,#fff 0 14%,transparent 15%),radial-gradient(circle at 70% 30%,#f2d896 0 13%,transparent 14%);animation:weddingBloom 5.5s ease-in-out infinite}
+.scene-wedding .d4,.scene-wedding .d7{width:38px;height:24px;background:none;border:3px solid rgba(217,177,91,.78);border-radius:50%;box-shadow:14px 2px 0 -3px transparent,14px 2px 0 0 rgba(217,177,91,.65);animation:weddingRings 5.2s ease-in-out infinite}
+.scene-wedding .d3,.scene-wedding .d5{width:10px;height:10px;background:#fff7d7;clip-path:polygon(50% 0,60% 40%,100% 50%,60% 60%,50% 100%,40% 60%,0 50%,40% 40%);filter:drop-shadow(0 0 8px rgba(255,232,167,.9));animation:weddingSpark 2.4s ease-in-out infinite}
+.scene-wedding .d2{animation-delay:-1.2s}.scene-wedding .d4{animation-delay:-2s}.scene-wedding .d6{animation-delay:-3.1s}.scene-wedding .d7{animation-delay:-.8s}.scene-wedding .d8{animation-delay:-4s}
+
+/* Birthday: obvious balloons with strings + confetti */
+.scene-birthday .decor{width:42px;height:54px;border-radius:50% 50% 48% 48%;background:linear-gradient(145deg,#ff7fae,#ffb7cf);box-shadow:inset -8px -8px 0 rgba(255,255,255,.16),0 12px 28px rgba(125,74,99,.12);animation:balloonFloat 7s ease-in-out infinite}
+.scene-birthday .decor::before{content:"";position:absolute;left:50%;bottom:-6px;transform:translateX(-50%);border-left:5px solid transparent;border-right:5px solid transparent;border-top:7px solid currentColor;color:inherit}
+.scene-birthday .decor::after{content:"";position:absolute;left:50%;top:100%;width:1px;height:70px;background:linear-gradient(#94717f,transparent);transform-origin:top}
+.scene-birthday .d2,.scene-birthday .d6{background:linear-gradient(145deg,#7da6ff,#bcd0ff)}.scene-birthday .d3,.scene-birthday .d8{background:linear-gradient(145deg,#ffd35f,#ffe9a6)}.scene-birthday .d4{background:linear-gradient(145deg,#7bd7ca,#b9eee7)}.scene-birthday .d5{background:linear-gradient(145deg,#b58eea,#dfc8ff)}.scene-birthday .d7{background:linear-gradient(145deg,#ff966c,#ffc0a7)}
+.scene-birthday .d2{animation-delay:-1.6s}.scene-birthday .d3{animation-delay:-3.4s}.scene-birthday .d4{animation-delay:-2.2s}.scene-birthday .d5{animation-delay:-4.7s}.scene-birthday .d6{animation-delay:-.9s}.scene-birthday .d7{animation-delay:-5.4s}.scene-birthday .d8{animation-delay:-2.8s}
+
+/* Mitzvah: premium stars and jewel-tone sparkle bursts */
+.scene-mitzvah .decor{width:18px;height:18px;background:linear-gradient(145deg,#315ea8,#51aaa7);clip-path:polygon(50% 0,61% 36%,100% 50%,61% 64%,50% 100%,39% 64%,0 50%,39% 36%);filter:drop-shadow(0 0 10px rgba(60,122,180,.25));animation:mitzvahStar 4.5s ease-in-out infinite}
+.scene-mitzvah .d2,.scene-mitzvah .d6{width:34px;height:34px;background:none;border:2px solid rgba(213,179,80,.82);clip-path:polygon(50% 0,61% 36%,100% 50%,61% 64%,50% 100%,39% 64%,0 50%,39% 36%);animation:mitzvahSpin 8s linear infinite}
+.scene-mitzvah .d3,.scene-mitzvah .d7{background:#d5b451}.scene-mitzvah .d4,.scene-mitzvah .d8{background:#7562bf}
+
+/* Graduation: caps + confetti accents */
+.scene-graduation .decor{width:42px;height:18px;background:#425b92;transform:rotate(12deg);clip-path:polygon(50% 0,100% 45%,50% 100%,0 45%);box-shadow:0 8px 18px rgba(62,79,129,.14);animation:gradCap 6s ease-in-out infinite}
+.scene-graduation .decor::after{content:"";position:absolute;right:4px;top:9px;width:1px;height:36px;background:#d2a544;box-shadow:0 30px 0 1px #d2a544}
+.scene-graduation .d2,.scene-graduation .d4,.scene-graduation .d6,.scene-graduation .d8{width:9px;height:20px;border-radius:3px;background:linear-gradient(#d8ac44,#7b68a7);clip-path:none;animation:gradConfetti 4.8s ease-in-out infinite}
+
+/* Corporate: tasteful light ribbons only */
+.scene-corporate{opacity:.55}
+.scene-corporate .decor{width:120px;height:2px;background:linear-gradient(90deg,transparent,#6f95ae,#78aa9e,transparent);border-radius:999px;animation:corpSweep 6s ease-in-out infinite}
+.scene-corporate .d2,.scene-corporate .d4,.scene-corporate .d6,.scene-corporate .d8{width:8px;height:8px;border-radius:50%;background:#87a7b8;box-shadow:0 0 14px rgba(99,148,167,.32);animation:corpPulse 3.2s ease-in-out infinite}
+
+/* Other celebration: mixed sparkle/confetti */
+.scene-other .decor{width:10px;height:22px;border-radius:3px;background:linear-gradient(#f08fb7,#a795e4);animation:genericConfetti 5.5s ease-in-out infinite}
+.scene-other .d2,.scene-other .d6{background:linear-gradient(#f0c34f,#ffd979);transform:rotate(35deg)}.scene-other .d3,.scene-other .d7{background:linear-gradient(#73cec5,#a8e7df);transform:rotate(-28deg)}.scene-other .d4,.scene-other .d8{width:12px;height:12px;border-radius:50%;background:#b89de8}
+
+@keyframes weddingPetal{0%,100%{transform:translate3d(0,0,0) rotate(0);opacity:.45}50%{transform:translate3d(18px,-26px,0) rotate(26deg);opacity:.9}}
+@keyframes weddingBloom{0%,100%{transform:scale(.86) rotate(-4deg);opacity:.55}50%{transform:scale(1.08) rotate(4deg);opacity:.95}}
+@keyframes weddingRings{0%,100%{transform:translateY(0) rotate(-8deg);opacity:.55}50%{transform:translateY(-18px) rotate(6deg);opacity:.9}}
+@keyframes weddingSpark{0%,100%{transform:scale(.55) rotate(0);opacity:.25}50%{transform:scale(1.35) rotate(45deg);opacity:1}}
+@keyframes balloonFloat{0%,100%{transform:translate3d(0,10px,0) rotate(-3deg)}50%{transform:translate3d(12px,-42px,0) rotate(4deg)}}
+@keyframes mitzvahStar{0%,100%{transform:scale(.7) rotate(0);opacity:.35}50%{transform:scale(1.25) rotate(45deg);opacity:1}}
+@keyframes mitzvahSpin{from{transform:rotate(0)}to{transform:rotate(360deg)}}
+@keyframes gradCap{0%,100%{transform:translateY(8px) rotate(-8deg)}50%{transform:translateY(-28px) rotate(10deg)}}
+@keyframes gradConfetti{0%,100%{transform:translateY(0) rotate(0);opacity:.35}50%{transform:translateY(-34px) rotate(180deg);opacity:1}}
+@keyframes corpSweep{0%,100%{transform:translateX(-25px);opacity:.15}50%{transform:translateX(25px);opacity:.65}}
+@keyframes corpPulse{0%,100%{transform:scale(.7);opacity:.2}50%{transform:scale(1.3);opacity:.8}}
+@keyframes genericConfetti{0%,100%{transform:translateY(0) rotate(0);opacity:.25}50%{transform:translateY(-32px) rotate(160deg);opacity:.9}}
+
+@media(max-width:760px){
+  .eventScene .decor{transform:scale(.72)}
+  .scene-birthday .decor{width:30px;height:39px}
+  .scene-corporate .decor{width:82px}
+}
+@media(prefers-reduced-motion:reduce){
+  .eventScene .decor{animation-duration:.01ms!important;animation-iteration-count:1!important}
+}
+@media print{.eventScene{display:none!important}}
