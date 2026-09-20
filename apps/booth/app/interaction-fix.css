@@ -25,3 +25,53 @@
 @media print{.photoPane .luxuryPrint{padding:.12in!important;transform:none!important;border-radius:0!important;box-shadow:none!important;print-color-adjust:exact!important;-webkit-print-color-adjust:exact!important}.photoPane .luxuryPrint::before{inset:.07in!important}.photoPane .luxuryPrint::after{inset:.11in!important}.photoFrame{height:4.55in!important}.printText{height:1.27in!important;padding:.03in .12in!important}.printCrest{width:.27in;height:.27in;font-size:.13in}.printText strong{font-size:.25in!important}.printDivider{font-size:.055in;margin:.025in 0}.printText small{font-size:.055in!important}.topOrnament{top:.06in!important}}
 
 @media(prefers-reduced-motion:reduce){.count:not([style]),.count:not([style])::before,.count:not([style])::after,.captureTop strong,.captureTop div,.booth:has(.count:not([style]))::after,.booth:has(.count:not([style])) .camera,.premiumPreview .photoPane::before,.premiumPreview .photoPane::after{animation-duration:.01ms!important;animation-iteration-count:1!important}}
+
+
+/* Event-night polish + iPad install */
+.welcomeParty{overflow:visible}
+.welcomeParty .partyLights{position:absolute;z-index:-1;inset:-8vh -7vw;pointer-events:none;opacity:.8;background:
+radial-gradient(circle at 8% 22%,#ff9fc4 0 7px,transparent 8px),
+radial-gradient(circle at 19% 74%,#7edbd6 0 6px,transparent 7px),
+radial-gradient(circle at 30% 12%,#f3c75f 0 5px,transparent 6px),
+radial-gradient(circle at 69% 12%,#b8a4f0 0 7px,transparent 8px),
+radial-gradient(circle at 84% 68%,#ffbd87 0 6px,transparent 7px),
+radial-gradient(circle at 94% 26%,#f08fb8 0 5px,transparent 6px);
+filter:drop-shadow(0 0 16px rgba(255,176,207,.45));animation:partyLightsFloat 6s ease-in-out infinite alternate}
+.welcomeParty .hero{background:linear-gradient(90deg,#7e4b65 0%,#c47796 28%,#a77bc5 53%,#c99531 78%,#8d5770 100%);-webkit-background-clip:text;background-clip:text;color:transparent!important;text-shadow:none!important}
+.installIpad{margin:17px auto 0;padding:11px 18px;border-radius:999px;border:1px solid rgba(190,126,151,.35);background:rgba(255,255,255,.78);color:#85546a;font-size:10px;font-weight:800;letter-spacing:1.4px;text-transform:uppercase;box-shadow:0 8px 26px rgba(158,93,120,.11);cursor:pointer;backdrop-filter:blur(12px)}
+.installIpad:active{transform:scale(.98)}.installIpad:disabled{opacity:.72;cursor:default}
+.experienceCard.featured{overflow:hidden}
+.experienceCard.featured::before{content:"";position:absolute;inset:0;pointer-events:none;background:linear-gradient(110deg,transparent 0 35%,rgba(255,255,255,.72) 48%,transparent 61%);transform:translateX(-120%);animation:cardShine 5.4s ease-in-out infinite}
+.experienceCard.featured:nth-child(2)::before{animation-delay:.7s}.experienceCard.featured:nth-child(3)::before{animation-delay:1.4s}
+
+/* Make the physical keepsake read like a designed wedding print, not a plain photo box. */
+.premiumPreview .luxuryPrint{background-image:radial-gradient(circle at 8% 7%,rgba(244,181,204,.28),transparent 18%),radial-gradient(circle at 92% 8%,rgba(195,180,242,.24),transparent 19%),radial-gradient(circle at 90% 94%,rgba(237,196,102,.24),transparent 20%),radial-gradient(circle at 8% 92%,rgba(133,213,207,.16),transparent 18%)!important}
+.premiumPreview .luxuryPrint::before{box-shadow:inset 0 0 0 3px rgba(255,255,255,.78),inset 0 0 0 5px rgba(211,163,80,.22)!important}
+.premiumPreview .luxuryPrint::after{inset:14px!important;background:
+radial-gradient(ellipse at 0 0,rgba(238,166,192,.72) 0 6px,transparent 7px),
+radial-gradient(ellipse at 100% 0,rgba(190,174,239,.68) 0 6px,transparent 7px),
+radial-gradient(ellipse at 0 100%,rgba(143,213,207,.60) 0 6px,transparent 7px),
+radial-gradient(ellipse at 100% 100%,rgba(229,187,91,.70) 0 6px,transparent 7px),
+linear-gradient(90deg,rgba(213,164,78,.72),rgba(239,176,199,.62),rgba(188,173,235,.60),rgba(139,211,205,.56),rgba(213,164,78,.72)) top/100% 2px no-repeat,
+linear-gradient(90deg,rgba(213,164,78,.72),rgba(239,176,199,.62),rgba(188,173,235,.60),rgba(139,211,205,.56),rgba(213,164,78,.72)) bottom/100% 2px no-repeat!important}
+.premiumPreview .photoFrame{border:6px solid rgba(255,255,255,.92)!important;outline:1px solid rgba(195,145,71,.48);box-shadow:0 10px 34px rgba(102,59,79,.12),0 0 0 3px rgba(255,235,242,.55)!important}
+.premiumPreview .printText{background:linear-gradient(180deg,rgba(255,255,255,.32),rgba(255,247,249,.74));border-top:1px solid rgba(209,166,94,.24)}
+.printCrest{box-shadow:0 0 0 5px rgba(255,255,255,.65),0 5px 18px rgba(158,92,116,.10)}
+.printTagline{display:block;margin-top:5px;color:#b1788e;font-size:6px;font-weight:800;letter-spacing:2.3px;text-transform:uppercase}
+.template-blush .printTagline{color:#bd6d8d}.template-champagne .printTagline{color:#9b742f}
+.template-blush::after{filter:saturate(1.16) hue-rotate(-7deg)}.template-champagne::after{filter:sepia(.16) saturate(1.1)}
+.templateChip{min-height:58px}.templateChip.selected{transform:translateY(-1px);box-shadow:0 10px 26px rgba(188,111,140,.16),0 0 0 2px rgba(255,255,255,.9) inset}
+
+/* Native-feeling install sheet for iPad Safari. */
+.installPanel{position:absolute;z-index:80;inset:0;display:grid;place-items:center;padding:24px;background:rgba(77,42,59,.30);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px)}
+.installCard{width:min(92vw,520px);max-height:90dvh;overflow:auto;text-align:center;padding:30px 28px 24px;border-radius:28px;color:#4c303c;background:linear-gradient(145deg,#fffdf9,#fff0f6 54%,#fff8df);border:1px solid rgba(203,146,166,.32);box-shadow:0 30px 100px rgba(85,43,62,.28),inset 0 1px rgba(255,255,255,.98)}
+.installIcon{width:76px;height:76px;border-radius:22px;display:grid;place-items:center;margin:0 auto 18px;font:italic 38px Georgia,serif;color:#fff;background:linear-gradient(145deg,#ef9fbd,#b99ce5 52%,#dfb04e);box-shadow:0 14px 35px rgba(181,103,139,.25),inset 0 0 0 1px rgba(255,255,255,.75)}
+.installCard h2{font:400 clamp(30px,5vw,42px) Georgia,serif;margin:9px 0 8px;color:#51323f}.installCard>p{color:#806570;font-size:13px;line-height:1.55;margin:0 auto 18px;max-width:400px}
+.installSteps{display:grid;gap:9px;text-align:left;margin:18px 0}.installSteps>div{display:grid;grid-template-columns:38px 1fr;gap:11px;align-items:center;padding:11px 13px;border-radius:15px;background:rgba(255,255,255,.75);border:1px solid rgba(212,168,183,.27)}
+.installSteps b{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;background:linear-gradient(145deg,#f8c6d8,#edd89b);color:#6e4657}.installSteps span{font-size:12px;line-height:1.4;color:#684d58}
+.installNote{padding:10px 12px;border-radius:12px;background:#fff8df;color:#8b6b33;font-size:10px;line-height:1.45;border:1px solid #ead69d;margin-bottom:6px}
+
+@keyframes partyLightsFloat{from{transform:translate3d(-1%,0,0) rotate(-1deg)}to{transform:translate3d(1%,-9px,0) rotate(1deg)}}
+@keyframes cardShine{0%,72%{transform:translateX(-120%)}88%,100%{transform:translateX(120%)}}
+@media(max-width:760px){.installIpad{margin-top:12px}.installCard{padding:24px 18px 18px;border-radius:24px}.installSteps{gap:7px}.installSteps>div{padding:9px 10px}.printTagline{font-size:5px;letter-spacing:1.7px}}
+@media print{.printTagline{font-size:.045in!important;margin-top:.025in!important}.installPanel,.installIpad,.partyLights{display:none!important}}
