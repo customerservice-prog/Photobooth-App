@@ -286,3 +286,105 @@ radial-gradient(circle at 14% 84%,rgba(106,207,201,.34),transparent 22%),
 linear-gradient(135deg,#fffdf9,#fff4f8 40%,#f5f3ff 69%,#fff9e8)!important}
 
 @media(max-width:760px){.eventTypeGrid{grid-template-columns:repeat(2,1fr)}}
+
+
+/* PREMIUM EVENT EXPERIENCE — personalization should feel worth a full-service booth rental */
+.eventMonogram{width:106px!important;height:106px!important;font-size:34px!important;font-style:normal!important;font-weight:500!important;letter-spacing:-1px!important;position:relative}
+.eventMonogram::after{content:"";position:absolute;inset:8px;border:1px solid rgba(213,168,91,.46);border-radius:50%;pointer-events:none}
+.eventWelcome{font-family:Georgia,serif!important;font-style:italic;font-size:clamp(17px,2vw,23px)!important;color:#6f5360!important}
+.eventRibbon{display:flex;align-items:center;justify-content:center;gap:14px;margin:12px auto 0;color:#9a6379;font-size:9px;font-weight:800;letter-spacing:2.7px;text-transform:uppercase}
+.eventRibbon span{color:#cf9e45;font-size:12px}
+.experienceGrid{margin-top:24px!important}
+.experienceCard.featured{min-height:164px!important;border-radius:22px!important;padding:21px!important}
+.experienceCard strong{font-size:24px!important}.experienceCard small{font-size:10.5px!important}.experienceCard em{font-size:8px!important}
+.experienceIcon{width:43px!important;height:43px!important;font-size:22px!important}
+
+/* Final reveal gets showroom treatment instead of looking like an admin preview. */
+.previewBadge{font-size:9.5px!important;padding:10px 18px!important;background:rgba(255,255,255,.95)!important;border-color:rgba(205,151,173,.38)!important;box-shadow:0 10px 32px rgba(112,67,87,.12)!important}
+.premiumPreview .photoPane{perspective:1200px}
+.premiumPreview .luxuryPrint{animation:keepsakeReveal .72s cubic-bezier(.16,1,.3,1) both;transform-origin:50% 58%!important}
+.premiumPreview .luxuryPrint:hover{transform:translateY(-3px) rotateX(.4deg)!important}
+.premiumPreview .printText strong{font-family:Georgia,serif!important;font-style:italic!important;font-weight:400!important}
+.printCrest{min-width:42px!important;padding:0 6px;width:auto!important;border-radius:999px!important;font-style:normal!important;font-family:Georgia,serif!important;font-size:14px!important;letter-spacing:.5px!important}
+.templateChip small{display:block;margin-top:4px;color:#a28791;font-size:6.5px;letter-spacing:1.2px;text-transform:uppercase}
+.templateChip.selected small{color:#8f5b70}
+
+/* WEDDING PRINT PACKS */
+.theme-wedding .template-ivory{background:
+radial-gradient(circle at 10% 6%,rgba(244,193,211,.25),transparent 18%),
+radial-gradient(circle at 90% 7%,rgba(229,205,156,.24),transparent 18%),
+linear-gradient(155deg,#fffef9,#fff9f1)!important}
+.theme-wedding .template-ivory::after{background:
+radial-gradient(ellipse at 0 0,rgba(213,157,181,.78) 0 6px,transparent 7px),
+radial-gradient(ellipse at 100% 0,rgba(213,157,181,.78) 0 6px,transparent 7px),
+radial-gradient(ellipse at 0 100%,rgba(214,174,95,.72) 0 6px,transparent 7px),
+radial-gradient(ellipse at 100% 100%,rgba(214,174,95,.72) 0 6px,transparent 7px),
+linear-gradient(90deg,#d8b46c,#edcbd8,#d8b46c) top/100% 2px no-repeat,
+linear-gradient(90deg,#d8b46c,#edcbd8,#d8b46c) bottom/100% 2px no-repeat!important}
+.theme-wedding .template-blush{background:linear-gradient(155deg,#fff9fb,#efd3df 62%,#d6b0c1)!important;color:#5d3445}
+.theme-wedding .template-blush::before{border-color:#b67991!important;box-shadow:inset 0 0 0 5px rgba(255,255,255,.65),inset 0 0 0 7px rgba(153,86,111,.12)!important}
+.theme-wedding .template-champagne{background:linear-gradient(145deg,#fffdf5,#f0dfb2 58%,#ddbf73)!important}
+.theme-wedding .template-champagne::before{border-color:#af812d!important}
+
+/* BIRTHDAY PRINT PACKS */
+.theme-birthday .template-ivory{background:
+radial-gradient(circle at 8% 8%,#ffd3e2 0 5px,transparent 6px),
+radial-gradient(circle at 92% 11%,#b8d2ff 0 5px,transparent 6px),
+radial-gradient(circle at 87% 91%,#ffe078 0 5px,transparent 6px),
+radial-gradient(circle at 11% 88%,#9fe1d8 0 5px,transparent 6px),
+linear-gradient(145deg,#fff,#fff7fb)!important}
+.theme-birthday .template-ivory::after{background:
+linear-gradient(90deg,#ff7fae,#8ca7ff,#79d8c9,#ffd25f,#c49af3,#ff7fae) top/100% 4px no-repeat,
+linear-gradient(90deg,#ff7fae,#8ca7ff,#79d8c9,#ffd25f,#c49af3,#ff7fae) bottom/100% 4px no-repeat!important}
+.theme-birthday .template-blush{background:linear-gradient(145deg,#fff0f8,#f5dbff 45%,#dcecff 100%)!important}
+.theme-birthday .template-blush::after{background:repeating-conic-gradient(from 15deg,rgba(255,255,255,.0) 0 12deg,rgba(255,215,91,.45) 13deg 14deg,rgba(255,255,255,0) 15deg 28deg)!important}
+.theme-birthday .template-champagne{background:linear-gradient(145deg,#fff9dc,#ffe5a1 45%,#ffbf93 100%)!important}
+
+/* MITZVAH PRINT PACKS */
+.theme-mitzvah .template-ivory{background:linear-gradient(150deg,#fbfdff,#eef5ff 52%,#f8fbff)!important}
+.theme-mitzvah .template-ivory::before{border-color:#4b78bd!important}
+.theme-mitzvah .template-ivory::after{background:
+linear-gradient(90deg,#315ea8,#36a4a6,#d6b653,#315ea8) top/100% 3px no-repeat,
+linear-gradient(90deg,#315ea8,#36a4a6,#d6b653,#315ea8) bottom/100% 3px no-repeat!important}
+.theme-mitzvah .template-blush{background:linear-gradient(145deg,#16284c,#234f69 53%,#216c69)!important}
+.theme-mitzvah .template-blush .printText{background:linear-gradient(180deg,rgba(255,255,255,.06),rgba(255,255,255,.12))!important;color:#fff!important}
+.theme-mitzvah .template-blush .printText strong,.theme-mitzvah .template-blush .printText small,.theme-mitzvah .template-blush .printTagline{color:#fff!important}
+.theme-mitzvah .template-blush .printCrest{background:#203d64!important;color:#f3d989!important;border-color:#d5b65b!important}
+.theme-mitzvah .template-champagne{background:linear-gradient(145deg,#fffdf1,#e8d49a 50%,#c9a650)!important}
+
+/* GRADUATION PRINT PACKS */
+.theme-graduation .template-ivory{background:linear-gradient(145deg,#fbfcff,#eef2f9)!important}
+.theme-graduation .template-ivory::after{background:
+linear-gradient(90deg,#394f84,#c99a35,#394f84) top/100% 3px no-repeat,
+linear-gradient(90deg,#394f84,#c99a35,#394f84) bottom/100% 3px no-repeat!important}
+.theme-graduation .template-blush{background:linear-gradient(145deg,#eef2fa,#d9d1ef 48%,#f7e4a9)!important}
+.theme-graduation .template-champagne{background:linear-gradient(145deg,#fff9df,#e8c86d 52%,#ba8831)!important}
+
+/* CORPORATE PRINT PACKS */
+.theme-corporate .template-ivory{background:linear-gradient(145deg,#fff,#f3f7fa)!important}
+.theme-corporate .template-ivory::after{background:
+linear-gradient(90deg,#5d7f9b,#86a89f,#5d7f9b) top/100% 2px no-repeat,
+linear-gradient(90deg,#5d7f9b,#86a89f,#5d7f9b) bottom/100% 2px no-repeat!important}
+.theme-corporate .template-blush{background:linear-gradient(145deg,#f8fbfd,#e6f2ef 50%,#dfe8f0)!important}
+.theme-corporate .template-champagne{background:linear-gradient(145deg,#f9fbfc,#e4e9ec 55%,#d0d8dd)!important}
+
+/* GENERAL CELEBRATION PRINT PACKS */
+.theme-other .template-ivory{background:linear-gradient(145deg,#fffefb,#fff5f8)!important}
+.theme-other .template-blush{background:linear-gradient(145deg,#fff0f7,#eee5ff 52%,#dff7f3)!important}
+.theme-other .template-champagne{background:linear-gradient(145deg,#fff9dd,#f6df9d 53%,#edbd7f)!important}
+
+/* Event-specific little details on the finished card */
+.theme-mitzvah .floralCorner{color:#346aa8!important;text-shadow:12px 5px 0 #d2b24f,4px 13px 0 #3f9898!important}
+.theme-birthday .floralCorner{color:#ef6d9f!important;text-shadow:12px 5px 0 #f2bd45,4px 13px 0 #79a5ef!important}
+.theme-graduation .floralCorner{color:#475f95!important;text-shadow:12px 5px 0 #d4a43d,4px 13px 0 #8d75ad!important}
+.theme-corporate .floralCorner{display:none!important}
+.theme-corporate .printCrest{border-radius:10px!important;background:#f3f7fa!important;color:#506d83!important;border-color:#9fb1be!important}
+.theme-corporate .printText strong{font-style:normal!important;font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif!important;font-weight:650!important}
+
+@keyframes keepsakeReveal{0%{opacity:0;transform:translateY(34px) scale(.92) rotateX(8deg);filter:blur(8px)}60%{opacity:1;transform:translateY(-4px) scale(1.015) rotateX(-1deg);filter:blur(0)}100%{opacity:1;transform:translateY(0) scale(1) rotateX(0)}}
+@media(max-width:760px){
+  .eventMonogram{width:86px!important;height:86px!important;font-size:28px!important}
+  .eventRibbon{font-size:7px;letter-spacing:1.8px;gap:8px}
+  .experienceCard.featured{min-height:100px!important}
+  .premiumPreview .luxuryPrint{animation:none}
+}
