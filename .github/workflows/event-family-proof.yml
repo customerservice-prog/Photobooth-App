@@ -1,0 +1,39 @@
+name: Coded event family proof
+on:
+  push:
+    branches: [build/all-event-template-families]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  proof:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: apps/booth
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install --no-audit --no-fund
+      - run: npm install --no-save playwright@1.55.0
+      - run: |
+          npx playwright install --with-deps chromium webkit > browser-install.log 2>&1
+          npm run test:delivery > unit-tests.log 2>&1
+          npm run build > next-build.log 2>&1
+          npm run start > next-server.log 2>&1 &
+          node scripts/event-family-proof.mjs
+      - name: Retain test evidence and source, no credentials
+        if: always()
+        run: |
+          mkdir -p family-proof
+          cp unit-tests.log next-build.log next-server.log family-proof/ 2>/dev/null || true
+          tar --exclude=node_modules --exclude=.next --exclude=proof-output --exclude=family-proof --exclude=package-lock.json --exclude='*.log' --exclude='.env*' -czf family-proof/booth-source.tgz app public tests scripts package.json
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: coded-event-family-proof
+          path: apps/booth/family-proof/
+          retention-days: 7
