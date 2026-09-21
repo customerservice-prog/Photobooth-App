@@ -1,0 +1,41 @@
+name: Event template collections
+on:
+  push:
+    branches: [build/event-template-collections]
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - name: Export tracked application source for verification
+        run: git archive --format=tar HEAD apps/booth .github/workflows > booth-source.tar
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: booth-source
+          path: booth-source.tar
+          retention-days: 1
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        if: hashFiles('apps/booth/scripts/collections-proof.mjs') != ''
+        with:
+          node-version: '22'
+      - name: Build and exercise all coded template families
+        if: hashFiles('apps/booth/scripts/collections-proof.mjs') != ''
+        working-directory: apps/booth
+        run: |
+          mkdir -p proof-output
+          npm install --no-audit --no-fund
+          npm install --no-save playwright@1.55.0
+          npx playwright install --with-deps chromium webkit > proof-output/browser-install.log 2>&1
+          npm run test:delivery > proof-output/unit-tests.log 2>&1
+          npm run build > proof-output/build.log 2>&1
+          npm run start > proof-output/server.log 2>&1 &
+          node scripts/collections-proof.mjs
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always() && hashFiles('apps/booth/proof-output/*') != ''
+        with:
+          name: collection-proofs
+          path: apps/booth/proof-output/
+          retention-days: 7
