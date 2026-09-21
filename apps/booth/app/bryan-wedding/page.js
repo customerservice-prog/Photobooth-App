@@ -1,5 +1,12 @@
 'use client';
 import {useEffect} from 'react';
 const CFG='friendly-booth-event-v1';
-const event={title:'Bryan Wedding',subtitle:'A Wedding Celebration',date:'September 19, 2026'};
-export default function BryanWeddingLauncher(){useEffect(()=>{try{localStorage.setItem(CFG,JSON.stringify(event))}catch{}const t=setTimeout(()=>window.location.replace('/'),250);return()=>clearTimeout(t)},[]);return <main style={{minHeight:'100dvh',display:'grid',placeItems:'center',background:'radial-gradient(circle at 50% 35%,#2d2518,#080807 45%,#050505)',color:'#fff',fontFamily:'Inter,system-ui,sans-serif',textAlign:'center',padding:24}}><section><div style={{width:86,height:86,border:'1px solid #c9a963',borderRadius:'50%',display:'grid',placeItems:'center',margin:'0 auto 22px',fontFamily:'Georgia,serif',fontStyle:'italic',fontSize:38,color:'#e0c17b'}}>F</div><div style={{fontSize:9,letterSpacing:4,textTransform:'uppercase',color:'#c9a963'}}>Friendly Party Rental Presents</div><h1 style={{fontFamily:'Georgia,serif',fontWeight:400,fontSize:'clamp(48px,9vw,86px)',lineHeight:.95,margin:'14px 0'}}>Bryan Wedding</h1><p style={{color:'#aaa59b',margin:0}}>Loading the September 19 wedding experience…</p></section></main>}
+const event={title:'Bryan Wedding',subtitle:'A Wedding Celebration',date:'September 19, 2026',type:'wedding'};
+export default function BryanWeddingLauncher(){
+  useEffect(()=>{
+    // Home Screen starts here. Reopening must not erase the customer's saved names or event type.
+    try{const saved=JSON.parse(localStorage.getItem(CFG)||'null');if(!saved)localStorage.setItem(CFG,JSON.stringify(event));else if(!saved.type&&saved.title==='Bryan Wedding')localStorage.setItem(CFG,JSON.stringify({...saved,type:'wedding'}))}catch{}
+    window.location.replace('/');
+  },[]);
+  return <main className="booth"><section className="screen"><div className="kicker">Friendly Party Rental</div><h1 className="hero">Opening your booth.</h1><p className="sub">Your saved event details will be kept.</p></section></main>;
+}
