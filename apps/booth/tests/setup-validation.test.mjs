@@ -1,0 +1,14 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {finalizeEventSetup,switchEventDraft} from '../app/lib/event-config.mjs';
+const date='September 21, 2026';
+const wedding={type:'wedding',title:'Previous names',date,details:{partner1:'Alex',partner2:'Jordan'},defaultTemplate:'champagne'};
+test('every save recomposes the title from the current fields',()=>{const next=finalizeEventSetup({...wedding,details:{partner1:'Morgan',partner2:'Jordan'}});assert.equal(next.title,'Morgan & Jordan');assert.equal(next.defaultTemplate,'champagne');assert.equal(next.setupComplete,true);});
+test('returning to the same occasion cannot bypass missing partner validation',()=>{const draft=switchEventDraft({...wedding,details:{partner1:'',partner2:'Jordan'}},'wedding');assert.throws(()=>finalizeEventSetup(draft),/Enter both names/);});
+test('whitespace-only names are rejected after normalization',()=>assert.throws(()=>finalizeEventSetup({...wedding,details:{partner1:'   ',partner2:'Jordan'}}),/Enter both names/));
+for(const type of ['wedding','birthday','mitzvah','graduation','corporate','other'])test(type+' rejects blank initial setup even without edits',()=>assert.throws(()=>finalizeEventSetup({type,title:'Generic event',date,details:{}}),/Enter/));
+for(const [type,details] of Object.entries({wedding:{partner1:'Alex',partner2:'Jordan'},birthday:{honoree:'Taylor',age:'30'},mitzvah:{honoree:'Sam',mitzvahType:'Bat Mitzvah'},graduation:{graduate:'Morgan',classYear:'2026'},corporate:{eventName:'Annual gala'},other:{eventName:'Family reunion'}}))test(type+' saves complete event details without mutating the draft',()=>{const draft={type,date,details};const before=JSON.stringify(draft);const saved=finalizeEventSetup(draft);assert.equal(saved.type,type);assert.equal(saved.setupComplete,true);assert.equal(saved.defaultTemplate,'ivory');assert.equal(JSON.stringify(draft),before);assert.equal(saved.eventProfiles[type].title,saved.title);});
+test('blank date is rejected regardless of whether the form was edited',()=>assert.throws(()=>finalizeEventSetup({...wedding,date:'  '}),/Add the event date/));
+test('invalid birthday age is rejected on every save',()=>assert.throws(()=>finalizeEventSetup({type:'birthday',date,details:{honoree:'Taylor',age:'3x'}}),/Age/));
+test('four-digit graduation year is enforced on every save',()=>assert.throws(()=>finalizeEventSetup({type:'graduation',date,details:{graduate:'Morgan',classYear:'26'}}),/four-digit/));
+test('unrecognized default template is normalized',()=>assert.equal(finalizeEventSetup({...wedding,defaultTemplate:'not-a-template'}).defaultTemplate,'ivory'));

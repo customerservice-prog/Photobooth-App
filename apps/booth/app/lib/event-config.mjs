@@ -33,3 +33,19 @@ export function normalizeEventConfig(cfg){
  if(type!=='wedding'&&cfg.title==='Bryan Wedding'&&!cfg.details?.[primary])return switchEventDraft({...cfg,type:'wedding'},type);
  return {...cfg,type};
 }
+
+// Run validation on every Save, including after Back / choosing the same occasion.
+// Dirty flags only control preview presentation; they must never bypass required fields.
+export function finalizeEventSetup(draft){
+ const next=composeEventConfig(draft,{...draft.details,date:draft.date}),d=next.details;
+ const complete=next.type==='wedding'?!!(d.partner1&&d.partner2):
+  ['birthday','mitzvah'].includes(next.type)?!!d.honoree:
+  next.type==='graduation'?!!d.graduate:
+  next.type==='corporate'?!!(d.company||d.eventName):!!d.eventName;
+ if(!complete)throw new Error(next.type==='wedding'?
+  'Enter both names so every keepsake has the right couple.':
+  'Enter the event name or person’s name above.');
+ if(!next.date)throw new Error('Add the event date.');
+ return {...next,setupComplete:true,defaultTemplate:
+  ['ivory','blush','champagne'].includes(draft.defaultTemplate)?draft.defaultTemplate:'ivory'};
+}
