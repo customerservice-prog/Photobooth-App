@@ -21,15 +21,14 @@ for(const engine of [chromium,webkit]){
    await recover(p,event,fixture);const collection=meta.events.find(e=>e.eventType===event);
    assert.equal(await p.locator('.ksSelect').count(),3);
    for(let i=0;i<3;i++){
-    const t=collection.templates[i];assert.equal(await p.locator('.ksSelect svg').nth(i).getAttribute('data-template-id'),t.id);
-    await p.locator('.ksSelect').nth(i).click();assert.equal(await p.locator('.ksSelect').nth(i).getAttribute('aria-pressed'),'true');assert.equal(await p.locator('.ksPrintOnly svg').getAttribute('data-template-id'),t.id);
+    const t=collection.templates[i];assert.equal(await p.locator('.ksSelect .designPrint > svg').nth(i).getAttribute('data-template-id'),t.id);
+    await p.locator('.ksSelect').nth(i).click();assert.equal(await p.locator('.ksSelect').nth(i).getAttribute('aria-pressed'),'true');assert.equal(await p.locator('.ksPrintOnly .designPrint > svg').getAttribute('data-template-id'),t.id);
     const info=await saveJpeg(p,`${out}/${engine.name()}-${event}-${i}.jpg`);report.exports.push({browser:engine.name(),event,id:t.id,...info});
     if(engine===chromium){await p.emulateMedia({media:'print'});const buf=await p.pdf({path:`${out}/print-${t.id}.pdf`,preferCSSPageSize:true,printBackground:true});const raw=buf.toString('latin1');assert.match(raw,/\/MediaBox\s*\[\s*0\s+0\s+288\s+432\s*\]/);assert.equal((raw.match(/\/Type\s*\/Page\b/g)||[]).length,1);report.printProofs.push({id:t.id,pages:1,points:[288,432]});await p.emulateMedia({media:'screen'});}
     await checkpoint();
    }
    await p.screenshot({path:`${out}/${engine.name()}-${event}-gallery.png`});
    const boxes=await p.locator('.ksGallery [data-text-role="name"]').evaluateAll(nodes=>nodes.map(n=>{const b=n.getBBox();return {x:b.x,y:b.y,right:b.x+b.width,bottom:b.y+b.height};}));assert.equal(boxes.length,3);for(const b of boxes)assert(b.x>=45&&b.right<=1155&&b.y>=1375&&b.bottom<=1617,JSON.stringify({event,b}));
-   // Validate actual setup fields, save behavior and matching canonical default ID.
    await p.getByRole('button',{name:'Event setup',exact:true}).click();await p.getByRole('button',{name:/Personalize this event/}).click();
    for(const [name,value]of Object.entries(fixture.details)){const field=p.locator(`[name="${name}"]`);if(await field.count()){if((await field.evaluate(e=>e.tagName))==='SELECT')await field.selectOption(value);else await field.fill(value);}}
    await p.locator('[name="default-design"][value="champagne"]').check();await p.getByRole('button',{name:/Save event & continue/}).click();await p.locator('.ksGallery').waitFor();
@@ -37,11 +36,10 @@ for(const engine of [chromium,webkit]){
    if(event==='wedding'){
     for(const viewport of [{width:1180,height:820},{width:1024,height:768},{width:820,height:1180},{width:768,height:1024},{width:1366,height:1024},{width:390,height:844}]){await p.setViewportSize(viewport);const b=await p.locator('.ksDock').boundingBox();assert(b.y>=0&&b.y+b.height<=viewport.height+1);assert(await p.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));report.viewports.push({browser:engine.name(),viewport,dockVisible:true});await p.screenshot({path:`${out}/${engine.name()}-viewport-${viewport.width}.png`});}
     await p.setViewportSize({width:1180,height:820});
-    // Actual on-click print wiring, with system print UI stubbed (not a Canon claim).
     await p.evaluate(()=>{window.__printed=0;window.print=()=>{window.__printed++;setTimeout(()=>dispatchEvent(new Event('afterprint')),50);};});await p.getByRole('button',{name:'Print Keepsake',exact:true}).click();await p.getByRole('button',{name:'Print Keepsake',exact:true}).waitFor();assert.equal(await p.evaluate(()=>window.__printed),1);report.actions.push({browser:engine.name(),printCallback:true});
     await p.getByRole('button',{name:/Photo adjustments/}).click();await p.getByRole('button',{name:'Black & white',exact:true}).click();await p.getByLabel('Show the whole photo').check();await p.getByRole('button',{name:'Apply & return',exact:true}).click();assert(await p.locator('.ksPrintOnly svg [data-guest-photo]').evaluate(e=>e.getAttribute('preserveAspectRatio').includes('meet')));await saveJpeg(p,`${out}/${engine.name()}-wedding-whole-photo-bw.jpg`);
     await p.getByRole('button',{name:'Help with the booth',exact:true}).click();await p.getByRole('button',{name:'Back to my photo',exact:true}).click();assert.equal(await p.locator('.ksGallery').count(),1);
-    await p.getByRole('button',{name:/^Done/}).click();await p.getByRole('button',{name:'Take a Photo',exact:true}).waitFor({timeout:9000});report.actions.push({browser:engine.name(),doneReset:true,helpPreservesPhoto:true});
+    await p.getByRole('button',{name:/^Done/}).click();await p.getByRole('button',{name:/^Take a Photo/}).waitFor({timeout:9000});report.actions.push({browser:engine.name(),doneReset:true,helpPreservesPhoto:true});
    }
    assert.deepEqual(report.errors,[]);await checkpoint();
   }catch(e){report.failure={browser:engine.name(),event,error:e.message};await p.screenshot({path:`${out}/${engine.name()}-${event}-FAIL.png`}).catch(()=>{});await checkpoint();throw e;}finally{await p.close();}
