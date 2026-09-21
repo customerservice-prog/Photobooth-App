@@ -1,0 +1,33 @@
+name: Live template deployment check
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'apps/booth/app/lib/templates/**'
+      - 'apps/booth/app/api/template-catalog/**'
+      - '.github/workflows/live-template-check.yml'
+permissions:
+  contents: read
+jobs:
+  http-check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 7
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '22'
+      - name: Wait for the actual Railway HTTP deployment
+        working-directory: apps/booth
+        run: |
+          for attempt in $(seq 1 20); do
+            if node scripts/verify-live-templates.mjs; then exit 0; fi
+            sleep 12
+          done
+          exit 1
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: live-template-http
+          path: apps/booth/proof-output/live-http-verification.json
+          retention-days: 7

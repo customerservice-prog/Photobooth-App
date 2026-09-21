@@ -1,19 +1,9 @@
-// One public API shared by the gallery, setup previews, finished JPEG and print output.
-// Sample image boards are NOT application assets or substitute templates.
-import {renderKeepsake as renderWeddingBirthday} from './keepsake-atelier-base.mjs';
-import {renderMitzvah} from './templates/mitzvah.mjs';
-import {renderGraduation} from './templates/graduation.mjs';
-import {renderCorporate} from './templates/corporate.mjs';
-import {renderCelebration} from './templates/celebration.mjs';
-import {getDesign} from './template-registry.mjs';
-import {applySvgPhotoFinish} from './svg-photo-finish.mjs';
-export {getDesigns,getDesign,TEMPLATE_FAMILIES} from './template-registry.mjs';
+// One immutable compatibility API for both generations of saved event/template settings.
 export {EVENT_LABELS,eventCopy,fitText} from './keepsake-model.mjs';
-const renderers={wedding:renderWeddingBirthday,birthday:renderWeddingBirthday,mitzvah:renderMitzvah,graduation:renderGraduation,corporate:renderCorporate,other:renderCelebration};
-export function renderKeepsake(input={}){
- const cfg=input.cfg&&typeof input.cfg==='object'?input.cfg:{};
- const spec=getDesign(cfg.type,input.template),safe={...input,cfg:{...cfg,type:spec.family},template:spec.id};
- const svg=renderers[spec.family](safe,spec);
- const identified=['wedding','birthday'].includes(spec.family)?svg.replace('data-collection="atelier"',`data-collection="event-families" data-template-key="${spec.key}"`):svg;
- return applySvgPhotoFinish(identified,input.filter,input.id);
-}
+export {renderTemplateSvg as renderKeepsake} from './templates/render.mjs';
+import {EVENT_LABELS} from './keepsake-model.mjs';
+import {getTemplatesForEvent,resolveTemplate,normalizeEventType} from './templates/registry.mjs';
+export const TEMPLATE_FAMILIES=Object.freeze(Object.fromEntries(Object.keys(EVENT_LABELS).map(type=>{const canonical=getTemplatesForEvent(type);return [type,Object.freeze({type,fields:canonical[0].supportedFields,templates:Object.freeze(canonical.map(t=>Object.freeze({...t,templateId:t.id,id:t.legacyId})))}];})));
+const descriptors=new Map(Object.values(TEMPLATE_FAMILIES).flatMap(f=>f.templates).map(t=>[t.templateId,t]));
+export function getDesigns(type='other'){return TEMPLATE_FAMILIES[normalizeEventType(type)].templates;}
+export function getDesign(type,id){return descriptors.get(resolveTemplate(type,id).id);}

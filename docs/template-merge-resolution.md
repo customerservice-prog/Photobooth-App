@@ -1,0 +1,9 @@
+# Merge resolution with concurrent main changes
+
+Main advanced from cf3679a to 0be8e0c during PR #5's browser proof. The PR was not force-merged over it. The resolution includes every main-added file, regression test and workflow, preserves the legacy family/composition keys as aliases, exposes immutable descriptors expected by both API generations, and applies main's native SVG photo-finish fix at the final shared render boundary. The whole-photo arched geometry helper is also used, retaining the arch while fitting the entire photograph inside it.
+
+The structured six-module registry remains the selected composition source for the guest gallery. Its new twelve authored designs, centralized setup schema, brand tagline and host-caption corrections are retained. The earlier main family renderer modules remain in the repository rather than being silently deleted. Previously saved ivory/blush/champagne slots and family/layout keys resolve alongside canonical IDs to the correct event. Wedding/Birthday source artwork remains unchanged; only canonical metadata and the SVG-only photo finish correction are layered at output.
+
+All main-added tests are retained unchanged. The PR's own source-preservation test now compares against the approved artwork plus the retained SVG finish transformation, rather than incorrectly insisting the filter fix be removed. The fit-mode regression now requires a retained arch and an inner contained-image box; it no longer expects the earlier rectangle-only approach.
+
+The merged candidate must pass the complete suite and the actual Next application collection workflow again before PR merge. This document records the resolution, not a prediction that tests or deployment pass. Physical iPad, Canon output and real SMS/email receipt remain separate, unverified hardware/provider checks.
