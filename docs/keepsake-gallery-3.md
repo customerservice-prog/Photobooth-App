@@ -1,0 +1,18 @@
+# Keepsake Gallery 3
+
+The guest preview is now a full-width three-design gallery with a fixed Print / Save-Send / Retake / Done dock. The old long configuration sidebar is removed. Event setup is a separate two-step dialog available from the preview and from /setup before taking photos. Saving commits the event details and a default design for subsequent guests. Cancel leaves saved details unchanged. Photo adjustments are a separate dialog, with an actual-photo finish preview and fill/whole-photo framing that applies to both SVG printing and JPEG output. Help is in a dialog and does not navigate away from an active photograph.
+
+The eighteen existing named collections now have larger type, less dead space, more photo area and revised stationary botanical, editorial, evening, birthday, milestone, graduation and corporate artwork. No decorative animation or new photo-upload provider was introduced. The shared renderer still feeds PrintCard, /designs, /print-test and the framed JPEG export.
+
+Two behavioral defects reproduced in the full portrait-flow browser harness were fixed: the idle effect could cancel the newly scheduled Done/thank-you reset, and the invisible bottom-right operator hotspot could cover the new guest action bar. Done now has a separate effect-owned timer. The hotspot is not rendered in any photo/media preview. Print busy state ends on afterprint, with a two-minute recovery fallback; this is dialog lifecycle handling, NOT confirmation that a printer produced paper.
+
+## Executed verification and boundaries
+
+- 19 new Node regression/structure tests pass locally; existing project tests remain in place for Railway's build gate.
+- The actual new React components were transpiled and mounted using the container's installed React 18.2/Chromium. This is a sandbox harness, not the deployed Next/React18.3 page or iPad Safari. It injects the new CSS plus a subset of the current global CSS; the source renderer and component logic are executed, not static mockups.
+- Six viewport sizes: 1024x768, 1366x1024, 1180x820, 820x1180, 768x1024 and 390x844. The primary footer remains on-screen and the three-card gallery has no horizontal overflow. Event save/cancel, birthday isolation, design selection, finish/framing, dialog close, native-share callback and print callback passed without page exceptions.
+- A second harness mounted the actual Booth parent and PhotoPreview. A canvas stream simulated the camera; local storage, native sharing and window.print/afterprint were mocked. Camera-readiness/countdown/capture, saved default selection, Help, complete-JPEG share, print-dialog unlock, Done returning to welcome, next guest, Retake and three local backups passed. GIF and video paths were not exercised in that harness.
+- All 72 design/filter combinations encoded to 1200x1800 JPEG below 2 MiB. The largest tested output was 284050 bytes. A selected-design print simulation rendered as exactly one 288x432-point page, with the gallery/control text excluded. The PDF was visually inspected. This is not a Canon-driver or physical-print test.
+- Test photographs were cropped locally from the user's provided screenshot. They were not uploaded to the application repository or sent to any recipient. Screenshot examples use sample event names, not claims about the user's real wedding.
+
+No Resend/Twilio credentials, sending flags, device pairing state or delivery provider configuration is changed by this release. Real SMS/email receipt, physical iPad operation, Guided Access and Canon paper output remain separate checks. A build success alone must not be described as proof of those capabilities.
