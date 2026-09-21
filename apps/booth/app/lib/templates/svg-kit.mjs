@@ -23,10 +23,17 @@ export function begin(q){const {d,id}=q;return R(0,0,1200,1800,d.paper)+`<defs><
 export function finish(q,art){return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 1800" width="1200" height="1800" role="img" aria-label="${esc(q.d.name+' — '+q.c.title)}" data-design="${q.d.family}-${q.d.id}" data-template-key="${q.d.key}" data-layout="${q.d.layout}" data-collection="event-families"><title>${esc(q.c.title)}</title>${art}</svg>`;}
 export function photo(q,{x=125,y=350,w=950,h=1000,shape='rect',radius=0}={}){
  const clip=shape==='arch'?P(`M${x} ${y+h}V${y+w/2}a${w/2} ${w/2} 0 0 1 ${w} 0V${y+h}Z`,'white'):shape==='cut'?P(`M${x+45} ${y}H${x+w-45}l45 45v${h-90}l-45 45H${x+45}l-45-45V${y+45}Z`,'white'):R(x,y,w,h,'white','none',0,radius);
- const fit=q.cfg.photoFit==='fit'||q.photo==='/print-test.svg'?'xMidYMid meet':'xMidYMid slice';
+ const contain=q.cfg.photoFit==='fit'||q.photo==='/print-test.svg',fit=contain?'xMidYMid meet':'xMidYMid slice';
+ const box=containedPhotoBox({x,y,w,h,shape},contain);
  const fallback=R(x,y,w,h,'#d7d9d1')+P(`M${x} ${y+h}Q${x+w/2} ${y+h*.1} ${x+w} ${y+h}Z`,'#a8b5ad')+C(x+w/2,y+h*.34,w*.15,'#bbc7bc');
- const media=q.photo?`<image data-guest-photo="true" href="${esc(q.photo)}" x="${x}" y="${y}" width="${w}" height="${h}" preserveAspectRatio="${fit}" style="filter:${q.filter}"/>`:fallback;
+ const media=q.photo?`<image data-guest-photo="true" href="${esc(q.photo)}" x="${box.x}" y="${box.y}" width="${box.w}" height="${box.h}" preserveAspectRatio="${fit}" style="filter:${q.filter}"/>`:fallback;
  return `<defs><clipPath id="${q.id}-photo">${clip}</clipPath></defs><g clip-path="url(#${q.id}-photo)">${R(x,y,w,h,'#d6d5c9')}${media}</g><g fill="none" stroke="${q.gold}" stroke-width="3">${clip.replace(/fill="white"/g,'fill="none"').replace(/stroke="none"/g,'stroke="'+q.gold+'"').replace(/stroke-width="[0-9.]+"/g,'stroke-width="3"')}</g>`;
+}
+// A contained photograph must fit inside the actual arch, not just its bounding rectangle.
+export function containedPhotoBox({x,y,w,h,shape},contain){
+ if(contain&&shape==='arch')return {x:x+w*.15,y:y+w*.16,w:w*.70,h:h-w*.16};
+ if(contain&&shape==='cut')return {x:x+45,y:y+45,w:w-90,h:h-90};
+ return {x,y,w,h};
 }
 export function frame(color){return R(45,45,1110,1710,'none',color,2)+R(59,59,1082,1682,'none',color,.9);}
 export function diamond(x,y,r,color){return P(`M${x} ${y-r}l${r} ${r}-${r} ${r}-${r}-${r}Z`,'none',color,2);}
