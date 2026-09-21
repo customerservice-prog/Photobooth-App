@@ -1,0 +1,2 @@
+import {assetNotices} from '../lib/generated/atelier-assets.mjs';
+export default function TemplateLicenses(){return <main style={{height:'100dvh',overflow:'auto',padding:32}}><a href="/">Back to booth</a><h1>Template artwork acknowledgements</h1><p>Original Friendly Photo Booth compositions. No commercial seller’s template or preview image is copied.</p>{Object.entries(assetNotices).map(([key,text])=><section key={key}><h2>{key}</h2><pre style={{whiteSpace:'pre-wrap',fontSize:14,maxWidth:900,lineHeight:1.5}}>{text}</pre></section>)}</main>;}

@@ -1,82 +1,89 @@
-// One self-contained stationary composition for previews, JPEG export and the printed card.
-export const EVENT_LABELS={wedding:'Wedding',birthday:'Birthday',mitzvah:'Bar / Bat Mitzvah',graduation:'Graduation',corporate:'Corporate',other:'Other celebration'};
-const packs={
- wedding:[['Botanical Vows','Engraved florals · heirloom paper','botanical','#f7f2e8','#344339','#a18b66'],['Wedding Editorial','Full-bleed portrait · oversized names','editorial','#f8f6ee','#272d2b','#8a9484'],['Gilded Promises','Champagne foil detail · evening elegance','deco','#252c2b','#f6f0df','#beab7d']],
- birthday:[['Balloon Bouquet','Satin balloons · personalized age','balloons','#f2e5d8','#754b48','#b17b69'],['Birthday Backstage','Birthday ticket · bold typography','ticket','#e8c59b','#3c3c4d','#ae665c'],['Disco Celebration','Mirrored disco · soft lilac','disco','#e5dfeb','#504064','#a69aab']],
- mitzvah:[['Modern Mazel','Sculpted geometry · blue and gold','jewel','#e9eef0','#294c63','#b09358'],['Celebrant Spotlight','Portrait editorial · name in focus','editorial','#f7f6ed','#285160','#91aeaa'],['Golden Milestone','Teal evening frame · golden details','deco','#23494b','#f5f1dc','#c4ad78']],
- graduation:[['Varsity Honors','Class-year masthead · school spirit','varsity','#edece4','#293c53','#ac9569'],['The Next Chapter','Engraved diploma · graduate seal','diploma','#f6f0df','#3e4841','#af9064'],['Graduate Spotlight','Editorial portrait · midnight and gold','spotlight','#263244','#f6efdc','#c9b580']],
- corporate:[['Brand Editorial','Full-bleed photograph · brand masthead','editorial','#f7f7f1','#263e43','#8b9d98'],['Conference Pass','Modern event pass · split color','badge','#e3e9e2','#2b4944','#8ca9a0'],['Evening Gala','Formal black tie · champagne accents','deco','#293236','#f5f0e5','#bbab7e']],
- other:[['Botanical Gathering','Botanical letterpress · personal caption','botanical','#f3f1e7','#465b4e','#a88d70'],['The Good Times','Instant-photo keepsake · handwritten feel','polaroid','#e6e3dc','#47443f','#af8875'],['A Golden Occasion','Architectural frame · warm gold','jewel','#eee5d2','#595043','#af8e58']]
+// Stationery-quality artwork; the controls, storage and delivery flows are unchanged.
+import {rose,faces} from './generated/atelier-assets.mjs';
+export {EVENT_LABELS,eventCopy,fitText} from './keepsake-model.mjs';
+import {EVENT_LABELS,eventCopy,fitText} from './keepsake-model.mjs';
+const collections={
+ wedding:[['Rosewater Romance','Painted roses · flowing calligraphy','botanical','#f7f1e7','#655044','#b19565'],['The Vow Edit','Fashion-editorial portrait · sculpted type','editorial','#f8f4ea','#442b35','#9d7a77'],['Black-Tie Heirloom','Ornate champagne frame · calligraphic names','deco','#182c29','#f5ecd7','#c3a671']],
+ birthday:[['Champagne Birthday','Satin balloon bouquet · signature birthday seal','balloons','#f6e9dc','#824f52','#c69b60'],['Retro Party Club','Scalloped party ticket · oversized lettering','ticket','#f2d39c','#8d3d47','#aa583f'],['Midnight Disco','Faceted mirror ball · pearl and lilac','disco','#28233d','#f1e7f0','#d3bccf']],
+ mitzvah:[['Mazel Tov Atelier','Architectural blue · celebrant calligraphy','jewel','#e7edf1','#244c65','#b19663'],['The Milestone Edit','Name-first editorial · crisp portrait','editorial','#f8f6ed','#295363','#799c9c'],['Sapphire Celebration','Heirloom ornament · sapphire and champagne','deco','#162c4c','#f5ecd7','#c7ae78']],
+ graduation:[['Varsity Signature','Class-year masthead · graduate signature','varsity','#edece3','#263d5a','#b29a65'],['Honors & Heritage','Certificate engraving · laurel medallion','diploma','#f6f0e1','#4c5046','#a59065'],['The Graduate Edit','Full portrait · evening-gold masthead','spotlight','#202a3e','#f5edd7','#c7ab73']],
+ corporate:[['The Brand Edit','High-fashion company masthead · full portrait','editorial','#f7f4eb','#283f44','#8e9f98'],['Executive Invitation','Sculpted corners · event-pass typography','badge','#e3eae3','#2c514d','#89a397'],['The Gala Collection','Champagne ornament · formal invitation','deco','#212d32','#f5efde','#bfa875']],
+ other:[['Garden Soirée','Painted botanical corners · personal inscription','botanical','#f5f2e7','#476252','#a08e69'],['The Memory Edit','Instant-photo composition · calligraphic inscription','polaroid','#e7dcd4','#574d47','#a78872'],['Golden Gathering','Geometric invitation · warm champagne','jewel','#f0e8d5','#5a4c39','#ae925e']]
 };
-export function getDesigns(type='other'){return (Object.hasOwn(packs,type)?packs[type]:packs.other).map((d,i)=>({id:['ivory','blush','champagne'][i],name:d[0],description:d[1],layout:d[2],paper:d[3],ink:d[4],accent:d[5]}));}
+export function getDesigns(type='other'){return (Object.hasOwn(collections,type)?collections[type]:collections.other).map((d,i)=>({id:['ivory','blush','champagne'][i],name:d[0],description:d[1],layout:d[2],paper:d[3],ink:d[4],accent:d[5]}));}
 export function getDesign(type,id){return getDesigns(type).find(d=>d.id===id)||getDesigns(type)[0];}
-const clean=v=>String(v??'').replace(/[\u0000-\u001f]/g,' ').trim().slice(0,240);
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&apos;'}[c]));
-export function eventCopy(cfg={}){const type=Object.hasOwn(EVENT_LABELS,cfg.type)?cfg.type:'other',d=cfg.details||{};let title=clean(cfg.title)||'Your celebration',subtitle=clean(cfg.subtitle),eyebrow=EVENT_LABELS[type],seal='';
- if(type==='wedding'){if(d.partner1&&d.partner2)title=clean(d.partner1)+' & '+clean(d.partner2);eyebrow='THE WEDDING';if(d.venue)subtitle=clean(d.venue);}
- if(type==='birthday'){if(d.honoree)title=clean(d.honoree);eyebrow='HAPPY BIRTHDAY';seal=/^\d{1,3}$/.test(d.age||'')?d.age:'';if(d.theme)subtitle=clean(d.theme);}
- if(type==='mitzvah'){if(d.honoree)title=clean(d.honoree);eyebrow=clean(d.mitzvahType)||'MITZVAH CELEBRATION';if(d.hebrewName)subtitle=clean(d.hebrewName)+' · Mazel tov';}
- if(type==='graduation'){if(d.graduate)title=clean(d.graduate);eyebrow=d.classYear?'CLASS OF '+clean(d.classYear):'GRADUATION';seal=/^\d{4}$/.test(d.classYear||'')?d.classYear:'';if(d.school)subtitle=clean(d.school);}
- if(type==='corporate'){if(d.company)title=clean(d.company);eyebrow='TOGETHER, IN THE MOMENT';if(d.eventName)subtitle=clean(d.eventName);}
- return {type,title,subtitle,eyebrow,date:clean(cfg.date),seal};}
-const units=t=>[...t].reduce((a,c)=>a+(/[ilI1 .,']/u.test(c)?.3:/[MW@&]/u.test(c)?.95:/[^\u0000-\u024f]/u.test(c)?1:.59),0);
-export function fitText(value,width,size,maxLines=2){const text=clean(value);if(!text)return {lines:[],size};
- const wrap=s=>{const lines=[];let line='';for(const word of text.split(/\s+/)){const next=line?line+' '+word:word;if(line&&units(next)*s>width){lines.push(line);line=word;}else line=next;}if(line)lines.push(line);return lines;};
- let lines=wrap(size);while((lines.length>maxLines||lines.some(l=>units(l)*size>width))&&size>24){size-=2;lines=wrap(size);}if(lines.length>maxLines){if(maxLines===1)lines=[text];else lines=[lines.slice(0,-1).join(' '),lines.at(-1)];}return {lines,size};}
-function type(value,x,y,width,size,color,{lines=2,sans=false,italic=false,bold=false,spacing=0}={}){const f=fitText(value,width,size,lines);return f.lines.map((l,i)=>`<text x="${x}" y="${y+i*f.size*1.12}" text-anchor="middle" fill="${color}" font-family="${sans?'Arial, sans-serif':'Georgia, serif'}" font-size="${f.size}" font-weight="${bold?'700':'400'}" font-style="${italic?'italic':'normal'}" letter-spacing="${spacing}" ${units(l)*f.size+spacing*l.length>width?`textLength="${width}" lengthAdjust="spacingAndGlyphs"`:''}>${esc(l)}</text>`).join('');}
-const rect=(x,y,w,h,fill,stroke='none',sw=2,rx=0)=>`<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="${rx}" fill="${fill}" stroke="${stroke}" stroke-width="${sw}"/>`;
-const path=(d,stroke,sw=2,fill='none')=>`<path d="${d}" fill="${fill}" stroke="${stroke}" stroke-width="${sw}"/>`;
-// Fine engraved botanical artwork: curved leaves, peony petals and a delicate stem network.
-function botanical(x,y,scale,flip=1){const c='#81917e',rose='#b08d86';return `<g transform="translate(${x} ${y}) scale(${scale*flip} ${scale})">${path('M0 270C-35 160 20 90 0 0M-2 165C-65 120-75 60-112 40M0 108C78 50 80-15 125-55',c,3)}${[[-5,235,-35],[-8,190,18],[-49,111,-30],[-78,70,-65],[47,54,30],[76,17,60],[3,58,-30],[106,-23,30]].map(([a,b,r])=>`<g transform="translate(${a} ${b}) rotate(${r})">${path('M0 0C-32-23-34-62-6-94C20-62 28-27 0 0Z',c,1.4,'#bdc7b5')}${path('M-6-90Q3-50 0 0M-15-67 0-47M-17-42 0-24M10-60 0-42',c,1)}</g>`).join('')}<g transform="translate(-6 -22)">${[0,45,90,135,180,225,270,315].map((a,i)=>`<g transform="rotate(${a})">${path(`M0 0C${-63-i} -12 -91 -74 -38 -99C10-117 47-60 0 0Z`,rose,1.8,i%2?'#ead6cb':'#f0e1d4')}${path('M-31-88C-53-50-18-15 0 0M-44-79Q-66-48-8-9',rose,.9)}</g>`).join('')}${[0,72,144,216,288].map(a=>`<g transform="rotate(${a})">${path('M0 0C-26-7-40-43-9-53C18-60 31-23 0 0Z',rose,1.4,'#e8c9be')}</g>`).join('')}<circle r="11" fill="#ab8c63"/>${[0,60,120,180,240,300].map(a=>`<path d="M0 0V-14" transform="rotate(${a})" stroke="#fbf2dc" stroke-width="1.5"/>`).join('')}</g></g>`;}
-function balloon(x,y,s,color,id){return `<g transform="translate(${x} ${y}) scale(${s})">${path('M0 77C45 170-42 207 0 300','#a49281',2)}<ellipse rx="59" ry="78" fill="url(#${id}-${color})"/>${path('m0 73-8 14h16Z','none',0,'#b99387')}<ellipse cx="-23" cy="-27" rx="7" ry="21" transform="rotate(25 -23 -27)" fill="#fff" opacity=".35"/></g>`;}
-function ringSeal(x,y,c){return `<g transform="translate(${x} ${y})" stroke="${c}" fill="none" stroke-width="2.4"><ellipse cx="-15" cy="3" rx="20" ry="24" transform="rotate(-18)"/><ellipse cx="15" cy="3" rx="20" ry="24" transform="rotate(18)"/>${path('m-25-22 9-10 9 10m0-4 7-8 9 11',c,2)}</g>`;}
-function cap(x,y,c){return `<g transform="translate(${x} ${y})">${path('m-54 0 54-21L54 0 0 22-54 0Zm19 14v27q35 18 70 0V14M54 0v60m-5 0v14h10V60',c,3)}</g>`;}
-function mirrorBall(x,y,r,id){return `<g transform="translate(${x} ${y})">${path('M0 -'+r+'V-'+(r+70),'#7c758a',2)}<defs><clipPath id="${id}-mirror"><circle r="${r}"/></clipPath><radialGradient id="${id}-silver" cx="25%" cy="20%"><stop stop-color="#fff"/><stop offset=".5" stop-color="#d3cedb"/><stop offset="1" stop-color="#8f879e"/></radialGradient></defs><circle r="${r}" fill="url(#${id}-silver)"/><g clip-path="url(#${id}-mirror)" fill="none" stroke="#f4f3f8" stroke-width="2">${[-.72,-.38,0,.38,.72].map(f=>`<path d="M-${r} ${r*f}H${r}"/><ellipse rx="${Math.max(5,r*(1-Math.abs(f)))}" ry="${r}"/>`).join('')}</g></g>`;}
-function sparkle(x,y,s,c){return `<g transform="translate(${x} ${y})">${path(`M0-${s}Q2-2 ${s} 0Q2 2 0 ${s}Q-2 2-${s} 0Q-2-2 0-${s}Z`,c,1,c)}</g>`;}
+const clean=v=>String(v??'').normalize('NFC').replace(/[\u0000-\u001f]/g,' ').trim().slice(0,240);
+const rect=(x,y,w,h,fill,stroke='none',sw=1,rx=0)=>`<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="${rx}" fill="${fill}" stroke="${stroke}" stroke-width="${sw}"/>`;
+const path=(d,stroke='none',sw=1,fill='none')=>`<path d="${d}" fill="${fill}" stroke="${stroke}" stroke-width="${sw}"/>`;
+function measure(value,face,size,tracking=0){let pen=0,min=0,max=0;const font=faces[face],chars=[...value];for(let i=0;i<chars.length;i++){const g=font.glyphs[chars[i]];if(!g)return null;if(i)pen+=(font.kern[chars[i-1]+chars[i]]||0)*size/1000;min=Math.min(min,pen+(g.box?.x1||0)*size/1000);max=Math.max(max,pen+(g.box?.x2||g.advance)*size/1000);pen+=g.advance*size/1000+tracking;}return {width:Math.max(max,pen-tracking)-min,min};}
+// Outlined glyphs keep calligraphy identical in the preview, SVG print and JPEG export.
+function lettering(value,x,y,maxWidth,size,fill,{face='serif',tracking=0,lines=1}={}){
+ value=clean(value);if(!value)return '';const font=faces[face];let m=measure(value,face,size,tracking);
+ if(!m){const fitted=fitText(value,maxWidth,size,lines);return fitted.lines.map((s,i)=>`<text data-copy="${esc(value)}" x="${x}" y="${y+i*fitted.size*1.13}" font-family="Georgia, serif" font-size="${fitted.size}" fill="${fill}" text-anchor="middle" ${s.length*fitted.size*.6>maxWidth?`textLength="${maxWidth}" lengthAdjust="spacingAndGlyphs"`:''}>${esc(s)}</text>`).join('');}
+ const chunks=[value];if(lines>1&&m.width>maxWidth*1.22&&value.includes(' ')){const words=value.split(' ');let split=1,best=Infinity;for(let i=1;i<words.length;i++){const delta=Math.abs(measure(words.slice(0,i).join(' '),face,size,tracking).width-measure(words.slice(i).join(' '),face,size,tracking).width);if(delta<best){best=delta;split=i;}}chunks.splice(0,1,words.slice(0,split).join(' '),words.slice(split).join(' '));}
+ const scale=Math.min(1,maxWidth/Math.max(...chunks.map(s=>measure(s,face,size,tracking).width)));size*=scale;tracking*=scale;
+ return chunks.map((s,line)=>{const metrics=measure(s,face,size,tracking);let pen=x-metrics.width/2-metrics.min,art='';const chars=[...s];for(let i=0;i<chars.length;i++){const g=font.glyphs[chars[i]];if(i)pen+=(font.kern[chars[i-1]+chars[i]]||0)*size/1000;art+=`<path d="${g.path}" transform="translate(${pen.toFixed(2)} ${(y+line*size*1.10).toFixed(2)}) scale(${(size/1000).toFixed(6)})"/>`;pen+=g.advance*size/1000+tracking;}return `<g data-copy="${esc(s)}" aria-label="${esc(s)}" fill="${fill}">${art}</g>`;}).join('');
+}
+function sprig(x,y,s,rotation=0){return `<g transform="translate(${x} ${y}) rotate(${rotation}) scale(${s})"><image data-artwork="museum-rose" href="${rose}" x="0" y="0" width="436" height="637"/></g>`;}
+function flourish(x,y,s,color,flip=1){return `<g transform="translate(${x} ${y}) scale(${s*flip} ${s})" fill="none" stroke="${color}" stroke-width="2"><path d="M0 160C70 160 62 80 25 75C-3 68-7 102 18 108C60 116 112 23 74 6C46-5 39 21 57 26C87 36 100 1 151 0M0 142C55 142 45 90 18 90M91 48C160 60 122 117 91 108C62 100 81 70 106 88M21 162C55 202 116 172 112 145C106 115 75 131 85 151C95 173 130 144 172 146M152 0C180 34 158 59 138 51C121 41 137 22 153 37"/><path d="M35 69q-38-15-24-45q29-2 34 31M75 70q26-38 52-20q-5 29-40 32M15 165q-21 24-5 44q27-12 20-41M120 144q19-36 44-23q-4 28-33 31" stroke-width="1.3"/><circle cx="2" cy="160" r="3" fill="${color}"/><circle cx="152" cy="0" r="3" fill="${color}"/></g>`;}
+function ornateFrame(id,color){let a=rect(48,48,1104,1704,'none',color,2)+rect(63,63,1074,1674,'none',color,.8);for(const [x,y,sx,sy]of [[77,78,1,1],[1123,78,-1,1],[77,1722,1,-1],[1123,1722,-1,-1]])a+=`<g transform="translate(${x} ${y}) scale(${sx} ${sy})">${flourish(0,0,1,color)}</g>`;return a;}
+function laurel(x,y,s,color){return `<g transform="translate(${x} ${y}) scale(${s})">${path('M0 78C-100 65-100-37-44-75M0 78C100 65 100-37 44-75',color,2)}${[-1,1].map(side=>Array.from({length:8},(_,i)=>{const t=i/7*Math.PI*.86+Math.PI*.10,xx=side*Math.sin(t)*67,yy=70-Math.cos(t)*135;return `<path d="M${xx} ${yy}q${side*26}-25 ${side*37}-11q-10 28-${side*37} 11" fill="${color}" opacity="${.6+i*.045}"/>`}).join('')).join('')}</g>`;}
+function star(x,y,s,color){return `<g transform="translate(${x} ${y})">${path(`M0-${s}Q2-2 ${s} 0Q2 2 0 ${s}Q-2 2-${s} 0Q-2-2 0-${s}Z`,color,1,color)}</g>`;}
+function balloon(x,y,s,color,id,tilt=0){return `<g transform="translate(${x} ${y}) rotate(${tilt}) scale(${s})">${path('M0 88C35 168-38 210 4 324','#a18b77',1.8)}<ellipse rx="65" ry="86" fill="url(#${id}-${color})" stroke="#fff5" stroke-width="1.5"/><ellipse cx="-21" cy="-29" rx="17" ry="28" fill="#fff" opacity=".16" transform="rotate(20)"/>${path('m0 82-9 14h18Z','none',1,'#b18a76')}<ellipse cx="-24" cy="-38" rx="5" ry="14" fill="#fff" opacity=".5" transform="rotate(20)"/></g>`;}
+function mirror(x,y,r,id){return `<g transform="translate(${x} ${y})"><defs><clipPath id="${id}-ball"><circle r="${r}"/></clipPath><radialGradient id="${id}-chrome" cx="28%" cy="20%"><stop stop-color="#ffffff"/><stop offset=".48" stop-color="#d2c1d6"/><stop offset="1" stop-color="#73647e"/></radialGradient></defs><circle r="${r}" fill="url(#${id}-chrome)"/><g clip-path="url(#${id}-ball)">${Array.from({length:15},(_,j)=>Array.from({length:15},(_,i)=>{const a=-r+i*r*2/15,b=-r+j*r*2/15;return rect(a+1,b+1,r*2/15-3,r*2/15-3,(i*13+j*7)%5===0?'#ffffff90':'#ffffff10','#ece9f0',.7,1)}).join('')).join('')}</g></g>`;}
+function stripes(color){return `<g stroke="${color}" fill="none" opacity=".25">${Array.from({length:8},(_,i)=>path(`M${20+i*6} 50V1750M${1180-i*6} 50V1750`,color,1)).join('')}</g>`;}
+function gridAccent(color){return path('M66 360 240 104h720l174 256v930l-174 155H240L66 1290ZM85 359l163-235h704l163 235v925l-163 139H248L85 1284Z',color,2);}
 export function renderKeepsake({photo='',cfg={},monogram='',template='ivory',filter='none',id='card'}={}){
- const c=eventCopy(cfg),d=getDesign(c.type,template);id=String(id).replace(/[^a-zA-Z0-9_-]/g,'')||'card';
+ const c=eventCopy(cfg),d=getDesign(c.type,template),l=d.layout;id=String(id).replace(/[^a-zA-Z0-9_-]/g,'')||'card';
  if(!/^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+$/.test(photo)&&photo!=='/print-test.svg')photo='';
- const allowed=['none','brightness(1.08) contrast(.96) saturate(.88)','grayscale(1) contrast(1.08) brightness(1.04)','sepia(.18) saturate(.92) brightness(1.03)'];if(!allowed.includes(filter))filter='none';
- const l=d.layout,night=['deco','spotlight'].includes(l);let b={x:85,y:205,w:1030,h:1055,rx:0},headY=120,headSize=36,nameY=1430,nameSize=112,captionY=1620;
- if(l==='botanical'){b={x:126,y:126,w:948,h:1115,rx:0};headY=1340;nameY=1470;nameSize=112;}
- if(l==='editorial'){b={x:0,y:0,w:1200,h:1310,rx:0};headY=1376;nameY=1510;nameSize=113;}
- if(l==='deco'){b={x:105,y:200,w:990,h:1060,rx:0};headY=135;nameY=1460;}
- if(l==='balloons'){b={x:120,y:255,w:960,h:1010,rx:26};headY=164;nameY=1445;}
- if(l==='ticket'){b={x:120,y:290,w:960,h:1000,rx:0};headY=155;nameY=1460;}
- if(l==='disco'){b={x:94,y:250,w:1012,h:1010,rx:8};headY=170;nameY=1460;nameSize=124;}
- if(l==='jewel'){b={x:130,y:230,w:940,h:1060,rx:0};headY=145;nameY=1470;}
- if(l==='varsity'){b={x:90,y:275,w:1020,h:1030,rx:0};headY=168;headSize=64;nameY=1465;}
- if(l==='diploma'){b={x:115,y:235,w:970,h:1040,rx:0};headY=160;nameY=1455;}
- if(l==='spotlight'){b={x:65,y:230,w:1070,h:1090,rx:0};headY=155;nameY=1490;}
- if(l==='badge'){b={x:100,y:200,w:1000,h:1100,rx:18};headY=125;nameY=1480;}
- if(l==='polaroid'){b={x:75,y:95,w:1050,h:1160,rx:0};headY=0;nameY=1430;nameSize=122;}
- const {x,y,w,h,rx}=b,cut=l==='jewel';const shape=cut?path(`M${x+45} ${y}H${x+w-45}l45 45v${h-90}l-45 45H${x+45}l-45-45V${y+45}Z`,'none',0,'#fff'):rect(x,y,w,h,'#fff','none',0,rx);
- let art=rect(0,0,1200,1800,d.paper)+`<defs><clipPath id="${id}-photo">${shape}</clipPath>${[['pink','#f4d9cb','#be8f86'],['gold','#f3e1b6','#b69563'],['sage','#d6dec9','#9ba78f']].map(([n,a,b])=>`<radialGradient id="${id}-${n}" cx="25%" cy="20%"><stop stop-color="${a}"/><stop offset="1" stop-color="${b}"/></radialGradient>`).join('')}</defs>`;
- if(l==='polaroid')art+=rect(30,35,1140,1730,'#faf8f0');
- if(l==='badge')art+=rect(0,1340,1200,460,d.ink);
- if(l==='varsity')art+=rect(0,0,1200,225,d.ink);
- if(l==='ticket')art+=path('M50 50H1150V1300Q1080 1335 1150 1370V1750H50V1370Q120 1335 50 1300Z',d.ink,3)+path('M85 1338H1115',d.accent,2);
+ if(!['none','brightness(1.08) contrast(.96) saturate(.88)','grayscale(1) contrast(1.08) brightness(1.04)','sepia(.18) saturate(.92) brightness(1.03)'].includes(filter))filter='none';
+ const gold=`url(#${id}-foil)`,night=['deco','disco','spotlight'].includes(l);let b={x:110,y:235,w:980,h:1030,rx:0},nameY=1515,nameSize=150,nameFace='script',headY=151,capY=1655;
+ if(l==='botanical'){b={x:145,y:145,w:910,h:1080,rx:0};headY=1320;nameY=1510;nameSize=169;}
+ if(l==='editorial'){b={x:50,y:290,w:1100,h:1065,rx:0};headY=180;nameY=1560;nameFace=c.type==='wedding'?'script':'serif';nameSize=151;}
+ if(l==='deco'){b={x:125,y:285,w:950,h:1000,rx:0};headY=208;nameY=1480;nameSize=159;}
+ if(l==='balloons'){b={x:156,y:330,w:888,h:915,rx:34};headY=213;nameY=1480;nameSize=181;}
+ if(l==='ticket'){b={x:120,y:345,w:960,h:885,rx:24};headY=210;nameFace='serif';nameY=1480;nameSize=181;}
+ if(l==='disco'){b={x:112,y:315,w:976,h:955,rx:0};headY=193;nameY=1500;nameSize=174;}
+ if(l==='jewel'){b={x:125,y:290,w:950,h:975,rx:0};headY=185;nameY=1495;nameSize=155;}
+ if(l==='varsity'){b={x:75,y:350,w:1050,h:960,rx:0};headY=224;nameY=1510;nameSize=164;}
+ if(l==='diploma'){b={x:130,y:220,w:940,h:980,rx:0};headY=160;nameY=1495;nameSize=160;}
+ if(l==='spotlight'){b={x:50,y:285,w:1100,h:1050,rx:0};headY=175;nameY=1540;nameSize=154;}
+ if(l==='badge'){b={x:94,y:205,w:1012,h:1070,rx:22};headY=134;nameY=1475;nameSize=141;nameFace='serif';}
+ if(l==='polaroid'){b={x:85,y:100,w:1030,h:1170,rx:0};headY=1350;nameY=1510;nameSize=168;}
+ const {x,y,w,h,rx}=b,shape=rect(x,y,w,h,'#fff','none',0,rx);
+ let art=rect(0,0,1200,1800,d.paper)+`<defs><clipPath id="${id}-photo">${shape}</clipPath><linearGradient id="${id}-foil" x1="0" x2="1" y1=".1" y2=".9"><stop stop-color="#9f7d40"/><stop offset=".28" stop-color="#ddc48b"/><stop offset=".47" stop-color="#fff0ba"/><stop offset=".65" stop-color="#b39555"/><stop offset="1" stop-color="#d8bd81"/></linearGradient>${[['pink','#f8decf','#c79087'],['gold','#fff1c6','#b39556'],['sage','#e1e5d2','#a5ae8d']].map(([n,a,b])=>`<radialGradient id="${id}-${n}" cx="28%" cy="18%"><stop stop-color="${a}"/><stop offset=".6" stop-color="${a}"/><stop offset="1" stop-color="${b}"/></radialGradient>`).join('')}</defs>`;
+ if(l==='botanical')art+=rect(42,42,1116,1716,'none','#cdbfa3',1.4)+rect(x-18,y-18,w+36,h+36,'none',gold,3);
+ if(l==='deco')art+=ornateFrame(id,gold);
+ if(l==='ticket')art+=path('M66 58H1134V1260Q1060 1320 1134 1380V1742H66V1380Q140 1320 66 1260Z',d.ink,4)+path('M104 1320H1096',d.ink,2)+stripes(d.accent);
+ if(l==='jewel')art+=gridAccent(gold);
+ if(l==='varsity')art+=rect(0,0,1200,302,d.ink)+stripes(d.accent);
+ if(l==='diploma')art+=rect(43,43,1114,1714,'none',gold,3)+rect(57,57,1086,1686,'none',d.accent,1)+laurel(600,1360,.65,d.accent);
+ if(l==='badge')art+=rect(0,1320,1200,480,d.ink)+rect(533,42,134,21,d.ink,'none',0,10)+rect(65,170,1070,1134,'none',d.accent,1.5,35);
+ if(l==='polaroid')art+=rect(40,40,1120,1720,'#faf6ee');
+ if(l==='disco'){art+=mirror(975,115,225,id)+mirror(62,1460,140,id);for(const [sx,sy,ss]of [[111,120,28],[930,1420,18],[1085,1600,25],[245,148,12]])art+=star(sx,sy,ss,gold);}
  const fit=photo==='/print-test.svg'||cfg.photoFit==='fit'?'xMidYMid meet':'xMidYMid slice';
- art+=`<g clip-path="url(#${id}-photo)">${rect(x,y,w,h,night?'#373c3b':'#e1e1d7')}${photo?`<image href="${esc(photo)}" x="${x}" y="${y}" width="${w}" height="${h}" preserveAspectRatio="${fit}" style="filter:${filter}"/>`:`${rect(x,y,w,h,'#d3d5ce')}${path(`M${x} ${y+h}Q${x+w/2} ${y+h*.22} ${x+w} ${y+h}Z`,'none',0,'#a7b2aa')}<circle cx="${x+w/2}" cy="${y+h*.35}" r="${w*.17}" fill="#bbc4bc"/>${type('YOUR PHOTO',x+w/2,y+h*.88,w*.8,26,'#52635b',{sans:true,lines:1,spacing:5})}`}</g>`;
- if(l!=='editorial')art+=rect(x-9,y-9,w+18,h+18,'none',d.accent,1.5,rx);
- if(l==='botanical')art+=rect(36,36,1128,1728,'none','#cebea3',1.5)+botanical(68,270,.78)+botanical(1140,1195,.65,-1);
- if(l==='deco')art+=path('M52 248V52H248M952 52h196v196M52 1552v196h196m704 0h196v-196M69 214V69h145m772 0h145v145M69 1586v145h145m772 0h145v-145',d.accent,2)+(c.type==='wedding'?ringSeal(600,1330,d.accent):sparkle(600,1328,18,d.accent));
- if(l==='balloons')art+=balloon(84,277,.85,'pink',id)+balloon(1135,1170,.72,'gold',id)+balloon(1134,225,.6,'sage',id);
- if(l==='disco')art+=mirrorBall(1080,151,73,id)+sparkle(90,1365,20,d.accent)+sparkle(1086,1460,18,d.accent);
- if(l==='jewel')art+=path('M80 240 210 90h780l130 150v1090l-130 90H210l-130-90Z',d.accent,2)+path('M50 300V200L200 60h800l150 140v100',d.accent,1);
- if(l==='diploma')art+=rect(40,40,1120,1720,'none',d.accent,3)+rect(53,53,1094,1694,'none',d.accent,1)+cap(600,1335,d.accent);
- if(l==='spotlight')art+=path('M0 0H1200V32H0ZM0 1320 1200 1270v17L0 1337Z','none',0,d.accent);
- if(l==='varsity')art+=path('M35 0v1800m1130-1800v1800',d.accent,3)+cap(600,1350,d.accent);
- if(l==='badge')art+=rect(525,35,150,19,d.ink,'none',0,9)+rect(40,82,1120,1250,'none',d.accent,2,28);
- if(l==='polaroid')art+=path('M87 40h210v67H87Z','none',0,'#d2c6ae')+path('M945 1710h160',d.accent,2);
- const headerColor=l==='varsity'?d.paper:d.ink,footerColor=l==='badge'?d.paper:d.ink;
- if(headY)art+=type((c.type==='corporate'&&l==='editorial'?c.title:c.eyebrow).toUpperCase(),600,headY,l==='disco'?850:1000,headSize,headerColor,{sans:true,bold:l==='varsity',lines:1,spacing:l==='varsity'?2:5});
- const nameFit=fitText(c.title,1000,nameSize,2);const baseY=nameFit.lines.length>1?nameY-18:nameY;
- art+=type(c.title,600,baseY,1000,nameFit.size,footerColor,{sans:['ticket','varsity','badge'].includes(l),bold:l==='ticket',italic:['botanical','balloons','disco','polaroid'].includes(l)});
- const nameEnd=baseY+(nameFit.lines.length-1)*nameFit.size*1.12;
- const capY=Math.max(captionY,Math.min(1655,nameEnd+65));
- art+=type(c.subtitle,600,capY,990,35,footerColor,{sans:true,lines:1})+type(c.date,600,1735,990,30,footerColor,{sans:true,lines:1,spacing:1.4});
- if(c.type==='birthday'&&c.seal){const ax=l==='disco'?140:1000,ay=l==='ticket'?210:1360;art+=`<circle cx="${ax}" cy="${ay}" r="64" fill="${d.ink}" stroke="${d.accent}" stroke-width="2"/>`+type(c.seal,ax,ay+23,108,62,d.paper,{sans:true,bold:true,lines:1});}
- if(l==='editorial'){art+=path('M90 1770H1110',d.accent,1);}
- return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 1800" width="1200" height="1800" role="img" aria-label="${esc(d.name+' — '+c.title)}" data-design="${c.type}-${d.id}" data-layout="${l}">${art}</svg>`;
+ const placeholder=rect(x,y,w,h,'#d9d6cd')+path(`M${x} ${y+h}Q${x+w/2} ${y+h*.15} ${x+w} ${y+h}Z`,'none',1,'#b0b6ac')+`<circle cx="${x+w/2}" cy="${y+h*.33}" r="${w*.15}" fill="#c1c6bc"/>`;
+ art+=`<g clip-path="url(#${id}-photo)">${rect(x,y,w,h,night?'#364242':'#e8e2d5')}${photo?`<image data-guest-photo="true" href="${esc(photo)}" x="${x}" y="${y}" width="${w}" height="${h}" preserveAspectRatio="${fit}" style="filter:${filter}"/>`:placeholder}</g>`;
+ if(l!=='editorial'&&l!=='polaroid')art+=rect(x-7,y-7,w+14,h+14,'none',gold,1.7,rx);
+ if(l==='botanical')art+=sprig(-99,-32,.69,-9)+sprig(1090,1204,.61,159)+path('M320 1690H880',d.accent,1);
+ if(l==='balloons'){for(const [bx,by,bs,bc,bt]of [[104,286,1.0,'pink',-13],[209,202,.9,'gold',12],[1144,1115,.83,'pink',10],[1090,251,.65,'sage',12],[55,396,.58,'sage',-14]])art+=balloon(bx,by,bs,bc,id,bt);}
+ if(l==='spotlight')art+=path('M0 46H1200M50 1380H1150',gold,3)+laurel(1095,1510,.28,gold);
+ if(l==='polaroid')art+=`<g transform="rotate(-9 190 82)">${rect(55,42,275,80,'#c2ad8fbb')}</g>`;
+ const footerInk=l==='badge'?d.paper:d.ink,headerInk=l==='varsity'?d.paper:d.ink;
+ if(l==='editorial'){
+  const masthead=c.type==='wedding'?'THE VOW EDIT':c.type==='corporate'?c.title.toUpperCase():'THE MILESTONE';
+  art+=lettering(masthead,600,headY,1070,c.type==='corporate'?126:148,headerInk,{face:'serif',tracking:2});
+  art+=lettering(c.type==='wedding'?'TOGETHER IS A BEAUTIFUL PLACE TO BE':c.eyebrow.toUpperCase(),600,248,1040,23,d.accent,{face:'sans',tracking:3});
+ }else if(l==='balloons'){art+=lettering('Happy Birthday',600,headY,710,123,d.ink,{face:'script'});}
+ else if(l==='ticket'){art+=lettering('PARTY CLUB',600,headY,870,133,d.ink,{face:'serif',tracking:4})+lettering('ONE UNFORGETTABLE NIGHT',600,277,810,25,d.ink,{face:'sans',tracking:4});}
+ else if(l==='varsity'){art+=lettering(c.eyebrow.toUpperCase(),600,headY,1030,144,headerInk,{face:'serif',tracking:2});}
+ else if(l==='disco'){art+=lettering(c.type==='birthday'?'LET’S CELEBRATE':c.eyebrow.toUpperCase(),518,headY,890,67,d.ink,{face:'serif',tracking:2});}
+ else if(l==='deco'){art+=lettering(monogram||c.title.split(' ').filter(Boolean).slice(0,2).map(w=>w[0]).join(''),600,165,210,93,gold,{face:'serif'})+lettering(c.eyebrow.toUpperCase(),600,241,730,26,d.ink,{face:'sans',tracking:5});}
+ else art+=lettering(c.eyebrow.toUpperCase(),600,headY,965,30,headerInk,{face:'sans',tracking:4});
+ if(['botanical','deco','jewel'].includes(l))art+=flourish(460,nameY-176,.29,d.accent)+flourish(740,nameY-176,.29,d.accent,-1);
+ art+=lettering(c.title,600,nameY,1010,nameSize,footerInk,{face:nameFace,lines:2});
+ art+=lettering(c.subtitle,600,capY,980,31,footerInk,{face:'sans',tracking:.65})+lettering(c.date,600,1731,980,27,footerInk,{face:'sans',tracking:1.2});
+ if(c.type==='birthday'&&c.seal){const ax=l==='ticket'?1035:l==='disco'?152:1040,ay=l==='ticket'?1394:l==='disco'?1390:1390;art+=`<circle cx="${ax}" cy="${ay}" r="72" fill="${d.ink}" stroke="${gold}" stroke-width="3"/><circle cx="${ax}" cy="${ay}" r="61" fill="none" stroke="${d.paper}" stroke-width="1"/>`+lettering(c.seal,ax,ay+24,110,79,d.paper,{face:'serif'});}
+ return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 1800" width="1200" height="1800" role="img" aria-label="${esc(d.name+' — '+c.title)}" data-design="${c.type}-${d.id}" data-layout="${l}" data-collection="atelier"><title>${esc(c.title)}</title>${art}</svg>`;
 }

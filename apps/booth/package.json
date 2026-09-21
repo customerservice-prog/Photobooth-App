@@ -1,7 +1,5 @@
 {
-  "name":"@friendly-photo-booth/booth",
-  "private":true,
-  "version":"0.1.0",
-  "scripts":{"dev":"next dev","build":"next build","start":"next start -p ${PORT:-3000}","test:delivery":"node --test tests/*.test.mjs"},
-  "dependencies":{"gifenc":"1.0.3","next":"14.2.35","react":"18.3.1","react-dom":"18.3.1","pg":"8.16.3"}
+  "name":"@friendly-photo-booth/booth","private":true,"version":"0.1.0",
+  "scripts":{"dev":"next dev","prebuild":"node scripts/prepare-atelier.mjs","build":"next build","start":"next start -p ${PORT:-3000}","pretest:delivery":"node scripts/prepare-atelier.mjs","test:delivery":"node --test tests/*.test.mjs"},
+  "dependencies":{"gifenc":"1.0.3","next":"14.2.35","react":"18.3.1","react-dom":"18.3.1","pg":"8.16.3","sharp":"0.34.4","opentype.js":"1.3.4"}
 }
