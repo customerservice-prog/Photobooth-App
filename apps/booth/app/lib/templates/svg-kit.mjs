@@ -26,7 +26,7 @@ export function photo(q,{x=125,y=350,w=950,h=1000,shape='rect',radius=0}={}){
  const fit=q.cfg.photoFit==='fit'||q.photo==='/print-test.svg'?'xMidYMid meet':'xMidYMid slice';
  const fallback=R(x,y,w,h,'#d7d9d1')+P(`M${x} ${y+h}Q${x+w/2} ${y+h*.1} ${x+w} ${y+h}Z`,'#a8b5ad')+C(x+w/2,y+h*.34,w*.15,'#bbc7bc');
  const media=q.photo?`<image data-guest-photo="true" href="${esc(q.photo)}" x="${x}" y="${y}" width="${w}" height="${h}" preserveAspectRatio="${fit}" style="filter:${q.filter}"/>`:fallback;
- return `<defs><clipPath id="${q.id}-photo">${clip}</clipPath></defs><g clip-path="url(#${q.id}-photo)">${R(x,y,w,h,'#d6d5c9')}${media}</g><g fill="none" stroke="${q.gold}" stroke-width="3">${clip.replace(/fill="white"/g,'fill="none"')}</g>`;
+ return `<defs><clipPath id="${q.id}-photo">${clip}</clipPath></defs><g clip-path="url(#${q.id}-photo)">${R(x,y,w,h,'#d6d5c9')}${media}</g><g fill="none" stroke="${q.gold}" stroke-width="3">${clip.replace(/fill="white"/g,'fill="none"').replace(/stroke="none"/g,'stroke="'+q.gold+'"').replace(/stroke-width="[0-9.]+"/g,'stroke-width="3"')}</g>`;
 }
 export function frame(color){return R(45,45,1110,1710,'none',color,2)+R(59,59,1082,1682,'none',color,.9);}
 export function diamond(x,y,r,color){return P(`M${x} ${y-r}l${r} ${r}-${r} ${r}-${r}-${r}Z`,'none',color,2);}
@@ -41,5 +41,13 @@ export function diploma(x,y,s,color,gold){return G(x,y,s,P('M-125-22Q-132-62-92-
 export function ribbon(x,y,s,color,rotate=0){return G(x,y,s,P('M0 0C38 12-24 42 12 61C48 76-12 93 24 120l17-2C3 99 66 81 29 59C-5 39 60 15 23-3Z',color),rotate);}
 export function confetti(color,secondary,count=36,seed=19){let a='',n=seed;const rand=()=>{n=(Math.imul(1664525,n)+1013904223)>>>0;return n/4294967296;};for(let i=0;i<count;i++){const left=i%2===0,x=left?25+rand()*63:1112+rand()*63,y=55+rand()*1680,r=4+rand()*8;a+=i%4===0?G(x,y,.32+rand()*.2,ribbon(0,0,1,i%3?color:secondary),rand()*100):R(x,y,r*1.1,r*2,i%3?color:secondary,'none',0,2);}return a;}
 export function dust(color,count=210,seed=47){let a='',n=seed;const rand=()=>{n=(Math.imul(1103515245,n)+12345)>>>0;return n/4294967296;};for(let i=0;i<count;i++){const t=rand(),x=i%2===0?t*580:1200-t*540,y=i%2===0?34+Math.pow(t,1.4)*210+rand()*40:1770-Math.pow(t,1.4)*200-rand()*55;a+=C(x,y,1+rand()*3,color);}return a;}
-export function marble(color,gold,side=0){let art='';for(let i=0;i<12;i++){const x=20+i*9,y=120+i*15;art+=P(`M${x}-20Q${250-i*4} 90 ${100+i*14} ${y}T${230+i*8} 345L0 290Z`,i%2?color:'none',i%3===0?gold:color,i%3===0?1.5:3);}return side?`<g transform="translate(1200 1800) rotate(180)">${art}</g>`:art;}
+export function marble(color,gold,side=0){
+ let art='';
+ for(let i=0;i<34;i++){
+  const shift=i*5.7;
+  art+=P(`M-${90+shift} -8C${118+shift} 53 ${64+shift} 70 ${93+shift} 128S${8+shift} 155 ${26+shift} 210S-${6+shift} 235 -20 327`,'none',i%7===0?gold:color,i%7===0?2.2:1.1);
+ }
+ art+=P('M-30-20C58 49 72 73 50 115S10 191-20 219L-40-20Z',color);
+ return side?`<g transform="translate(1200 1800) rotate(180)">${art}</g>`:art;
+}
 export function footer(q,{subtitle=q.c.subtitle,y=1640,color=q.d.ink,width=965}={}){return T(subtitle,600,y,width,31,color,{face:'sans'})+T(q.c.date,600,1734,980,27,color,{face:'sans',tracking:1.1});}

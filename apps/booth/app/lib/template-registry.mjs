@@ -1,7 +1,16 @@
 // Stable legacy IDs preserve saved events. Keys identify the real, distinct compositions.
 // Adding a template family must supply its own renderer; a palette is not a template.
 const IDS=['ivory','blush','champagne'];
-function family(type,fields,designs){return Object.freeze({type,fields:Object.freeze(fields),templates:Object.freeze(designs.map((d,i)=>Object.freeze({id:IDS[i],key:type+'/'+d[0],family:type,name:d[1],description:d[2],layout:d[0],paper:d[3],ink:d[4],accent:d[5],supportedFields:Object.freeze([...fields]),format:Object.freeze({width:1200,height:1800,inches:'4 × 6'})})))};}
+function family(type, fields, designs) {
+  const templates = designs.map((d, i) => Object.freeze({
+    id: IDS[i], key: type + '/' + d[0], family: type,
+    name: d[1], description: d[2], layout: d[0],
+    paper: d[3], ink: d[4], accent: d[5],
+    supportedFields: Object.freeze([...fields]),
+    format: Object.freeze({width: 1200, height: 1800, inches: '4 × 6'})
+  }));
+  return Object.freeze({type, fields: Object.freeze(fields), templates: Object.freeze(templates)});
+}
 export const TEMPLATE_FAMILIES=Object.freeze({
  wedding:family('wedding',['partner1','partner2','venue','date'],[
   ['botanical','Rosewater Romance','Painted roses · flowing calligraphy','#f7f1e7','#655044','#b19565'],

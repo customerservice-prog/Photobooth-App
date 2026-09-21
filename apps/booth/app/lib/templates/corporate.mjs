@@ -4,9 +4,9 @@ function executive(q){const {d,c,gold,monogram}=q;let a=begin(q)+frame(gold);
  a+=L(775,95,775,278,d.accent)+T(monogram,967,184,268,112,d.ink,{face:'serif'})+tiny('IN GOOD COMPANY',966,247,285,d.accent);
  a+=photo(q,{x:94,y:356,w:1012,h:1015});
  a+=tiny('LEAD · CONNECT · CREATE',600,1446,981,d.accent)+L(115,1491,1085,1491,d.accent);
- a+=name(c.title.toUpperCase(),539,1591,840,100,d.ink,{face:'serif',bounds:[1520,1660]})+T(c.subtitle,539,1690,826,30,d.ink,{face:'sans'});
+ a+=name(c.title.toUpperCase(),447,1591,680,100,d.ink,{face:'serif',bounds:[1520,1640]})+T(c.subtitle,437,1684,665,30,d.ink,{face:'sans'});
  a+=P('M957 1500 1200 1240v560H681Z',d.ink)+P('M957 1500 1200 1240','none',gold,5)+tiny('PEOPLE',1070,1585,175,d.paper)+tiny('IDEAS',1070,1627,175,d.paper)+tiny('PROGRESS',1070,1669,175,d.paper);
- a+=T(c.date,525,1744,810,25,d.ink,{face:'sans',tracking:1});return finish(q,a);}
+ a+=T(c.date,403,1734,640,25,d.ink,{face:'sans',tracking:1});return finish(q,a);}
 function gala(q){const {d,c,gold,monogram}=q;let a=begin(q)+marble('#444635',gold)+marble('#444635',gold,1);
  a+=tiny(c.title.toUpperCase(),600,137,941,d.ink)+name(c.subtitle||c.title,600,267,1010,136,gold,{face:'serif',bounds:[170,311]})+tiny('AN EVENING TO REMEMBER',600,354,940,d.ink);
  a+=photo(q,{x:100,y:418,w:1000,h:948});

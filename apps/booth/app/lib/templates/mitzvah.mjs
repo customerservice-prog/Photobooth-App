@@ -14,7 +14,16 @@ function modern(q){const {d,c,gold}=q;let a=begin(q)+marble('#365367',gold)+marb
  a+=footer(q,{y:1638});return finish(q,a);}
 function mosaic(q){const {d,c,gold}=q;let a=begin(q)+R(20,20,1160,1760,'none',d.accent,1);
  const colors=['#74405e','#a97585','#d7b3ae','#e4c6b6'];
- for(let corner=0;corner<4;corner++){let mosaic='';for(let i=0;i<8;i++){const r=270-i*16;mosaic+=P(`M0 0L${r} 0Q${r*.74} ${r*.65} 0 ${r}Z`,colors[i%4],gold,2);mosaic+=L(0,0,r*.62,r*.56,gold,2);}a+=`<g transform="translate(${corner%2?1200:0} ${corner>1?1800:0}) scale(${corner%2?-1:1} ${corner>1?-1:1})">${mosaic}</g>`;}
+ for(let corner=0;corner<4;corner++){
+  const tileId=q.id+'-mosaic-'+corner;
+  let tiles='';for(let row=0;row<4;row++)for(let col=0;col<4;col++){
+   const x=col*74,y=row*74;
+   tiles+=P(`M${x+2} ${y+2}h70l-70 70Z`,colors[(row+col)%4],gold,1.2)+P(`M${x+73} ${y+3}v70h-70Z`,colors[(row*2+col+1)%4],gold,1.2);
+  }
+  const shape='M0 0H298A298 298 0 0 1 0 298Z';
+  const mosaic=`<defs><clipPath id="${tileId}">${P(shape,'white')}</clipPath></defs><g clip-path="url(#${tileId})">${tiles}</g>${P(shape,'none',gold,3)}`;
+  a+=`<g transform="translate(${corner%2?1200:0} ${corner>1?1800:0}) scale(${corner%2?-1:1} ${corner>1?-1:1})">${mosaic}</g>`;
+ }
  a+=label('LET THE GOOD TIMES SHINE',600,139,880,d.ink)+starOfDavid(88,467,31,gold)+starOfDavid(1112,467,31,gold);
  a+=photo(q,{x:166,y:220,w:868,h:1100,shape:'arch'});
  for(const [x,y,r]of [[100,760,14],[1100,910,15],[99,1220,11],[1100,1370,11]])a+=glint(x,y,r,d.accent);
