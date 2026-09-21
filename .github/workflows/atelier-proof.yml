@@ -17,17 +17,15 @@ jobs:
         with:
           node-version: '22'
       - run: npm install --no-audit --no-fund
-      - run: npm install --no-save sharp@0.34.4 opentype.js@1.3.4 playwright@1.55.0
+      - run: npm install --no-save playwright@1.55.0
       - run: node scripts/prepare-atelier.mjs
-      - name: Test and render when implementation exists
+      - name: Real Next build and browser export proof
         run: |
-          if [ -f scripts/atelier-proof.mjs ]; then
-            npx playwright install --with-deps chromium webkit
-            npm run test:delivery
-            npm run build
-            npm run start > /tmp/booth-server.log 2>&1 &
-            node scripts/atelier-proof.mjs
-          fi
+          npx playwright install --with-deps chromium webkit > proof-output/browser-install.log 2>&1
+          npm run test:delivery > proof-output/unit-tests.log 2>&1
+          npm run build > proof-output/build.log 2>&1
+          npm run start > proof-output/server.log 2>&1 &
+          node scripts/atelier-proof.mjs
       - uses: actions/upload-artifact@v4
         if: always()
         with:
