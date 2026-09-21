@@ -1,0 +1,36 @@
+name: Atelier template proof
+on:
+  push:
+    branches: [design/keepsake-atelier]
+permissions:
+  contents: read
+jobs:
+  proof:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: apps/booth
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install --no-audit --no-fund
+      - run: npm install --no-save sharp@0.34.4 opentype.js@1.3.4 playwright@1.55.0
+      - run: node scripts/prepare-atelier.mjs
+      - name: Test and render when implementation exists
+        run: |
+          if [ -f scripts/atelier-proof.mjs ]; then
+            npx playwright install --with-deps chromium webkit
+            npm run test:delivery
+            npm run build
+            npm run start > /tmp/booth-server.log 2>&1 &
+            node scripts/atelier-proof.mjs
+          fi
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: atelier-proof
+          path: apps/booth/proof-output/
+          retention-days: 7
