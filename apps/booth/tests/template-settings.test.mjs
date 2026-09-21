@@ -1,0 +1,13 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {composeEventConfig,normalizeEventConfig,finalizeEventSetup,switchEventDraft} from '../app/lib/event-config.mjs';
+import {renderKeepsake} from '../app/lib/keepsake-designs.mjs';
+const date='September 22, 2026';
+test('canonical default selection is saved alongside old iPad slot',()=>{const c=finalizeEventSetup({type:'birthday',date,details:{honoree:'Taylor'},defaultTemplate:'birthday_disco'});assert.equal(c.defaultTemplate,'champagne');assert.equal(c.defaultTemplateId,'birthday_disco');});
+test('new radio selection wins over stale canonical default',()=>{const c=finalizeEventSetup({type:'wedding',date,details:{partner1:'Alex',partner2:'Jordan'},defaultTemplate:'blush',defaultTemplateId:'wedding_rosewater'});assert.equal(c.defaultTemplateId,'wedding_editorial');});
+test('canonical-only saved config normalizes for the existing booth',()=>assert.equal(normalizeEventConfig({type:'graduation',defaultTemplateId:'graduation_future'}).defaultTemplate,'champagne'));
+test('company tagline is saved and printed on all three corporate designs',()=>{const c=composeEventConfig({type:'corporate'},{company:'NORTH',eventName:'Annual Gala',tagline:'People make progress',date});for(const id of ['ivory','blush','champagne'])assert(renderKeepsake({cfg:c,template:id}).includes('People make progress'));});
+test('hostName alias stays compatible with existing guest of honor key',()=>{const c=composeEventConfig({type:'other'},{eventName:'Family Reunion',hostName:'The Carters',subtitle:'Together again',date});assert.equal(c.details.honoree,'The Carters');for(const id of ['ivory','blush','champagne'])assert(renderKeepsake({cfg:c,template:id}).includes('The Carters'));});
+test('birthday caption alias and mitzvah celebrant alias are accepted',()=>{assert.equal(composeEventConfig({type:'birthday'},{honoree:'Taylor',caption:'Celebrate'}).details.theme,'Celebrate');assert.equal(composeEventConfig({type:'mitzvah'},{celebrant:'Sam'}).details.honoree,'Sam');});
+test('event switching cannot carry a canonical template into another occasion',()=>{const c=switchEventDraft({type:'birthday',title:'Taylor',defaultTemplate:'champagne',defaultTemplateId:'birthday_disco'},'wedding');assert.equal(c.defaultTemplateId,'wedding_blacktie');});
+test('no date or year is invented by the renderer',()=>{const c={type:'graduation',title:'Morgan',details:{graduate:'Morgan'},date:''};const s=renderKeepsake({cfg:c,template:'graduation_future'});assert(!s.includes('2026'));});
