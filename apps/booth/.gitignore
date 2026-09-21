@@ -1,0 +1,4 @@
+# Generated during build; contains licensed asset derivatives, not authored source.
+app/lib/generated/
+# Browser proof photos, downloads and logs are test artifacts, never site assets.
+proof-output/
