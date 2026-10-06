@@ -1,4 +1,6 @@
 // Device-local, event-scoped archive. No rolling deletion and no network upload.
+// Persist byte buffers rather than Blob-backed temporary files. This also works
+// in WebKit contexts that reject direct Blob serialization into IndexedDB.
 const DB='friendly-event-photos-v1',STORE='captures';
 export function openArchive(){return new Promise((resolve,reject)=>{
  if(!globalThis.indexedDB){reject(new Error('Photo storage is unavailable on this device.'));return;}
@@ -10,23 +12,28 @@ export function openArchive(){return new Promise((resolve,reject)=>{
 });}
 async function transaction(mode,job){const db=await openArchive();try{return await new Promise((resolve,reject)=>{
  const tx=db.transaction(STORE,mode),store=tx.objectStore(STORE);let result;
- tx.oncomplete=()=>resolve(result);tx.onerror=()=>reject(tx.error||new Error('Photo storage failed.'));tx.onabort=()=>reject(tx.error||new Error('Photo storage was interrupted.'));
+ tx.oncomplete=()=>resolve(result);tx.onerror=e=>reject(e.target?.error||tx.error||new Error('Photo storage failed.'));tx.onabort=()=>reject(tx.error||new Error('Photo storage was interrupted.'));
  try{job(store,v=>{result=v;});}catch(e){tx.abort();reject(e);}
 });}finally{db.close();}}
 function jpeg(data){
  if(!/^data:image\/jpeg;base64,[A-Za-z0-9+/=]+$/.test(data||''))throw new Error('Only captured JPEG photos can be archived.');
- const bytes=atob(data.split(',')[1]);return new Blob([Uint8Array.from(bytes,c=>c.charCodeAt(0))],{type:'image/jpeg'});
+ const bytes=atob(data.split(',')[1]);return Uint8Array.from(bytes,c=>c.charCodeAt(0)).buffer;
 }
+const photoBlob=value=>value instanceof Blob?value:new Blob([value],{type:'image/jpeg'});
+function materialize(record){return {...record,collage:photoBlob(record.collage),poses:record.poses.map(photoBlob),keepsake:record.keepsake?photoBlob(record.keepsake):null};}
 export async function saveCapture(scope,id,data,shots,cfg){
  if(!scope||!id||!Array.isArray(shots)||shots.length<3||shots.length>4)throw new Error('The photo session is incomplete.');
- const record={key:scope+':'+id,id,scope,createdAt:new Date().toISOString(),collage:jpeg(data),poses:shots.map(jpeg),keepsake:null,title:String(cfg.title||''),eventDate:String(cfg.date||'')};
- await transaction('readwrite',s=>s.add(record));return record;
+ const record={key:scope+':'+id,id,scope,createdAt:new Date().toISOString(),encoding:'jpeg-arraybuffer',collage:jpeg(data),poses:shots.map(jpeg),keepsake:null,title:String(cfg.title||''),eventDate:String(cfg.date||'')};
+ await transaction('readwrite',s=>s.add(record));return materialize(record);
 }
 export async function saveKeepsake(scope,id,blob){
  if(!(blob instanceof Blob)||blob.type!=='image/jpeg')throw new Error('The finished keepsake is not ready.');
- await transaction('readwrite',store=>{const req=store.get(scope+':'+id);req.onsuccess=()=>{if(!req.result){store.transaction.abort();return;}store.put({...req.result,keepsake:blob,updatedAt:new Date().toISOString()});};});
+ // Resolve asynchronous file reading BEFORE creating the transaction, since
+ // Safari can close a transaction while unrelated asynchronous work is pending.
+ const bytes=await blob.arrayBuffer();
+ await transaction('readwrite',store=>{const req=store.get(scope+':'+id);req.onsuccess=()=>{if(!req.result){store.transaction.abort();return;}store.put({...req.result,keepsake:bytes,updatedAt:new Date().toISOString()});};});
 }
-export async function listCaptures(scope){return transaction('readonly',(s,done)=>{const r=s.index('scope').getAll(scope);r.onsuccess=()=>done(r.result.sort((a,b)=>a.createdAt.localeCompare(b.createdAt)));});}
+export async function listCaptures(scope){const records=await transaction('readonly',(s,done)=>{const r=s.index('scope').getAll(scope);r.onsuccess=()=>done(r.result);});return records.sort((a,b)=>a.createdAt.localeCompare(b.createdAt)).map(materialize);}
 export async function archiveCount(scope){return transaction('readonly',(s,done)=>{const r=s.index('scope').count(scope);r.onsuccess=()=>done(r.result);});}
 export function blobDataUrl(blob){return new Promise((resolve,reject)=>{const r=new FileReader();r.onload=()=>resolve(r.result);r.onerror=()=>reject(r.error);r.readAsDataURL(blob);});}
 export async function recentCaptures(scope,limit=8){const all=await listCaptures(scope);return Promise.all(all.slice(-limit).reverse().map(async r=>({id:r.id,createdAt:r.createdAt,data:await blobDataUrl(r.collage)})));}
