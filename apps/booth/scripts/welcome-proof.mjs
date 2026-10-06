@@ -18,13 +18,18 @@ async function layout(page,name,w,h){
   assert.equal(await page.locator('h1').count(),1,'One event heading');
   const data=await page.evaluate(()=>{
     const root=document.querySelector('.bwWelcome'),footer=document.querySelector('.bwFooter').getBoundingClientRect();
-    return {clientWidth:root.clientWidth,scrollWidth:root.scrollWidth,innerHeight:innerHeight,clientHeight:root.clientHeight,scrollHeight:root.scrollHeight,footerTop:footer.top,buttons:[...document.querySelectorAll('.bwPhotoButton,.bwExtra')].map(b=>{const r=b.getBoundingClientRect();const top=document.elementFromPoint(r.left+r.width/2,Math.min(r.top+r.height/2,innerHeight-1));return {left:r.left,right:r.right,top:r.top,bottom:r.bottom,width:r.width,height:r.height,covered:r.bottom<=innerHeight&&!b.contains(top)};})};
+    const proof=document.querySelector('.bwRealProof').getBoundingClientRect(),back=document.querySelector('.bwPaperBack').getBoundingClientRect(),caption=document.querySelector('.bwProofCaption').getBoundingClientRect(),showcase=document.querySelector('.bwShowcase').getBoundingClientRect();
+    return {clientWidth:root.clientWidth,scrollWidth:root.scrollWidth,innerHeight:innerHeight,clientHeight:root.clientHeight,scrollHeight:root.scrollHeight,footerTop:footer.top,proofBottom:Math.max(proof.bottom,back.bottom),captionTop:caption.top,captionBottom:caption.bottom,showcaseBottom:showcase.bottom,buttons:[...document.querySelectorAll('.bwPhotoButton,.bwExtra')].map(b=>{const r=b.getBoundingClientRect();const top=document.elementFromPoint(r.left+r.width/2,Math.min(r.top+r.height/2,innerHeight-1));return {left:r.left,right:r.right,top:r.top,bottom:r.bottom,width:r.width,height:r.height,covered:r.bottom<=innerHeight&&!b.contains(top)};})};
   });
   assert(data.scrollWidth<=data.clientWidth+1,name+' must not overflow horizontally');
+  assert(data.proofBottom+3<=data.captionTop,name+' rotated keepsake must not cover its caption');
+  assert(data.captionBottom<=data.showcaseBottom-8,name+' caption stays inside showcase');
   for(const b of data.buttons){assert(b.left>=-1&&b.right<=w+1,name+' button in horizontal viewport');assert(b.height>=44,name+' touch target');assert(!b.covered,name+' button not covered');assert(data.footerTop>=b.bottom-1,name+' footer not overlapping controls');if(w>=768&&h>=600)assert(b.top>=0&&b.bottom<=h,name+' primary controls above fold');}
+  assert(await page.getByRole('link',{name:'Event setup',exact:true}).isVisible(),name+' setup remains accessible');
   assert.equal(await page.evaluate(()=>localStorage.getItem('friendly-booth-print-usage-v1')),'7','Welcome must not reset usage');
   assert.equal(await page.evaluate(()=>JSON.parse(localStorage.getItem('friendly-booth-event-v1')).printPackage.addOnPrints),108);
   await page.screenshot({path:`${out}/${name}.png`,fullPage:true});
+  if(w<621)await page.locator('.bwShowcase').screenshot({path:`${out}/${name}-keepsake.png`});
   results.push({test:name,passed:true,viewport:[w,h],layout:data});
 }
 let browser;
