@@ -4,13 +4,12 @@ import PrintCard from './PrintCard';
 import {normalizePrintPackage, printsRemaining} from '../lib/print-package.mjs';
 import {eventMonogram} from '../lib/event-config.mjs';
 import './welcome-screen.css';
+import './photo-only-welcome.css';
 
 function Mark({name='camera', size=24}) {
   const paths = {
     camera:<><path d="M8 6l1.5-2h5L16 6h3a2 2 0 012 2v10a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2z"/><circle cx="12" cy="13" r="4"/><path d="M18 9h.01"/></>,
     arrow:<><path d="M5 12h14M13 6l6 6-6 6"/></>,
-    video:<><rect x="3" y="5" width="13" height="14" rx="3"/><path d="M16 10l5-3v10l-5-3"/></>,
-    gif:<><rect x="3" y="3" width="18" height="18" rx="4"/><path d="M9 8l7 4-7 4zM6 3v3M18 3v3M6 18v3M18 18v3"/></>,
     calendar:<><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M7 3v4M17 3v4M3 11h18M8 15h2M14 15h2"/></>,
     sparkle:<><path d="M12 3l2.5 6.5L21 12l-6.5 2.5L12 21l-2.5-6.5L3 12l6.5-2.5z"/></>,
     print:<><path d="M7 8V3h10v5M7 17H4a1 1 0 01-1-1v-5a3 3 0 013-3h12a3 3 0 013 3v5a1 1 0 01-1 1h-3"/><path d="M7 14h10v7H7zM17 11h.01"/></>,
@@ -61,11 +60,11 @@ const WelcomeProof=memo(function WelcomeProof({cfg, shots}) {
   </aside>;
 });
 
-export default function WelcomeScreen({cfg, eventName, online, starting, mode, installed, printsUsed=0, onSelectMode, onInstall, onOperator}) {
+export default function WelcomeScreen({cfg, eventName, online, starting, installed, printsUsed=0, onStartPhotos, onInstall, onOperator}) {
   const rules=normalizePrintPackage(cfg.printPackage);
   const available=rules.printingEnabled&&printsRemaining(rules,printsUsed)>0;
   const title=String(cfg.title||'Our Celebration');
-  return <div className="bwWelcome" data-welcome-version="premium-2026-10-06">
+  return <div className="bwWelcome" data-welcome-version="premium-2026-10-06" data-capture-mode="photo">
     <div className="bwFrame">
       <header className="bwHeader">
         <div className="bwBrand"><span className="bwBrandMark"><Mark size={26}/></span><span><b>FRIENDLY</b><small>THE PHOTO BOOTH EXPERIENCE</small></span></div>
@@ -80,15 +79,16 @@ export default function WelcomeScreen({cfg, eventName, online, starting, mode, i
           <h1 id="bwEventTitle" className={title.length>65?'bwLongTitle':''}>{title}</h1>
           <div className="bwEventMeta">{cfg.date&&<span><Mark name="calendar" size={17}/>{cfg.date}</span>}{cfg.details?.subtitle&&cfg.details.subtitle!==cfg.subtitle&&<span className="bwTime">{cfg.details.subtitle}</span>}</div>
           <p className="bwIntro">A few poses. A little personality.<br/><em>A memory worth keeping.</em></p>
-          <div className="bwExperience" aria-label="Choose your photo booth experience">
-            <button type="button" className="bwPhotoButton" data-testid="welcome-photo" disabled={starting} onClick={()=>onSelectMode('photo')}>
+          <div className="bwExperience" aria-label="Start your photo session">
+            <button type="button" className="bwPhotoButton" data-testid="welcome-photo" disabled={starting} onClick={onStartPhotos}>
               <span className="bwCameraTile"><Mark size={28}/></span>
-              <span className="bwButtonWords"><strong>{starting&&mode==='photo'?'Starting camera…':'Take a Photo'}</strong><small>{rules.shotsPerSession} poses · {available?'print or keep it digital':'digital keepsake'}</small></span><span className="bwRoundArrow"><Mark name="arrow" size={22}/></span>
+              <span className="bwButtonWords"><strong>{starting?'Starting camera…':'Take a Photo'}</strong><small>{rules.shotsPerSession} poses · {available?'print or keep it digital':'digital keepsake'}</small></span><span className="bwRoundArrow"><Mark name="arrow" size={22}/></span>
             </button>
-            <div className="bwExtras">
-              <button type="button" className="bwExtra" data-testid="welcome-video" disabled={starting} onClick={()=>onSelectMode('boomerang')}><span className="bwExtraIcon"><Mark name="video" size={22}/></span><span><strong>{starting&&mode==='boomerang'?'Starting…':'Short Video'}</strong><small>A little moment in motion</small></span><Mark name="arrow" size={16}/></button>
-              <button type="button" className="bwExtra" data-testid="welcome-gif" disabled={starting} onClick={()=>onSelectMode('gif')}><span className="bwExtraIcon"><Mark name="gif" size={22}/></span><span><strong>{starting&&mode==='gif'?'Starting…':'Animated GIF'}</strong><small>Make it a loop</small></span><Mark name="arrow" size={16}/></button>
-            </div>
+            <ol className="bwPhotoSteps" aria-label="How your photo session works">
+              <li><span className="bwStepNumber" aria-hidden="true">01</span><strong>Strike a pose</strong><small>{rules.shotsPerSession} photos, one keepsake</small></li>
+              <li><span className="bwStepNumber" aria-hidden="true">02</span><strong>Choose your design</strong><small>Make the moment yours</small></li>
+              <li><span className="bwStepNumber" aria-hidden="true">03</span><strong>{available?'Print or save':'Save your photos'}</strong><small>{available?'Your photo, your choice':'Keep a digital copy'}</small></li>
+            </ol>
             <p className="bwChoiceNote"><Mark name={available?'print':'share'} size={16}/>{available?'Choose print or digital after your photos.':'Digital photos are available. Ask the attendant about printing.'}</p>
           </div>
         </section>
