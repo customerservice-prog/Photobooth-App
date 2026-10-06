@@ -20,30 +20,38 @@ function drawCover(ctx,image,x,y,w,h){
   ctx.drawImage(image,sx,sy,sw,sh,x,y,w,h);
 }
 
+// Builds the multi-pose photo area only. Event names/date/artwork are added later
+// by the normal keepsake renderer, so the print is not framed twice or cropped.
 export async function composePhotoStrip(shots,cfg={}){
   const valid=(Array.isArray(shots)?shots:[]).filter(src=>/^data:image\/(jpeg|png|webp);base64,/i.test(src)).slice(0,4);
   if(valid.length<3)throw new Error('At least three photos are required for a photo strip.');
   const images=await Promise.all(valid.map(loadImage));
   const canvas=document.createElement('canvas');
-  canvas.width=1200;canvas.height=1800;
+  canvas.width=1200;canvas.height=1200;
   const ctx=canvas.getContext('2d');
   if(!ctx)throw new Error('This device cannot build the photo strip.');
   const primary=safeHex(cfg.details?.primaryColor,'#24352f');
   const secondary=safeHex(cfg.details?.secondaryColor,'#d8c49b');
-  ctx.fillStyle='#fff';ctx.fillRect(0,0,1200,1800);
-  ctx.fillStyle=primary;ctx.fillRect(0,0,1200,64);ctx.fillRect(0,1736,1200,64);
-  const margin=72,gap=28,top=108,bottom=1640;
-  const cols=2,rows=2,cellW=(1200-margin*2-gap)/2,cellH=(bottom-top-gap)/2;
-  for(let i=0;i<4;i++){
-    const image=images[Math.min(i,images.length-1)];
-    const col=i%cols,row=Math.floor(i/cols),x=margin+col*(cellW+gap),y=top+row*(cellH+gap);
-    ctx.fillStyle=secondary;ctx.fillRect(x-8,y-8,cellW+16,cellH+16);
-    drawCover(ctx,image,x,y,cellW,cellH);
+  ctx.fillStyle=primary;ctx.fillRect(0,0,1200,1200);
+
+  const margin=26,gap=18,inner=margin+10;
+  const drawCell=(image,x,y,w,h)=>{
+    ctx.fillStyle=secondary;
+    ctx.fillRect(x-6,y-6,w+12,h+12);
+    drawCover(ctx,image,x,y,w,h);
+  };
+
+  if(images.length===3){
+    const topH=550,bottomH=550,fullW=1200-inner*2,halfW=(fullW-gap)/2;
+    drawCell(images[0],inner,inner,fullW,topH);
+    drawCell(images[1],inner,inner+topH+gap,halfW,bottomH);
+    drawCell(images[2],inner+halfW+gap,inner+topH+gap,halfW,bottomH);
+  }else{
+    const fullW=1200-inner*2,cell=(fullW-gap)/2;
+    for(let i=0;i<4;i++){
+      const col=i%2,row=Math.floor(i/2);
+      drawCell(images[i],inner+col*(cell+gap),inner+row*(cell+gap),cell,cell);
+    }
   }
-  ctx.fillStyle=primary;ctx.textAlign='center';
-  ctx.font='600 42px system-ui, -apple-system, sans-serif';
-  ctx.fillText(String(cfg.title||'Friendly Photo Booth').slice(0,48),600,1694);
-  ctx.fillStyle=secondary;ctx.font='500 26px system-ui, -apple-system, sans-serif';
-  ctx.fillText(String(cfg.date||'').slice(0,42),600,1768);
   return canvas.toDataURL('image/jpeg',.94);
 }
