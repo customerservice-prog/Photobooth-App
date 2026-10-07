@@ -53,7 +53,7 @@ export async function runPhotoSequence({total=4,signal,capture,onProgress=()=>{}
   check(signal);const current=index+1;
   if(index>0){emit('next',current);const duration=onCue('next'+current,{current,total});await wait(Math.max(3200,Number(duration)||0)+300,signal);}
   emit('pose',current);const readyDuration=onCue('ready',{current,total});await wait(Math.max(650,Number(readyDuration)||0)+100,signal);
-  for(let count=3;count>=1;count--){emit('countdown',current,count);onCue(String(count),{current,total});await wait(1000,signal);}
+  for(let count=3;count>=1;count--){emit('countdown',current,count);const duration=onCue(String(count),{current,total});await wait(Math.max(1000,Number(duration)||0)+100,signal);}
   emit('smile',current);const smileDuration=onCue('smile',{current,total});await wait(Math.max(300,Number(smileDuration)||0),signal);check(signal);
   const frame=await capture({index,previousTime,previousFrame,signal});check(signal);
   if(!frame||!/^data:image\/jpeg;base64,/.test(frame.data)||!((Number.isFinite(frame.mediaTime)&&frame.mediaTime>previousTime)||(Number.isSafeInteger(frame.presentedFrames)&&frame.presentedFrames>previousFrame)))throw new Error('A new camera photo was not received. Please try the session again.');

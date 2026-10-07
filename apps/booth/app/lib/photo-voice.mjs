@@ -30,6 +30,7 @@ export function stopTalking(synth=globalThis.speechSynthesis){
 }
 
 
+const VOICE_ASSET_VERSION='female-cheerful-2026-10-07-9';
 const CLIPS=['ready','3','2','1','smile','next2','next3','next4'];
 let mediaRoute;
 let context, buffers=new Map(), active=new Set(), generation=0;
@@ -50,7 +51,7 @@ export async function preparePhotoAudio({Context=globalThis.AudioContext||global
  if(context.state!=='running')throw new Error('Sound is blocked. Tap the photo button again to enable voice guidance.');
  await Promise.all(CLIPS.map(async key=>{
   if(buffers.has(key))return;
-  const response=await fetcher('/audio/'+key+'.wav',{signal:AbortSignal.timeout(15000)});
+  const response=await fetcher('/audio/'+key+'.wav?v='+VOICE_ASSET_VERSION,{signal:AbortSignal.timeout(15000)});
   if(!response.ok)throw new Error('Voice guidance could not load. Check the connection, then tap the photo button again.');
   const buffer=await context.decodeAudioData(await response.arrayBuffer());
   buffers.set(key,buffer);

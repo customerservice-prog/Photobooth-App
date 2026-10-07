@@ -37,6 +37,12 @@ for(const [engine,api] of [['chromium',chromium],['webkit',webkit]]){
  async function archive(){return page.evaluate(async source=>{const api=new Function(source.replace(/\bexport /g,'')+'\nreturn {listCaptures};')();const all=await api.listCaptures('oct10-2026:demo');return Promise.all(all.map(async record=>({id:record.id,poses:await Promise.all(record.poses.map(async blob=>Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',await blob.arrayBuffer()))).map(b=>b.toString(16).padStart(2,'0')).join('')))})));},archiveSource);}
  try{
   await open();await page.getByTestId('welcome-four-photo').dblclick();await page.locator('.pcStage[data-phase="countdown"]').waitFor();
+  const countdownTones=await page.locator('.pcStage[data-phase="countdown"]').evaluate(stage=>{
+    const original=stage.dataset.count,digit=stage.querySelector('.pcDigit');
+    const colors=[3,2,1].map(number=>{stage.dataset.count=String(number);return getComputedStyle(digit).color;});
+    stage.dataset.count=original;return colors;
+  });
+  assert.equal(new Set(countdownTones).size,3,'three distinct countdown digit colors');pass('three-step-color-changing-countdown',{countdownTones});
   assert.equal(await page.locator('.pcDigit').evaluate(e=>getComputedStyle(e).animationName),'none');await page.emulateMedia({reducedMotion:'no-preference'});assert.equal(await page.locator('.pcDigit').evaluate(e=>getComputedStyle(e).animationName),'pcNumberIn');pass('animated-countdown-respects-reduced-motion');
   for(const [name,width,height] of [['desktop',1366,768],['ipad-landscape',1024,768],['ipad-portrait',768,1024],['phone',390,844],['small-phone',320,640],['phone-landscape',844,390]]){
    await page.setViewportSize({width,height});await page.waitForTimeout(80);

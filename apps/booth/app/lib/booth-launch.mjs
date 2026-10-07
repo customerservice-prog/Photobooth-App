@@ -1,7 +1,7 @@
 // Keep the installed app identity stable. Navigation never clears or migrates
 // photos, settings, counters, or any other browser storage.
-export const BOOTH_RELEASE='2026.10.07.8';
-export const BOOTH_RELEASE_LABEL='Audible recorded countdown · clear next-photo pose reminders · 1 or 4 photos';
+export const BOOTH_RELEASE='2026.10.07.9';
+export const BOOTH_RELEASE_LABEL='Cheerful female photo guidance · colorful countdown · 1 or 4 photos';
 const ENTRIES=Object.freeze({
   demo:'/?event=oct10-2026&demo=1',
   preparation:'/event-prep',

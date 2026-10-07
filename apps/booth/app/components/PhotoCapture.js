@@ -6,7 +6,7 @@ export default function PhotoCapture({videoRef,progress,onCancel,soundStatus='id
  const processing=phase==='processing',next=phase==='next',captured=phase==='captured',snap=phase==='smile';
  const title=processing?'Making your keepsake…':next?'Change your pose!':captured?'Photo '+completed+' captured!':snap?'Smile!':phase==='countdown'?'Listen… '+count:phase==='ready'?'Finding your best angle…':'Get ready to smile.';
  const instruction=processing?'All '+total+' photos are taken. Your print choices are next.':next?'PHOTO '+current+' OF '+total+' IS NEXT. Try a new smile or pose — the countdown will start again.':captured?(completed<total?'Great shot! Another photo is coming up.':'All poses captured!'):'The booth will guide you. Watch for 3… 2… 1… Smile!';
- return <section className="pcStage" aria-label="Photo session" data-capture-version="voice-next-v2" data-phase={phase} data-shot={current} data-completed={completed} data-total={total}>
+ return <section className="pcStage" aria-label="Photo session" data-capture-version="voice-next-v2" data-phase={phase} data-count={phase==='countdown'?String(count):undefined} data-shot={current} data-completed={completed} data-total={total}>
   <video ref={videoRef} className="pcCamera" playsInline muted autoPlay/>
   <div className="pcShade" aria-hidden="true"/>
   <header className="pcHeader"><div className="pcBrand"><Smile small/><span>FRIENDLY<small>A LITTLE MOMENT. A LOVELY KEEPSAKE.</small></span></div><span className="pcPhotoNumber">{processing?'ALL PHOTOS TAKEN':'PHOTO '+current+' OF '+total}</span></header>

@@ -46,3 +46,9 @@ test('next countdown waits until its spoken announcement finishes',async()=>{
  const delays=[];await runPhotoSequence({total:4,wait:async ms=>delays.push(ms),capture:async({index})=>({data:jpeg,mediaTime:index+1}),onCue:c=>c.startsWith('next')?4700:0});
  assert.equal(delays.filter(ms=>ms===5000).length,3);
 });
+
+test('spoken countdown waits for a complete voice clip before advancing',async()=>{
+  const delays=[];let time=0;
+  await runPhotoSequence({total:1,wait:async ms=>delays.push(ms),capture:async()=>({data:jpeg,mediaTime:++time}),onCue:cue=>cue==='3'?1550:cue==='2'?750:cue==='1'?1250:0});
+  assert.deepEqual(delays.slice(1,4),[1650,1100,1350]);
+});

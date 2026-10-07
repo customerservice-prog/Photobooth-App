@@ -38,3 +38,34 @@
 .pcEnableSound{border:1px solid #ffe1a9;border-radius:30px;background:#ffe5ae;color:#16372c;font-weight:750;font-size:12px;min-height:44px;padding:8px 19px}
 .pcEnableSound:focus-visible{outline:3px solid white;outline-offset:3px}
 @media(max-height:650px){.pcNextDigit{font-size:78px}.pcNextWords p{font-size:11px}.pcEnableSound{min-height:36px;font-size:10px;padding:5px 12px}}
+
+
+/* Cheerful colored countdown: 3 is pink, 2 is gold, 1 is turquoise.
+   Color changes only inside the countdown card; no camera flash. */
+.pcStage[data-phase="countdown"][data-count="3"]{
+  --pc-cue:#ff83ba;--pc-cue-glow:#ff83ba52;--pc-cue-soft:#ff83ba20;
+}
+.pcStage[data-phase="countdown"][data-count="2"]{
+  --pc-cue:#ffe17b;--pc-cue-glow:#ffe17b59;--pc-cue-soft:#ffe17b20;
+}
+.pcStage[data-phase="countdown"][data-count="1"]{
+  --pc-cue:#73ffdc;--pc-cue-glow:#73ffdc55;--pc-cue-soft:#73ffdc21;
+}
+.pcStage[data-phase="countdown"] .pcCircle{
+  background:radial-gradient(circle at 50% 44%,var(--pc-cue-soft),#102e27dc 79%);
+  border:2px solid var(--pc-cue);
+  box-shadow:0 0 0 9px var(--pc-cue-soft),0 0 42px var(--pc-cue-glow),0 16px 50px #132a2330;
+  transition:background-color .2s ease,border-color .2s ease,box-shadow .2s ease;
+}
+.pcStage[data-phase="countdown"] .pcDigit{
+  color:var(--pc-cue);
+  text-shadow:0 2px 0 #14291f,0 0 25px var(--pc-cue-glow),0 5px 19px #071c18;
+}
+.pcStage[data-phase="countdown"] .pcRingArc{stroke:var(--pc-cue);stroke-width:3}
+.pcStage[data-phase="countdown"] .pcEyebrow,
+.pcStage[data-phase="countdown"] .pcWords h1{color:var(--pc-cue)}
+.pcStage[data-phase="countdown"] .pcSoundWave{border-color:var(--pc-cue-glow)}
+.pcStage[data-phase="countdown"] .pcVoiceBadge{border-color:var(--pc-cue);color:#fff6ea}
+@media(prefers-reduced-motion:reduce){
+  .pcStage[data-phase="countdown"] .pcCircle{transition:none}
+}

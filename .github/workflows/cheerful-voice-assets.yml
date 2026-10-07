@@ -1,0 +1,58 @@
+name: Bundle cheerful female photo booth voice
+on:
+  push:
+    branches: ['fix/cheerful-woman-rainbow-countdown']
+    paths:
+      - 'apps/booth/scripts/generate-cheerful-voice.py'
+      - '.github/workflows/cheerful-voice-assets.yml'
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  create-voice-clips:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install Kokoro and CPU audio tools
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq espeak-ng >/dev/null
+          python -m pip install --quiet torch --index-url https://download.pytorch.org/whl/cpu
+          python -m pip install --quiet 'kokoro==0.9.4' 'soundfile>=0.12,<1'
+      - name: Render 8 natural female voice cues
+        run: python apps/booth/scripts/generate-cheerful-voice.py
+      - name: Validate recorded outputs
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import wave
+          base=Path('apps/booth/public/audio')
+          for key in ['ready','3','2','1','smile','next2','next3','next4']:
+              path=base/(key+'.wav')
+              with wave.open(str(path)) as wav:
+                  assert wav.getnchannels()==1 and wav.getframerate()==24000
+                  assert wav.getsampwidth()==2 and wav.getnframes()>4800
+              print(key, path.stat().st_size)
+          PY
+      - name: Commit the recordings to the feature branch
+        if: github.ref == 'refs/heads/fix/cheerful-woman-rainbow-countdown'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add apps/booth/public/audio/{ready,3,2,1,smile,next2,next3,next4}.wav
+          if ! git diff --cached --quiet; then
+            git commit -m "Bundle cheerful female Kokoro voice audio"
+            git push origin HEAD:fix/cheerful-woman-rainbow-countdown
+          fi
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: cheerful-female-voice-clips
+          path: apps/booth/public/audio/*.wav
+          retention-days: 3
