@@ -43,11 +43,36 @@ for(const [engine,api] of [['chromium',chromium],['webkit',webkit]]){
     stage.dataset.count=original;return colors;
   });
   assert.equal(new Set(countdownTones).size,3,'three distinct countdown digit colors');pass('three-step-color-changing-countdown',{countdownTones});
+  const premium=await page.locator('.pcStage[data-phase="countdown"]').evaluate(stage=>{
+    const digit=stage.querySelector('[data-testid="premium-countdown-number"]');
+    const halo=stage.querySelector('.pcCircle'),screen=stage.getBoundingClientRect();
+    const box=digit?.getBoundingClientRect();
+    return {value:digit?.textContent,font:digit?parseFloat(getComputedStyle(digit).fontSize):0,
+      haloWidth:halo?.getBoundingClientRect().width,x:box?.x-screen.x,y:box?.y-screen.y,
+      w:box?.width,h:box?.height,sw:screen.width,sh:screen.height,
+      cameraZ:Number(getComputedStyle(stage.querySelector('.pcCamera')).zIndex),
+      shadeZ:Number(getComputedStyle(stage.querySelector('.pcShade')).zIndex),
+      overlayZ:Number(getComputedStyle(stage.querySelector('.pcCenter')).zIndex),
+      title:stage.querySelector('.pcWords h1')?.textContent};
+  });
+  assert(['3','2','1'].includes(premium.value),'countdown number must be present');
+  assert(premium.font>=160&&premium.haloWidth>=275,'number must be large and fancy');
+  assert(premium.cameraZ>=0&&premium.shadeZ>premium.cameraZ&&premium.overlayZ>premium.shadeZ,'overlay must be above live camera');
+  assert(premium.x>=-1&&premium.y>=-1&&premium.x+premium.w<=premium.sw+1&&premium.y+premium.h<=premium.sh+1,'number must be visible on screen');
+  assert.equal(premium.title,'Listen…');
+  pass('large-countdown-visible-above-camera',{premium});
   assert.equal(await page.locator('.pcDigit').evaluate(e=>getComputedStyle(e).animationName),'none');await page.emulateMedia({reducedMotion:'no-preference'});assert.equal(await page.locator('.pcDigit').evaluate(e=>getComputedStyle(e).animationName),'pcNumberIn');pass('animated-countdown-respects-reduced-motion');
   for(const [name,width,height] of [['desktop',1366,768],['ipad-landscape',1024,768],['ipad-portrait',768,1024],['phone',390,844],['small-phone',320,640],['phone-landscape',844,390]]){
    await page.setViewportSize({width,height});await page.waitForTimeout(80);
    const geometry=await page.locator('.pcStage').evaluate(e=>({w:e.clientWidth,sw:e.scrollWidth,h:e.clientHeight,sh:e.scrollHeight}));assert(geometry.sw<=geometry.w+1,name+' horizontal fit');assert(geometry.sh<=geometry.h+1,name+' vertical fit');
    for(const control of await page.locator('.pcFooterBar button,.pcFooterBar a').all()){const b=await control.boundingBox();assert(b.y>=0&&b.y+b.height<=height+1);assert(b.height>=44);const covered=await control.evaluate(e=>{const b=e.getBoundingClientRect();return !e.contains(document.elementFromPoint(b.x+b.width/2,b.y+b.height/2));});assert(!covered,name+' uncovered controls');}
+
+   const haloBounds=await page.locator('.pcCircle').evaluate(e=>{
+     const box=e.getBoundingClientRect(),root=e.closest('.pcStage').getBoundingClientRect();
+     return {x:box.x-root.x,y:box.y-root.y,w:box.width,h:box.height,sw:root.width,sh:root.height};
+   });
+   assert(haloBounds.w>=120&&haloBounds.h>=120,name+' countdown too small');
+   assert(haloBounds.x>=-1&&haloBounds.y>=-1&&haloBounds.x+haloBounds.w<=haloBounds.sw+1&&haloBounds.y+haloBounds.h<=haloBounds.sh+1,name+' countdown clipped');
    await page.screenshot({path:`${out}/${engine}-${name}-countdown.png`});pass('countdown-layout-'+name,{geometry});
   }
   await page.setViewportSize({width:1366,height:768});await page.locator('.pcStage[data-phase="smile"]').waitFor();await page.screenshot({path:`${out}/${engine}-smile-cue.png`});await page.waitForFunction(()=>Number(document.querySelector('.pcStage')?.dataset.completed)>=1);const completed=Number(await page.locator('.pcStage').getAttribute('data-completed'));assert.equal(await page.locator('.ksStudio').count(),0);assert.equal(await page.locator('.pcStrip img').count(),completed);await page.screenshot({path:`${out}/${engine}-first-real-photo.png`});await page.locator('.pcStage[data-phase="next"][data-shot="2"]').waitFor({timeout:10000});assert((await page.locator('.pcWords').innerText()).includes('Change your pose!'));assert((await page.locator('.pcWords').innerText()).includes('PHOTO 2 OF 4 IS NEXT'));await page.screenshot({path:`${out}/${engine}-next-photo-reminder.png`});pass('big-visible-next-photo-pose-reminder');
