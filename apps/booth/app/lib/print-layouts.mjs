@@ -1,6 +1,6 @@
 // Output layouts never alter capture count or physical-sheet allowance.
 import {validateShotSet} from './photo-strip.mjs';
-export const DEFAULT_PRINT_LAYOUTS=Object.freeze({cardEnabled:true,stripEnabled:true,defaultLayout:'card',stripMode:'double',useEventColors:true,footerText:''});
+export const DEFAULT_PRINT_LAYOUTS=Object.freeze({cardEnabled:true,stripEnabled:true,defaultLayout:'card',stripMode:'double',useEventColors:true,stripHeadline:'A MOMENT TO KEEP',footerText:'',showCutGuide:true});
 export const STRIP_DESIGNS=Object.freeze([
  Object.freeze({id:'ivory',name:'Classic White',description:'The original photo booth strip'}),
  Object.freeze({id:'blush',name:'Midnight',description:'Dark borders. Bright memories.'}),
@@ -11,11 +11,11 @@ export function normalizePrintLayouts(input){
  const cardEnabled=v.cardEnabled!==false,stripEnabled=v.stripEnabled!==false;
  // Invalid saved data still leaves a usable card option; explicit form saves validate below.
  const card=cardEnabled||!stripEnabled;
- return {cardEnabled:card,stripEnabled,defaultLayout:v.defaultLayout==='photo_strip'&&stripEnabled?'photo_strip':card?'card':'photo_strip',stripMode:v.stripMode==='single'?'single':'double',useEventColors:v.useEventColors!==false,footerText:String(v.footerText??'').replace(/[\u0000-\u001f]/g,' ').slice(0,80)};
+ return {cardEnabled:card,stripEnabled,defaultLayout:v.defaultLayout==='photo_strip'&&stripEnabled?'photo_strip':card?'card':'photo_strip',stripMode:v.stripMode==='single'?'single':'double',useEventColors:v.useEventColors!==false,stripHeadline:String(v.stripHeadline??DEFAULT_PRINT_LAYOUTS.stripHeadline).replace(/[\u0000-\u001f]/g,' ').slice(0,40),footerText:String(v.footerText??'').replace(/[\u0000-\u001f]/g,' ').slice(0,80),showCutGuide:v.showCutGuide!==false};
 }
 export function validatePrintLayouts(input){
  if(input?.cardEnabled===false&&input?.stripEnabled===false)throw new Error('Keep at least one photo layout enabled.');
- const v=normalizePrintLayouts(input);return {...v,footerText:v.footerText.trim()};
+ const v=normalizePrintLayouts(input);return {...v,stripHeadline:(v.stripHeadline.trim()||DEFAULT_PRINT_LAYOUTS.stripHeadline),footerText:v.footerText.trim()};
 }
 export function hasOriginalPoses(poses,total){try{validateShotSet(poses,total);return true;}catch{return false;}}
 export function initialPrintLayout(settings,poses,total){
