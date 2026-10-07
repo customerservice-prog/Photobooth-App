@@ -1,0 +1,28 @@
+name: Retry stalled booth verification
+on:
+  push:
+    branches: [ci/retry-booth-voice-check]
+    paths: ['.github/workflows/retry-stalled-booth.yml']
+permissions:
+  actions: write
+  contents: read
+jobs:
+  retry:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Cancel only the stalled photo sequence run
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EXPECTED_HEAD: 4072fa35f9c1d291f75ff99c0453e959fdf51160
+        run: |
+          RUN_ID=37685438067
+          HEAD_SHA=$(gh api repos/customerservice-prog/Photobooth-App/actions/runs/$RUN_ID --jq .head_sha)
+          STATUS=$(gh api repos/customerservice-prog/Photobooth-App/actions/runs/$RUN_ID --jq .status)
+          test "$HEAD_SHA" = "$EXPECTED_HEAD"
+          if test "$STATUS" = in_progress; then
+            gh api --method POST repos/customerservice-prog/Photobooth-App/actions/runs/$RUN_ID/cancel
+            echo "Cancelled stalled photo sequence verification only."
+          else
+            echo "Verification already finished; no cancellation needed."
+          fi
