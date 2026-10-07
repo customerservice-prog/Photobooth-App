@@ -7,8 +7,9 @@ const PHOTO_DATA=/^data:image\/(?:jpeg|png|webp);base64,[A-Za-z0-9+/]+={0,2}$/;
 export function validateShotSet(shots,expected){
   if(!Array.isArray(shots)||![3,4].includes(shots.length))throw new Error('A complete set of three or four photos is required. Please retake the session.');
   if(expected!==undefined&&(![3,4].includes(Number(expected))||shots.length!==Number(expected)))throw new Error('Not all of the configured photos were received. Please retake the session.');
-  if(shots.some(src=>typeof src!=='string'||!PHOTO_DATA.test(src)))throw new Error('A captured photo is missing or invalid. Please retake the session.');
-  return [...shots];
+  const entries=Array.from(shots);
+  if(entries.some(src=>typeof src!=='string'||!PHOTO_DATA.test(src)))throw new Error('A captured photo is missing or invalid. Please retake the session.');
+  return entries;
 }
 
 // Always keep the full original pose. Cropping here is irreversible: the later
