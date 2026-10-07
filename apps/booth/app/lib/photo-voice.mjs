@@ -34,7 +34,7 @@ const VOICE_ASSET_VERSION='female-cheerful-2026-10-07-9';
 const CLIPS=['ready','3','2','1','smile','next2','next3','next4'];
 let mediaRoute;
 let context, buffers=new Map(), active=new Set(), generation=0;
-export async function preparePhotoAudio({Context=globalThis.AudioContext||globalThis.webkitAudioContext,fetcher=globalThis.fetch}={}){
+export async function preparePhotoAudio({Context=globalThis.AudioContext||globalThis.webkitAudioContext,fetcher=globalThis.fetch,playConfirmation=true}={}){
  const attempt=++generation;
  if(!Context)throw new Error('Voice audio is unavailable in this browser. Open the booth in Safari and try again.');
  context ||= new Context();
@@ -58,7 +58,7 @@ export async function preparePhotoAudio({Context=globalThis.AudioContext||global
  }));
  if(attempt!==generation)throw Object.assign(new Error('Audio cancelled'),{name:'AbortError'});
  // An audible confirmation verifies the same speaker route used by the countdown.
- if(!playPhotoCue('ready'))throw new Error('Sound was paused. Tap the photo button again.');
+ if(playConfirmation&&!playPhotoCue('ready'))throw new Error('Sound was paused. Tap the photo button again.');
 }
 export function playPhotoCue(key){
  const buffer=buffers.get(key);
