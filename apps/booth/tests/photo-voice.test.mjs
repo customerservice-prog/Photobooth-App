@@ -33,3 +33,18 @@ test('recorded audio resumes from the tap, decodes all cues and stops active sou
  assert.equal(playPhotoCue('next2'),1100);stopPhotoAudio();assert.equal(events.filter(e=>e==='stop').length,2);
  assert.equal(playPhotoCue('missing'),false);
 });
+
+test('opening a guest session primes audio without speaking the same ready greeting twice',async()=>{
+ const guestVoice=await import('../app/lib/photo-voice.mjs?guest-no-double-ready');
+ const before=[];class Context{
+  state='suspended';destination={};
+  resume(){this.state='running';return Promise.resolve();}
+  decodeAudioData(){return Promise.resolve({duration:1});}
+  createBufferSource(){return {connect(){},disconnect(){},start(){before.push('start');},stop(){}};}
+ }
+ await guestVoice.preparePhotoAudio({Context,fetcher:async()=>({ok:true,arrayBuffer:async()=>new ArrayBuffer(2)}),playConfirmation:false});
+ assert.equal(before.length,0,'opening the camera does not speak a duplicate cue');
+ assert.equal(guestVoice.playPhotoCue('ready'),1000,'the guided countdown can speak ready once');
+ assert.equal(before.length,1);
+ guestVoice.stopPhotoAudio();
+});

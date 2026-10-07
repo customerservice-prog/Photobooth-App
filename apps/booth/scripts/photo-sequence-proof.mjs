@@ -37,6 +37,12 @@ for(const [engine,api] of [['chromium',chromium],['webkit',webkit]]){
  async function archive(){return page.evaluate(async source=>{const api=new Function(source.replace(/\bexport /g,'')+'\nreturn {listCaptures};')();const all=await api.listCaptures('oct10-2026:demo');return Promise.all(all.map(async record=>({id:record.id,poses:await Promise.all(record.poses.map(async blob=>Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',await blob.arrayBuffer()))).map(b=>b.toString(16).padStart(2,'0')).join('')))})));},archiveSource);}
  try{
   await open();await page.getByTestId('welcome-four-photo').dblclick();await page.locator('.pcStage[data-phase="countdown"]').waitFor();
+  const countdownTones=await page.locator('.pcStage[data-phase="countdown"]').evaluate(stage=>{
+    const original=stage.dataset.count,digit=stage.querySelector('.pcDigit');
+    const colors=[3,2,1].map(number=>{stage.dataset.count=String(number);return getComputedStyle(digit).color;});
+    stage.dataset.count=original;return colors;
+  });
+  assert.equal(new Set(countdownTones).size,3,'three distinct countdown digit colors');pass('three-step-color-changing-countdown',{countdownTones});
   assert.equal(await page.locator('.pcDigit').evaluate(e=>getComputedStyle(e).animationName),'none');await page.emulateMedia({reducedMotion:'no-preference'});assert.equal(await page.locator('.pcDigit').evaluate(e=>getComputedStyle(e).animationName),'pcNumberIn');pass('animated-countdown-respects-reduced-motion');
   for(const [name,width,height] of [['desktop',1366,768],['ipad-landscape',1024,768],['ipad-portrait',768,1024],['phone',390,844],['small-phone',320,640],['phone-landscape',844,390]]){
    await page.setViewportSize({width,height});await page.waitForTimeout(80);
@@ -46,7 +52,7 @@ for(const [engine,api] of [['chromium',chromium],['webkit',webkit]]){
   }
   await page.setViewportSize({width:1366,height:768});await page.locator('.pcStage[data-phase="smile"]').waitFor();await page.screenshot({path:`${out}/${engine}-smile-cue.png`});await page.waitForFunction(()=>Number(document.querySelector('.pcStage')?.dataset.completed)>=1);const completed=Number(await page.locator('.pcStage').getAttribute('data-completed'));assert.equal(await page.locator('.ksStudio').count(),0);assert.equal(await page.locator('.pcStrip img').count(),completed);await page.screenshot({path:`${out}/${engine}-first-real-photo.png`});await page.locator('.pcStage[data-phase="next"][data-shot="2"]').waitFor({timeout:10000});assert((await page.locator('.pcWords').innerText()).includes('Change your pose!'));assert((await page.locator('.pcWords').innerText()).includes('PHOTO 2 OF 4 IS NEXT'));await page.screenshot({path:`${out}/${engine}-next-photo-reminder.png`});pass('big-visible-next-photo-pose-reminder');
   await page.locator('.ksStudio').waitFor({timeout:45000});const draws=await page.evaluate(()=>window.__cameraDraws),events=await page.evaluate(()=>window.__captureEvents);
-  assert.equal(draws.length,4);const voice=await page.evaluate(()=>window.__voiceStarts);assert.equal(voice.length,24);assert(voice.every(v=>v.state==='running'&&v.duration>0));assert.deepEqual(events.filter(e=>e.phase==='next').map(e=>[e.shot,e.completed]),[[2,1],[3,2],[4,3]]);pass('decoded-voice-playback-and-three-next-photo-announcements',{voice});for(let i=1;i<4;i++){assert(draws[i].at-draws[i-1].at>=3000);}
+  assert.equal(draws.length,4);const voice=await page.evaluate(()=>window.__voiceStarts);assert.equal(voice.length,23);assert(voice.every(v=>v.state==='running'&&v.duration>0));assert.deepEqual(events.filter(e=>e.phase==='next').map(e=>[e.shot,e.completed]),[[2,1],[3,2],[4,3]]);pass('decoded-voice-playback-and-three-next-photo-announcements',{voice});for(let i=1;i<4;i++){assert(draws[i].at-draws[i-1].at>=3000);}
   assert.deepEqual([...new Set(events.filter(e=>e.phase==='smile').map(e=>e.shot))],[1,2,3,4]);assert(events.every(e=>!e.printVisible));assert.equal(await page.evaluate(()=>window.__cameraCalls),1);
   const metadata=await page.evaluate(()=>window.__frameMetadata);assert(metadata.length>=4);assert(new Set(metadata.map(m=>m.presentedFrames)).size>=4||new Set(metadata.map(m=>m.mediaTime)).size>=4,'four new presented frames');
   const saved=await archive();assert.equal(saved.length,1);assert.equal(saved[0].poses.length,4);assert.equal(new Set(saved[0].poses).size,4);

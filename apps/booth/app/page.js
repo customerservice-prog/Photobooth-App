@@ -68,7 +68,7 @@ export default function Booth(){
     setCapture({phase:'ready',current:1,total,completed:0,shots:[]});
     setError('');setFilter('original');setTemplate(cfg.defaultTemplate||'ivory');setPhoto(null);setPoses([]);setEditing(false);stopCamera();captureId.current=null;
     try{
-      setVoiceStatus('starting');await preparePhotoAudio();setVoiceStatus('playing');
+      setVoiceStatus('starting');await preparePhotoAudio({playConfirmation:false});setVoiceStatus('playing');
       if(id!==run.current||controller.signal.aborted)return;
       const s=await navigator.mediaDevices.getUserMedia({video:{facingMode:'user',width:{ideal:1920},height:{ideal:1080}},audio:false});
       if(id!==run.current||controller.signal.aborted){s.getTracks().forEach(t=>t.stop());return;}
