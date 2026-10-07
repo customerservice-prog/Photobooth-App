@@ -31,3 +31,7 @@ prisma/generated/
 
 # Vercel/Railway local artifacts
 .vercel/
+
+# Local strip browser proof
+apps/booth/strip-proof/
+apps/booth/local-strip-proof/

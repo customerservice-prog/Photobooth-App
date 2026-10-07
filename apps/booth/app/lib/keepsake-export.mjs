@@ -1,6 +1,6 @@
 import {renderKeepsake} from './keepsake-designs.mjs';
 export const EXPORT_WIDTH=1200,EXPORT_HEIGHT=1800,MAX_EXPORT_BYTES=2*1024*1024;
-export const exportKey=input=>JSON.stringify([input.photo,input.cfg,input.monogram,input.template,input.filter]);
+export const exportKey=input=>JSON.stringify([input.photo,input.cfg,input.monogram,input.template,input.filter,input.layout||'card',input.stripMode,input.poses]);
 export function filename(title){return (String(title||'event').normalize('NFKD').replace(/[^a-z0-9]+/gi,'-').replace(/^-|-$/g,'').slice(0,70)||'event')+'-keepsake.jpg';}
 export function latestOnly(){let version=0;return {invalidate(){version++;},async run(job,accept,reject){const token=++version;try{const result=await job();if(token===version)accept(result);}catch(error){if(token===version)reject(error);}}};}
 function readImage(src){return new Promise((resolve,reject)=>{const image=new Image();const timer=setTimeout(()=>{image.src='';reject(new Error('Photo preparation timed out. Please try again.'));},15000);const done=()=>{clearTimeout(timer);image.onload=null;image.onerror=null;};image.onload=()=>{done();resolve(image);};image.onerror=()=>{done();reject(new Error('The keepsake could not be prepared on this device.'));};image.src=src;});}
@@ -16,7 +16,8 @@ export async function makeKeepsakeExport(input){
   ctx.fillStyle='#ffffff';ctx.fillRect(0,0,canvas.width,canvas.height);ctx.drawImage(image,0,0,canvas.width,canvas.height);
   let blob;for(const quality of [.94,.88,.82,.76,.70]){blob=await encode(canvas,quality);if(blob.size<=MAX_EXPORT_BYTES)break;}
   if(blob.size>MAX_EXPORT_BYTES)throw new Error('This keepsake is too large to send. Please print it or use a simpler design.');
-  const file=new File([blob],filename(input.cfg?.title),{type:'image/jpeg'});
+  const outputName=input.layout==='photo_strip'?filename(input.cfg?.title).replace('-keepsake.jpg','-photo-strip.jpg'):filename(input.cfg?.title);
+  const file=new File([blob],outputName,{type:'image/jpeg'});
   return {key,file,blob,dataUrl:await dataUrl(blob),width:EXPORT_WIDTH,height:EXPORT_HEIGHT};
  }finally{URL.revokeObjectURL(url);canvas.width=0;canvas.height=0;}
 }

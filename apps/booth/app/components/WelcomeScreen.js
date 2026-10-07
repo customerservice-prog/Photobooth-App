@@ -1,6 +1,7 @@
 'use client';
 import {memo,useEffect,useState} from 'react';
 import PrintCard from './PrintCard';
+import {normalizePrintLayouts} from '../lib/print-layouts.mjs';
 import AppUpdate from './AppUpdate';
 import {normalizePrintPackage,printsRemaining} from '../lib/print-package.mjs';
 import {eventMonogram} from '../lib/event-config.mjs';
@@ -38,7 +39,7 @@ const WelcomeProof=memo(function WelcomeProof({cfg,shots}){
   });setSample(c.toDataURL('image/png'));return()=>{c.width=0;c.height=0;};
  },[shots,primary,secondary]);
  const view={...cfg,photoFit:'fit'};
- return <aside className="bwShowcase" aria-label="Personalized keepsake design preview"><div className="bwShowcaseTop"><span>A LITTLE MOMENT.<br/><em>A lovely keepsake.</em></span><Mark name="sparkle" size={30}/></div><div className="bwPaperStack"><div className="bwPaperBack" aria-hidden="true"/><div className="bwRealProof"><PrintCard photo={sample} cfg={view} monogram={eventMonogram(cfg)} template={cfg.defaultTemplate||'ivory'}/></div><span className="bwSeal" aria-hidden="true"><Mark name="sparkle" size={17}/><b>MADE<br/>FOR YOU</b></span></div><div className="bwProofCaption"><span className="bwProofRule"/><p>YOUR {shots} POSES. YOUR PERSONALIZED DESIGN.<small>Sample preview · your photos go here</small></p><span className="bwProofRule"/></div></aside>;
+ return <aside className="bwShowcase" aria-label="Personalized keepsake design preview"><div className="bwShowcaseTop"><span>A LITTLE MOMENT.<br/><em>A lovely keepsake.</em></span><Mark name="sparkle" size={30}/></div><div className="bwPaperStack"><div className="bwPaperBack" aria-hidden="true"/><div className="bwRealProof"><PrintCard photo={sample} layout={normalizePrintLayouts(cfg.printLayouts).defaultLayout} stripMode={normalizePrintLayouts(cfg.printLayouts).stripMode} sample cfg={view} monogram={eventMonogram(cfg)} template={cfg.defaultTemplate||'ivory'}/></div><span className="bwSeal" aria-hidden="true"><Mark name="sparkle" size={17}/><b>MADE<br/>FOR YOU</b></span></div><div className="bwProofCaption"><span className="bwProofRule"/><p>YOUR {shots} POSES. YOUR PERSONALIZED DESIGN.<small>Sample preview · your photos go here</small></p><span className="bwProofRule"/></div></aside>;
 });
 export default function WelcomeScreen({cfg,eventName,online,starting,installed,printsUsed=0,onStartPhotos,onInstall,onOperator}){
  const rules=normalizePrintPackage(cfg.printPackage),available=rules.printingEnabled&&printsRemaining(rules,printsUsed)>0,title=String(cfg.title||'Our Celebration');

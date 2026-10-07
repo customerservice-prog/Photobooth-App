@@ -63,3 +63,9 @@ export async function exportPhotos(scope){
  return {blob:await makeZip(files),count:records.length};
 }
 export function downloadBlob(blob,name){const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),60000);}
+
+export async function capturePoses(scope,id){
+ const record=await transaction('readonly',(store,done)=>{const r=store.get(scope+':'+id);r.onsuccess=()=>done(r.result);});
+ if(!record)return [];
+ return Promise.all(record.poses.map(value=>blobDataUrl(photoBlob(value))));
+}
