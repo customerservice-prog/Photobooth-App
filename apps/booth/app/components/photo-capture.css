@@ -69,3 +69,208 @@
 @media(prefers-reduced-motion:reduce){
   .pcStage[data-phase="countdown"] .pcCircle{transition:none}
 }
+
+
+/* Premium, clearly visible photo countdown — release 2026.10.07.10.
+   Explicit positive layers fix camera/video compositor obscuring the ring/digit.
+   Keep camera visible and all existing capture, cancellation, and print controls. */
+.booth .pcStage .pcCamera{z-index:0}
+.booth .pcStage .pcShade{
+  z-index:1;
+  background:
+    linear-gradient(180deg,rgba(8,22,19,.60),rgba(12,21,18,.06) 33%,rgba(7,21,18,.10) 58%,rgba(7,19,16,.79) 100%),
+    radial-gradient(ellipse at 50% 52%,rgba(11,24,21,.08),rgba(8,18,16,.34) 100%);
+}
+.booth .pcStage .pcHeader,
+.booth .pcStage .pcCenter,
+.booth .pcStage .pcFooter{position:relative;z-index:2}
+.booth .pcStage .pcCenter{
+  width:min(100%,850px);
+  max-height:100%;
+  gap:clamp(6px,1.25dvh,13px);
+  padding:5px 22px;
+}
+.booth .pcStage .pcVoiceBadge{
+  background:rgba(12,35,29,.75);
+  border:1px solid rgba(255,232,188,.78);
+  color:#fff3d7;
+  font-size:clamp(9px,1.3vmin,11px);
+  font-weight:750;
+  letter-spacing:1.3px;
+  box-shadow:0 5px 20px #0b191a69;
+}
+.booth .pcStage .pcEyebrow{
+  color:#ffebc6;
+  font-size:clamp(11px,1.65vmin,15px);
+  letter-spacing:2.6px;
+}
+.booth .pcStage .pcCountdownSteps{
+  display:flex;align-items:center;justify-content:center;
+  gap:clamp(12px,2.3vmin,25px);
+  color:rgba(255,243,214,.73);
+}
+.booth .pcStage .pcCountdownStep{
+  position:relative;min-width:18px;
+  font:500 clamp(15px,2.25vmin,20px)/1 Georgia,serif;letter-spacing:0;
+}
+.booth .pcStage .pcCountdownStep[data-active=true]{
+  color:var(--pc-cue,#ff83ba);
+  font-weight:750;
+  text-shadow:0 0 12px var(--pc-cue-glow,#ff83ba52),0 0 22px var(--pc-cue-glow,#ff83ba52);
+}
+.booth .pcStage .pcCountdownStep::after{
+  content:'·';position:absolute;right:calc(-1 * clamp(12px,2.3vmin,25px) * .72);
+  color:#f5d8af;
+}
+.booth .pcStage .pcCountdownSmile{
+  font:700 clamp(10px,1.55vmin,12px)/1 system-ui,sans-serif;letter-spacing:2.6px;
+}
+.booth .pcStage .pcCircle{
+  position:relative;z-index:1;
+  width:clamp(230px,42vmin,358px);
+  height:clamp(230px,42vmin,358px);
+  max-width:calc(100vw - 56px);
+  max-height:50dvh;
+  flex:none;
+  border:1.5px solid rgba(255,222,170,.89);
+  border-radius:50%;
+  background:radial-gradient(circle,rgba(15,30,25,.14),rgba(13,29,24,.32) 65%,rgba(241,195,126,.13));
+  box-shadow:0 0 0 5px rgba(255,212,147,.07),0 0 0 14px rgba(255,212,147,.025),0 8px 54px #10191485;
+  backdrop-filter:blur(1.25px);
+  -webkit-backdrop-filter:blur(1.25px);
+  margin:4px 0 6px;
+  isolation:isolate;
+}
+.booth .pcStage[data-phase="countdown"] .pcCircle{
+  border-color:rgba(255,224,173,.96);
+  background:radial-gradient(circle,rgba(12,26,22,.15),var(--pc-cue-soft,rgba(255,131,186,.14)) 74%,rgba(9,25,21,.19));
+  box-shadow:
+    0 0 0 6px rgba(255,207,138,.08),
+    0 0 0 16px rgba(255,207,138,.025),
+    0 0 29px var(--pc-cue-glow,#ff83ba52),
+    0 18px 42px rgba(5,19,16,.44);
+}
+.booth .pcStage .pcRing{z-index:1;stroke-width:1.1;overflow:visible;pointer-events:none}
+.booth .pcStage .pcRingBase{stroke:rgba(255,241,204,.47);stroke-width:1.1}
+.booth .pcStage[data-phase="countdown"] .pcRingArc{
+  stroke:var(--pc-cue,#ff83ba);stroke-width:2.5;
+  filter:drop-shadow(0 0 4px var(--pc-cue-glow,#ff83ba52));
+}
+.booth .pcStage .pcHaloCore{
+  position:absolute;inset:6%;z-index:0;
+  border:1px solid rgba(255,231,196,.22);border-radius:50%;pointer-events:none;
+}
+.booth .pcStage .pcDigit{
+  position:relative;z-index:3;
+  display:block;min-width:.7em;margin:0;padding-right:0;
+  font:italic 400 clamp(166px,31vmin,285px)/.97 Georgia,'Times New Roman',serif;
+  letter-spacing:-.08em;text-indent:-.08em;text-align:center;
+  color:var(--pc-cue,#ff83ba);
+  text-shadow:none;
+  filter:drop-shadow(0 1px 2px #fff2d8bb) drop-shadow(0 0 18px var(--pc-cue-glow,#ff83ba52)) drop-shadow(0 8px 9px #0b1b19d6);
+}
+@supports(-webkit-background-clip:text){
+  .booth .pcStage[data-phase="countdown"] .pcDigit{
+    background:linear-gradient(154deg,#fffef4 6%,#fff7df 22%,var(--pc-cue,#ff83ba) 43%,#fff9e1 69%,var(--pc-cue,#ff83ba) 95%);
+    background-clip:text;-webkit-background-clip:text;
+    -webkit-text-fill-color:transparent;
+  }
+}
+.booth .pcStage .pcGlimmer{
+  position:absolute;z-index:3;pointer-events:none;
+  width:6px;height:6px;transform:rotate(45deg);
+  background:#fff7e6;border-radius:1px;
+  box-shadow:0 0 9px #fff8ea,0 0 22px #ffd5a4;
+}
+.booth .pcStage .pcGlimmer::before,
+.booth .pcStage .pcGlimmer::after{
+  content:'';display:block;position:absolute;background:#fff6dd;border-radius:100%;
+}
+.booth .pcStage .pcGlimmer::before{height:1px;width:19px;left:-6.5px;top:2.5px}
+.booth .pcStage .pcGlimmer::after{width:1px;height:19px;top:-6.5px;left:2.5px}
+.booth .pcStage .pcGlimmerOne{top:17%;left:14%}
+.booth .pcStage .pcGlimmerTwo{top:27%;right:4%;width:4px;height:4px}
+.booth .pcStage .pcGlimmerThree{bottom:17%;left:6%;width:4px;height:4px}
+.booth .pcStage .pcGlimmerFour{right:17%;bottom:12%}
+.booth .pcStage .pcSoundWave{z-index:0;pointer-events:none}
+.booth .pcStage .pcWords{min-height:0;max-width:700px;position:relative;z-index:2}
+.booth .pcStage .pcWords h1{
+  font:italic 400 clamp(37px,6vmin,62px)/1.07 Georgia,serif;
+  letter-spacing:-1.2px;margin:0 0 7px;
+  color:var(--pc-cue,#fff0c8);
+  text-shadow:0 2px 22px rgba(0,0,0,.82);
+}
+.booth .pcStage .pcWords p{
+  color:#fff5e2;font-size:clamp(12px,1.6vmin,16px);
+  line-height:1.35;text-shadow:0 2px 12px #0a1715;
+}
+.booth .pcStage .pcFooter{z-index:3}
+.booth .pcStage .pcStrip li{
+  background:rgba(19,47,37,.85);
+  border-color:rgba(236,217,179,.63);
+}
+.booth .pcStage .pcFooterBar{border-top-color:rgba(255,231,196,.34)}
+.booth .pcStage .pcVisuallyHidden{
+  position:absolute;white-space:nowrap;width:1px;height:1px;overflow:hidden;
+  clip:rect(0 0 0 0);clip-path:inset(50%);
+}
+@media(min-width:701px) and (max-height:700px){
+  .booth .pcStage .pcCircle{
+    width:clamp(185px,36dvh,275px);height:clamp(185px,36dvh,275px);max-height:42dvh;
+  }
+  .booth .pcStage .pcDigit{font-size:clamp(133px,28dvh,215px)}
+  .booth .pcStage .pcCenter{gap:6px;padding-top:2px;padding-bottom:2px}
+  .booth .pcStage .pcWords h1{font-size:clamp(29px,5dvh,45px)}
+}
+@media(max-width:700px){
+  .booth .pcStage .pcHeader{padding:15px 16px 6px}
+  .booth .pcStage .pcCenter{width:100%;gap:8px;padding:6px 14px}
+  .booth .pcStage .pcCircle{
+    width:clamp(210px,65vw,280px);height:clamp(210px,65vw,280px);
+    max-height:40dvh;max-width:calc(100vw - 56px);
+  }
+  .booth .pcStage .pcDigit{font-size:clamp(150px,47vw,215px)}
+  .booth .pcStage .pcWords h1{font-size:clamp(32px,7vw,44px)}
+  .booth .pcStage .pcWords p{font-size:12px}
+}
+@media(max-height:560px) and (min-width:601px){
+  .booth .pcStage .pcHeader{padding:7px 17px 3px}
+  .booth .pcStage .pcCenter{
+    display:grid;grid-template-columns:minmax(140px,170px) minmax(0,1fr);
+    grid-template-rows:auto auto auto;column-gap:16px;row-gap:4px;
+    text-align:left;align-items:center;max-width:640px;padding:0 16px;
+  }
+  .booth .pcStage .pcVoiceBadge{grid-column:2;grid-row:1;justify-self:start;min-height:20px}
+  .booth .pcStage .pcEyebrow{grid-column:2;grid-row:2;justify-self:start}
+  .booth .pcStage .pcCircle{
+    grid-column:1;grid-row:1/4;justify-self:center;
+    width:clamp(132px,34dvh,170px);height:clamp(132px,34dvh,170px);
+    max-height:43dvh;margin:0;
+  }
+  .booth .pcStage .pcDigit{font-size:clamp(92px,25dvh,128px)}
+  .booth .pcStage .pcWords{grid-column:2;grid-row:3;align-self:start;min-height:0}
+  .booth .pcStage .pcWords h1{font-size:clamp(28px,7dvh,38px)}
+  .booth .pcStage .pcWords p{font-size:10px;max-width:380px}
+  .booth .pcStage .pcStrip li{max-width:58px}
+  .booth .pcStage .pcFooter{padding-bottom:6px}
+}
+@media(max-height:650px) and (max-width:600px){
+  .booth .pcStage .pcCircle{width:min(49dvh,195px);height:min(49dvh,195px)}
+  .booth .pcStage .pcDigit{font-size:min(36dvh,140px)}
+  .booth .pcStage .pcCenter{gap:5px}
+  .booth .pcStage .pcWords h1{font-size:30px}
+}
+@media(prefers-reduced-motion:no-preference){
+  .booth .pcStage[data-phase="countdown"] .pcGlimmerOne{
+    animation:pcGentleTwinkle 2.3s ease-in-out infinite alternate!important;
+  }
+  .booth .pcStage[data-phase="countdown"] .pcGlimmerFour{
+    animation:pcGentleTwinkle 3.1s ease-in-out infinite alternate!important;
+    animation-delay:.35s!important;
+  }
+}
+@keyframes pcGentleTwinkle{from{opacity:.48}to{opacity:1}}
+@media(prefers-reduced-motion:reduce){
+  .booth .pcStage .pcGlimmer{animation:none!important}
+  .booth .pcStage .pcCircle{transition:none!important}
+}
