@@ -1,4 +1,5 @@
 import {BOOTH_RELEASE,BOOTH_RELEASE_LABEL,freshBoothEntry} from '../lib/booth-launch.mjs';
+import AppUpdate from './AppUpdate';
 import './booth-launcher.css';
 
 // Server-rendered native links still work if an older iPad cannot hydrate React.
@@ -18,7 +19,7 @@ export default function BoothLauncher(){
         <p className="blDetail">Tap <strong>Take a Photo</strong> on the next screen. The countdown appears after camera access is allowed. A four-pose session takes four separate photos automatically before showing the design page.</p>
         <div className="blOther"><a data-testid="launch-preparation" href={freshBoothEntry('preparation',stamp)}>Edit the customer’s event →</a><a data-testid="launch-saved" href={freshBoothEntry('saved',stamp)}>Open the general saved booth →</a></div>
       </section>
-      <aside className="blSupport"><h2>Still seeing an older screen?</h2><p>Use this page in Safari on the iPad, then open the office demo above. You do not need to delete the Home Screen icon or clear Safari’s website data. Keep existing photos and settings in their original browser.</p><p>Safari and the saved Home Screen app may have different local settings. This opens the latest app code; it does not transfer photos between them.</p><a data-testid="launch-refresh" href={freshBoothEntry('launch',stamp)}>Reload this start screen</a><span className="blRelease">{BOOTH_RELEASE_LABEL}</span></aside>
+      <aside className="blSupport"><h2>Still seeing an older screen?</h2><p>Use this page in Safari on the iPad, then open the office demo above. You do not need to delete the Home Screen icon or clear Safari’s website data. Keep existing photos and settings in their original browser.</p><p>Safari and the saved Home Screen app may have different local settings. This opens the latest app code; it does not transfer photos between them.</p><AppUpdate/><a data-testid="launch-refresh" href={freshBoothEntry('launch',stamp)}>Reload this start screen</a><span className="blRelease">{BOOTH_RELEASE_LABEL}</span></aside>
       <footer className="blFooter">Friendly Party Rental <span>Real camera and printer checks still happen on your equipment.</span></footer>
     </div>
   </main>;
