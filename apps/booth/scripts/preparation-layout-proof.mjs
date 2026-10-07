@@ -13,7 +13,7 @@ for(const [engine,api] of [['chromium',chromium],['webkit',webkit]]){
   for(const field of fields){assert(field.left>=field.labelLeft-1&&field.right<=field.labelRight+1,engine+' '+name+' field stays inside label: '+field.name);assert(field.width>=80,engine+' '+name+' readable field width: '+field.name);}
   assert(await page.locator('.epPage').evaluate(e=>e.scrollWidth<=e.clientWidth+1));
   await page.screenshot({path:`${out}/prep-top-${engine}-${name}.png`,fullPage:true});
-  await page.getByLabel('Starting keepsake',{exact:true}).scrollIntoViewIfNeeded();await page.screenshot({path:`${out}/prep-fields-${engine}-${name}.png`,fullPage:true});
+  await page.locator('.epFields select').first().scrollIntoViewIfNeeded();await page.screenshot({path:`${out}/prep-fields-${engine}-${name}.png`,fullPage:true});
   results.push({engine,viewport:[width,height],test:name,passed:true,fields});
  }
  }finally{await browser.close();}
