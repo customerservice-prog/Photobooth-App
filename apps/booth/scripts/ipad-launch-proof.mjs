@@ -33,7 +33,7 @@ for(const [engine,api] of [['chromium',chromium],['webkit',webkit]]){
    const a=page.getByTestId('launch-demo');await a.scrollIntoViewIfNeeded();const b=await a.boundingBox();assert(b.height>=44&&b.x>=0&&b.x+b.width<=width+1);assert(await a.evaluate(e=>{const r=e.getBoundingClientRect();return e.contains(document.elementFromPoint(r.x+r.width/2,r.y+r.height/2));}));
    await page.screenshot({path:out+'/ipad-launch-'+engine+'-'+name+'.png'});pass('touch-launcher-'+name,{geometry:g});
   }
-  await page.setViewportSize({width:1024,height:768});await page.getByTestId('launch-demo').click();await page.getByTestId('welcome-photo').waitFor();await page.waitForFunction(()=>!document.querySelector('[data-testid="welcome-photo"]')?.disabled);
+  await page.setViewportSize({width:1024,height:768});await page.getByTestId('launch-demo').click();await page.getByTestId('welcome-four-photo').waitFor();await page.waitForFunction(()=>!document.querySelector('[data-testid="welcome-four-photo"]')?.disabled);
   assert(new URL(page.url()).searchParams.get('demo')==='1');assert.equal(await page.locator('.workspaceBanner').count(),1);assert((await page.locator('.workspaceBanner').innerText()).includes('OFFICE DEMO'));assert((await page.locator('#bwEventTitle').innerText()).includes('Saved Customer Preview'));assert.deepEqual(await snapshot(),before);assert.deepEqual(await archiveSnapshot(),photos);pass('launch-opens-correct-saved-demo-without-changing-allowance');
   await page.goto(base+'/ipad',{waitUntil:'networkidle'});
   const cornerProof=await page.evaluate(async source=>{
