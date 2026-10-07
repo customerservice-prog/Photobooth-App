@@ -42,7 +42,7 @@ export async function preparePhotoAudio({Context=globalThis.AudioContext||global
  let routeReady;
  if(typeof globalThis.Audio==='function'){
   mediaRoute ||= new Audio('/audio/media-route.wav');mediaRoute.loop=true;
-  routeReady=mediaRoute.play();
+  routeReady=Promise.resolve(mediaRoute.play()).catch(()=>{throw new Error('Sound could not start. Tap Test speaker, then try again.');});
  }
  // Called directly from the guest tap, before camera permission or any timers.
  const resume=context.resume();
