@@ -1,0 +1,19 @@
+'use client';
+import './photo-capture.css';
+function Smile({small=false}){return <svg className={small?'pcSmileSmall':'pcSmile'} viewBox="0 0 64 64" fill="none" aria-hidden="true"><circle cx="32" cy="32" r="27" stroke="currentColor" strokeWidth="2"/><path d="M20 37c5 12 19 12 24 0" stroke="currentColor" strokeWidth="2.8" strokeLinecap="round"/><path d="M21 23v3m22-3v3" stroke="currentColor" strokeWidth="4" strokeLinecap="round"/><path d="m51 3 1.5 5L58 10l-5.5 2-1.5 5-2-5-5-2 5-2z" fill="currentColor"/></svg>;}
+export default function PhotoCapture({videoRef,progress,onCancel}){
+ const {phase='ready',current=1,total=4,count=null,completed=0,shots=[]}=progress;
+ const processing=phase==='processing',snap=phase==='smile'||phase==='captured';
+ const title=processing?'Making your keepsake…':snap?'Smile!':phase==='ready'?'Finding your best angle…':current===1?'Find your best smile.':current===total?'One more. Make it yours.':'A new pose. A new memory.';
+ const instruction=processing?'All '+total+' photos are taken. Your print choices are next.':phase==='ready'?'Getting the camera ready.':phase==='captured'?'Got it!':phase==='countdown'?'Look at the camera above the screen.':snap?'Hold that lovely pose.':current===1?'Get comfortable. Your photos start in a moment.':'Change your pose. The next countdown starts now.';
+ return <section className="pcStage" aria-label="Photo session" data-capture-version="smile-sequence-v1" data-phase={phase} data-shot={current} data-completed={completed} data-total={total}>
+  <video ref={videoRef} className="pcCamera" playsInline muted autoPlay/>
+  <div className="pcShade" aria-hidden="true"/>
+  <header className="pcHeader"><div className="pcBrand"><Smile small/><span>FRIENDLY<small>A LITTLE MOMENT. A LOVELY KEEPSAKE.</small></span></div><span className="pcPhotoNumber">{processing?'ALL PHOTOS TAKEN':'PHOTO '+current+' OF '+total}</span></header>
+  <div className="pcCenter"><span className="pcEyebrow">{processing?'YOUR MEMORIES, TOGETHER':phase==='countdown'?'READY, SET…':'LET YOUR PERSONALITY SHOW'}</span>
+   <div className="pcCircle" aria-hidden="true"><svg className="pcRing" viewBox="0 0 220 220"><circle className="pcRingBase" cx="110" cy="110" r="102"/><circle className="pcRingArc" cx="110" cy="110" r="102" pathLength="100" strokeDasharray="100" strokeDashoffset={phase==='countdown'?(3-count)/3*100:0}/></svg>{phase==='countdown'?<span className="pcDigit" key={current+'-'+count}>{count}</span>:processing?<span className="pcComplete">✓</span>:<Smile/>}</div>
+   <div className="pcWords" role="status" aria-live="polite" aria-atomic="true"><h1>{title}</h1><p>{phase==='countdown'?'Photo '+current+' of '+total+' in '+count+'. ':''}{instruction}</p></div>
+  </div>
+  <footer className="pcFooter"><ol className="pcStrip" aria-label="Photos captured this session">{Array.from({length:total},(_,i)=><li key={i} data-filled={Boolean(shots[i])} data-active={current===i+1&&!shots[i]}>{shots[i]?<img src={shots[i]} alt={'Photo '+(i+1)+' captured'}/>:<span className="pcEmpty" aria-hidden="true">{String(i+1).padStart(2,'0')}</span>}<span className="pcThumbCaption">{shots[i]?'Captured':current===i+1?'Your pose':'Up next'}</span></li>)}</ol><div className="pcFooterBar"><button type="button" onClick={onCancel} disabled={processing}>Cancel session</button><p>{completed} of {total} photos captured · {processing?'preparing your design':'print choices appear after the last photo'}</p><a href="/help">Help</a></div></footer>
+ </section>;
+}

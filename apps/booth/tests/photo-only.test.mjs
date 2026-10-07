@@ -16,10 +16,11 @@ test('guest runtime has no recording encoder, motion state or motion preview rou
   const source=read('page.js');
   assert(!/MediaRecorder|GIFEncoder|gifenc|takeBoomerang|takeGif|motionPreview|gifPreview|shareMotion|setMode|chooseMode/.test(source));
   assert(source.includes('onStartPhotos={begin}'));
-  assert(source.includes('clearInterval(i);takePhoto()'));
+  assert(source.includes('const shots=await runPhotoSequence('));
+  assert(source.includes('takeFreshPhoto(video.current,options)'));
   assert(source.includes("function retake(){setPhoto(null);begin()}"));
   assert(source.includes('audio:false'));
-  assert(source.includes("c.toDataURL('image/jpeg',.92)"));
+  assert(read('lib/photo-sequence.mjs').includes("canvas.toDataURL('image/jpeg',.92)"));
 });
 
 test('photo-only presentation keeps configured poses and the existing allowance plumbing',()=>{
