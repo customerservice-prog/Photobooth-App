@@ -1,7 +1,7 @@
 // Keep the installed app identity stable. Navigation never clears or migrates
 // photos, settings, counters, or any other browser storage.
-export const BOOTH_RELEASE='2026.10.07.4';
-export const BOOTH_RELEASE_LABEL='Photo Strip & 4×6 Card · four separate photos';
+export const BOOTH_RELEASE='2026.10.07.5';
+export const BOOTH_RELEASE_LABEL='Premium photo strips · visual choices · four separate photos';
 const ENTRIES=Object.freeze({
   demo:'/?event=oct10-2026&demo=1',
   preparation:'/event-prep',
