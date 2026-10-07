@@ -9,7 +9,6 @@ test('four separate captures, four countdowns, then and only then processing',as
  assert.deepEqual(calls,[0,1,2,3]);assert.equal(new Set(shots).size,4);
  assert.deepEqual(events.filter(e=>e.phase==='countdown').map(e=>[e.current,e.count]),[1,2,3,4].flatMap(i=>[[i,3],[i,2],[i,1]]));
  assert.deepEqual(events.filter(e=>e.phase==='captured').map(e=>e.completed),[1,2,3,4]);
- assert.deepEqual(events.filter(e=>e.phase==='next').map(e=>e.current),[2,3,4]);
  assert.equal(events.at(-1).phase,'processing');assert.equal(events.at(-1).shots.length,4);assert.equal(events.filter(e=>e.phase==='processing').length,1);
 });
 test('one-photo quick session captures exactly one image and one talking countdown',async()=>{let n=0;const cues=[];const shots=await runPhotoSequence({total:1,wait:instant,capture:async()=>({data:jpeg,mediaTime:++n}),onCue:c=>cues.push(c)});assert.equal(shots.length,1);assert.equal(n,1);assert.deepEqual(cues,['ready','3','2','1','smile']);});
@@ -30,19 +29,20 @@ test('older-browser fallback requires its camera clock to advance',async()=>{con
 test('streams with repeated media time use advancing presented-frame identifiers',async()=>{let number=0;const shots=await runPhotoSequence({wait:instant,capture:async()=>({data:jpeg,mediaTime:0,presentedFrames:++number})});assert.equal(shots.length,4);assert.equal(number,4);});
 test('fresh-photo callback accepts a new presented frame even with a repeated timestamp',async()=>{const video=camera();video.requestVideoFrameCallback=fn=>setTimeout(()=>fn(0,{mediaTime:0,presentedFrames:9}),1);video.cancelVideoFrameCallback=clearTimeout;const frame=await takeFreshPhoto(video,{previousTime:0,previousFrame:8,timeoutMs:20,snapshot:()=>jpeg});assert.equal(frame.presentedFrames,9);});
 
-test('after each picture, announces next photo and waits for a fresh pose before new countdown',async()=>{
- let frame=0;const events=[],cues=[],delays=[];
- await runPhotoSequence({total:4,capture:async()=>({data:jpeg,mediaTime:++frame}),wait:async ms=>{delays.push(ms);},onProgress:p=>events.push(p),onCue:(cue,info)=>cues.push({cue,info})});
+test('each following photo gets a spoken transition and time to change pose',async()=>{
+ const events=[],cues=[],delays=[];
+ await runPhotoSequence({total:4,wait:async ms=>delays.push(ms),capture:async({index})=>({data:jpeg,mediaTime:index+1}),onProgress:e=>events.push(e),onCue:c=>cues.push(c)});
  assert.deepEqual(events.filter(e=>e.phase==='next').map(e=>[e.current,e.completed]),[[2,1],[3,2],[4,3]]);
- for(let photo=2;photo<=4;photo++){
-  const first=events.findIndex(e=>e.phase==='next'&&e.current===photo);
-  const second=events.findIndex((e,i)=>i>first&&e.phase==='countdown'&&e.current===photo);
-  assert(first>=0&&second>first,'pose reminder before countdown '+photo);
- }
- assert.deepEqual(cues.filter(x=>x.cue==='next').map(x=>x.info.current),[2,3,4]);
- assert.equal(delays.filter(ms=>ms===3300).length,3);
+ assert.deepEqual(cues.filter(c=>c.startsWith('next')),['next2','next3','next4']);
+ assert.equal(delays.filter(ms=>ms===3500).length,3);
 });
-test('one-photo session never asks for a nonexistent next photo',async()=>{
- const phases=[],cues=[];await runPhotoSequence({total:1,wait:async()=>{},capture:async()=>({data:jpeg,mediaTime:1}),onProgress:x=>phases.push(x.phase),onCue:c=>cues.push(c)});
- assert(!phases.includes('next'));assert(!cues.includes('next'));
+test('cancelling during next-pose guidance prevents the next capture',async()=>{
+ const c=new AbortController();let captured=0;
+ await assert.rejects(runPhotoSequence({signal:c.signal,wait:instant,capture:async()=>({data:jpeg,mediaTime:++captured}),onProgress:e=>{if(e.phase==='next')c.abort();}}),{name:'AbortError'});
+ assert.equal(captured,1);
+});
+
+test('next countdown waits until its spoken announcement finishes',async()=>{
+ const delays=[];await runPhotoSequence({total:4,wait:async ms=>delays.push(ms),capture:async({index})=>({data:jpeg,mediaTime:index+1}),onCue:c=>c.startsWith('next')?4700:0});
+ assert.equal(delays.filter(ms=>ms===5000).length,3);
 });

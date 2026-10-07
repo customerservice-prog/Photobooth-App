@@ -1,20 +1,19 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {VOICE_CUES,speakCue,stopTalking} from '../app/lib/photo-voice.mjs';
+import {VOICE_CUES,speakCue,stopTalking,preparePhotoAudio,playPhotoCue,stopPhotoAudio} from '../app/lib/photo-voice.mjs';
 
 test('spoken countdown has the exact friendly cue order words',()=>{
   assert.deepEqual(VOICE_CUES,{ready:'Get ready.',3:'Three.',2:'Two.',1:'One.',smile:'Smile!'});
 });
 
-test('speaking a new cue cancels the old one and uses an English voice when available',()=>{
+test('speaking a fallback cue preserves queued speech and uses an English voice when available',()=>{
   const events=[];
   class U{constructor(text){this.text=text;}}
   const voices=[{name:'Test French',lang:'fr-FR'},{name:'Samantha',lang:'en-US'}];
   const synth={cancel:()=>events.push('cancel'),getVoices:()=>voices,speak:u=>events.push({text:u.text,voice:u.voice?.name,rate:u.rate,pitch:u.pitch})};
   assert.equal(speakCue('3',{synth,Utterance:U}),true);
-  assert.deepEqual(events[0],'cancel');
-  assert.equal(events[1].text,'Three.');
-  assert.equal(events[1].voice,'Samantha');
+  assert.equal(events[0].text,'Three.');
+  assert.equal(events[0].voice,'Samantha');
 });
 
 test('voice is optional and never blocks the visual countdown',()=>{
@@ -22,20 +21,15 @@ test('voice is optional and never blocks the visual countdown',()=>{
   assert.doesNotThrow(()=>stopTalking(null));
 });
 
-import {playRecordedVoice,VOICE_CLIPS} from '../app/lib/photo-voice.mjs';
-test('recorded cues cover initial tap, full countdown, and next pose',()=>{
- assert.deepEqual(Object.keys(VOICE_CLIPS),['start','countdown','next']);
- assert(VOICE_CLIPS.countdown.includes('2026.10.07.7'));
-});
-test('guest tap plays audible asset without waiting for camera and all cues reuse one audio element',async()=>{
- const sounds=[],states=[];
- class FakeAudio {constructor(){sounds.push('new');}pause(){sounds.push('pause');}play(){sounds.push(this.src);return Promise.resolve();}}
- assert.equal(playRecordedVoice('start',{AudioCtor:FakeAudio,onState:s=>states.push(s)}),true);
- assert.equal(playRecordedVoice('countdown',{AudioCtor:FakeAudio,onState:s=>states.push(s)}),true);
- assert.equal(playRecordedVoice('next',{AudioCtor:FakeAudio,onState:s=>states.push(s)}),true);
- await Promise.resolve();await Promise.resolve();
- assert.equal(sounds.filter(x=>x==='new').length,1);
- assert.deepEqual(sounds.filter(x=>x.startsWith('/voice/')),Object.values(VOICE_CLIPS));
- assert.equal(states.at(-1),'playing');
- stopTalking(null);
+test('recorded audio resumes from the tap, decodes all cues and stops active sources',async()=>{
+ const events=[];class Context{
+  state='suspended';destination={};
+  resume(){events.push('resume');this.state='running';return Promise.resolve();}
+  decodeAudioData(){events.push('decode');return Promise.resolve({duration:1.1});}
+  createBufferSource(){return {connect(){},disconnect(){},start(){events.push('start');},stop(){events.push('stop');}};}
+ }
+ await preparePhotoAudio({Context,fetcher:async url=>{events.push(url);return {ok:true,arrayBuffer:async()=>new ArrayBuffer(2)};}});
+ assert.equal(events[0],'resume');assert.equal(events.filter(e=>e==='decode').length,8);
+ assert.equal(playPhotoCue('next2'),1100);stopPhotoAudio();assert.equal(events.filter(e=>e==='stop').length,2);
+ assert.equal(playPhotoCue('missing'),false);
 });

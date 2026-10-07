@@ -4,7 +4,7 @@ import PhotoPreview from './components/PhotoPreview';
 import WelcomeScreen from './components/WelcomeScreen';
 import PhotoCapture from './components/PhotoCapture';
 import {runPhotoSequence,takeFreshPhoto,waitForPose} from './lib/photo-sequence.mjs';
-import {playRecordedVoice,stopTalking} from './lib/photo-voice.mjs';
+import {playPhotoCue,preparePhotoAudio,stopTalking} from './lib/photo-voice.mjs';
 import {normalizeEventConfig} from './lib/event-config.mjs';
 import {normalizePrintPackage,printsRemaining,canPrint} from './lib/print-package.mjs';
 import {composePhotoStrip} from './lib/photo-strip.mjs';
@@ -63,11 +63,13 @@ export default function Booth(){
     document.addEventListener('visibilitychange',stopHidden);return()=>document.removeEventListener('visibilitychange',stopHidden);
   },[]);
   async function begin(total=4){
-    if(startGuard.current||!initialized)return;if(![1,4].includes(total))total=4;startGuard.current=true;setStarting(true);setSessionShots(total);stopTalking();playRecordedVoice('start',{onState:setVoiceStatus});const id=++run.current;
+    if(startGuard.current||!initialized)return;if(![1,4].includes(total))total=4;startGuard.current=true;setStarting(true);setSessionShots(total);stopTalking();const id=++run.current;
     captureAbort.current?.abort();const controller=new AbortController();captureAbort.current=controller;capturePhase.current='ready';
     setCapture({phase:'ready',current:1,total,completed:0,shots:[]});
     setError('');setFilter('original');setTemplate(cfg.defaultTemplate||'ivory');setPhoto(null);setPoses([]);setEditing(false);stopCamera();captureId.current=null;
     try{
+      setVoiceStatus('starting');await preparePhotoAudio();setVoiceStatus('playing');
+      if(id!==run.current||controller.signal.aborted)return;
       const s=await navigator.mediaDevices.getUserMedia({video:{facingMode:'user',width:{ideal:1920},height:{ideal:1080}},audio:false});
       if(id!==run.current||controller.signal.aborted){s.getTracks().forEach(t=>t.stop());return;}
       stream.current=s;setStep('camera');const ready=await waitForVideo(s);
@@ -77,7 +79,7 @@ export default function Booth(){
       const shots=await runPhotoSequence({total,signal:controller.signal,
         capture:options=>takeFreshPhoto(video.current,options),
         onProgress:next=>{if(id===run.current){capturePhase.current=next.phase;setCapture(next);}},
-        onCue:cue=>{if(id===run.current){if(cue==='3')playRecordedVoice('countdown',{onState:setVoiceStatus});if(cue==='next')playRecordedVoice('next',{onState:setVoiceStatus});}}
+        onCue:cue=>{if(id!==run.current)return;const duration=playPhotoCue(cue);if(!duration)throw new Error('Voice audio paused. Tap the photo button to start again.');return duration;}
       });
       stopTalking();const data=total===1?shots[0]:await composePhotoStrip(shots,cfg);if(id!==run.current)return;
       stopCamera();await save(data,shots);if(id!==run.current)return;
@@ -123,8 +125,8 @@ export default function Booth(){
   <main className={`booth theme-${cfg.type||'other'}${step==='welcome'?' bwWelcomeMode':''}`} data-build="smile-sequence-v1" data-capture-mode="photo" data-managed-event={scope.managed?'true':undefined}>
     {!isPreview&&!isCapturing&&step!=='welcome'&&<a className="floatingHelp" href="/help" aria-label="Photo booth help">Help</a>}
     {!isPreview&&!isCapturing&&step!=='welcome'&&<button className="operator" aria-label="Operator controls (tap five times)" onClick={secret}/>}
-    {step==='welcome'&&<WelcomeScreen cfg={cfg} eventName={eventMeta.name} online={online} starting={starting||!initialized} installed={installed} printsUsed={printsUsed} onStartQuick={()=>begin(1)} onStartFour={()=>begin(4)} onInstall={()=>setInstallOpen(true)} onOperator={secret} voiceStatus={voiceStatus} onVoiceTest={()=>playRecordedVoice('start',{onState:setVoiceStatus})}/>}
-    {isCapturing&&<PhotoCapture videoRef={video} progress={capture} onCancel={()=>cancelCapture()} soundStatus={voiceStatus} onEnableSound={()=>playRecordedVoice('start',{onState:setVoiceStatus})}/>}
+    {step==='welcome'&&<WelcomeScreen cfg={cfg} eventName={eventMeta.name} online={online} starting={starting||!initialized} installed={installed} printsUsed={printsUsed} onStartQuick={()=>begin(1)} onStartFour={()=>begin(4)} onInstall={()=>setInstallOpen(true)} onOperator={secret} voiceStatus={voiceStatus} onVoiceTest={()=>preparePhotoAudio().then(()=>setVoiceStatus('playing')).catch(()=>setVoiceStatus('blocked'))}/>}
+    {isCapturing&&<PhotoCapture videoRef={video} progress={capture} onCancel={()=>cancelCapture()} soundStatus={voiceStatus} onEnableSound={()=>preparePhotoAudio().then(()=>setVoiceStatus('playing')).catch(()=>setVoiceStatus('blocked'))}/>}
     {step==='preview'&&photo&&<PhotoPreview photo={photo} poses={poses} sessionShots={sessionShots} cfg={cfg} filter={filter} filters={filters} template={template} printing={printing} editing={editing} printPackage={normalizePrintPackage(cfg.printPackage)} printsUsed={printsUsed} onEdit={setEditing} onCommitEvent={persistConfig} onSessionActive={setPreviewActive} onTemplate={setTemplate} onFilter={setFilter} onPrint={requestPrint} onRetake={retake} onFinish={finish} onArchive={scope.managed?archiveArtifact:undefined}/>}
     {step==='thanks'&&<section className="screen"><div className="check">✓</div><h1 className="hero">Enjoy the celebration.</h1><p className="sub">The booth will be ready for the next guest in a moment.</p></section>}
     {error&&<div className="boothAlert" role="alert"><div className="error">{error}<button onClick={()=>setError('')} aria-label="Dismiss message">×</button></div></div>}

@@ -51,21 +51,16 @@ export async function runPhotoSequence({total=4,signal,capture,onProgress=()=>{}
  const emit=(phase,current,count=null)=>{check(signal);onProgress({phase,current,total,count,completed:shots.length,shots:[...shots]});};
  for(let index=0;index<total;index++){
   check(signal);const current=index+1;
-  emit('pose',current);onCue('ready',{current,total});await wait(650,signal);
+  if(index>0){emit('next',current);const duration=onCue('next'+current,{current,total});await wait(Math.max(3200,Number(duration)||0)+300,signal);}
+  emit('pose',current);const readyDuration=onCue('ready',{current,total});await wait(Math.max(650,Number(readyDuration)||0)+100,signal);
   for(let count=3;count>=1;count--){emit('countdown',current,count);onCue(String(count),{current,total});await wait(1000,signal);}
-  emit('smile',current);onCue('smile',{current,total});await wait(300,signal);check(signal);
+  emit('smile',current);const smileDuration=onCue('smile',{current,total});await wait(Math.max(300,Number(smileDuration)||0),signal);check(signal);
   const frame=await capture({index,previousTime,previousFrame,signal});check(signal);
   if(!frame||!/^data:image\/jpeg;base64,/.test(frame.data)||!((Number.isFinite(frame.mediaTime)&&frame.mediaTime>previousTime)||(Number.isSafeInteger(frame.presentedFrames)&&frame.presentedFrames>previousFrame)))throw new Error('A new camera photo was not received. Please try the session again.');
   if(Number.isFinite(frame.mediaTime))previousTime=frame.mediaTime;
   if(Number.isSafeInteger(frame.presentedFrames))previousFrame=frame.presentedFrames;
   shots.push(frame.data);
-  emit('captured',current);await wait(450,signal);
-  if(index<total-1){
-   // A spoken and visual reminder before the next shot. Do not show another
-   // capture or make another camera request until this transition completes.
-   emit('next',current+1);onCue('next',{previous:current,current:current+1,total});
-   await wait(3300,signal);
-  }
+  emit('captured',current);await wait(250,signal);
  }
  emit('processing',total);
  return shots;
