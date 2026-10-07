@@ -1,3 +1,4 @@
+import {validatePrintLayouts} from './print-layouts.mjs';
 // Type-specific drafts: changing an event must never carry wedding names into a birthday.
 const defaults={wedding:['Wedding Celebration','Celebrating together'],birthday:['Birthday Celebration','Let’s celebrate'],mitzvah:['Mitzvah Celebration','Mazel tov!'],graduation:['Graduation Celebration','Congratulations'],corporate:['Company Celebration','Together, in the moment'],other:['Our Celebration','Celebrating together']};
 const fields={wedding:['partner1','partner2','venue','theme'],birthday:['honoree','age','theme'],mitzvah:['honoree','mitzvahType','hebrewName','theme'],graduation:['graduate','classYear','school'],corporate:['company','eventName','theme'],other:['eventName','honoree','subtitle']};
@@ -41,5 +42,5 @@ export function finalizeEventSetup(draft){
   next.type==='corporate'?!!(d.company||d.eventName):!!d.eventName;
  if(!complete)throw new Error(next.type==='wedding'?'Enter both names so every keepsake has the right couple.':'Enter the event name or person’s name above.');
  if(!next.date)throw new Error('Add the event date.');
- return {...next,setupComplete:true,defaultTemplate:['ivory','blush','champagne'].includes(draft.defaultTemplate)?draft.defaultTemplate:'ivory'};
+ return {...next,printLayouts:validatePrintLayouts(draft.printLayouts),setupComplete:true,defaultTemplate:['ivory','blush','champagne'].includes(draft.defaultTemplate)?draft.defaultTemplate:'ivory'};
 }

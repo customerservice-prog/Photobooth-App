@@ -1,3 +1,4 @@
+import {validatePrintLayouts} from './print-layouts.mjs';
 import {normalizePrintPackage} from './print-package.mjs';
 
 export const EVENT_ID='oct10-2026';
@@ -60,7 +61,7 @@ export function validatePreparation(draft){
   const checks={};for(const k of Object.keys(PREP_CHECKS))checks[k]=draft.preparation?.checks?.[k]===true;
   return {eventId:EVENT_ID,type:'other',title:text(draft.title),subtitle:text(draft.subtitle),date,setupComplete:true,photoFit:'fit',defaultTemplate:['ivory','blush','champagne'].includes(draft.defaultTemplate)?draft.defaultTemplate:'champagne',
     details:{eventName:text(draft.title),honoree:text(draft.details?.honoree,80),subtitle:text(draft.details?.subtitle,80),primaryColor:color(draft.details?.primaryColor)||base.details.primaryColor,secondaryColor:color(draft.details?.secondaryColor)||base.details.secondaryColor},
-    schedule:{date:s.date,start:s.start,end:s.end,timeZone:'America/New_York'},preparation:{colorsConfirmed:draft.preparation?.colorsConfirmed===true,checks},printPackage:{...pp,includedPrints:108,copiesPerSession:1,printingEnabled:true,digitalEnabled:true}};
+    printLayouts:validatePrintLayouts(draft.printLayouts),schedule:{date:s.date,start:s.start,end:s.end,timeZone:'America/New_York'},preparation:{colorsConfirmed:draft.preparation?.colorsConfirmed===true,checks},printPackage:{...pp,includedPrints:108,copiesPerSession:1,printingEnabled:true,digitalEnabled:true}};
 }
 export function readyForEvent(cfg){return cfg.preparation?.colorsConfirmed===true&&Object.keys(PREP_CHECKS).every(k=>cfg.preparation?.checks?.[k]===true);}
 export function portableSettings(cfg){return JSON.stringify({format:'friendly-booth-event-settings',version:1,eventId:EVENT_ID,config:validatePreparation(cfg)},null,2);}
