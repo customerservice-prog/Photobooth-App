@@ -2,23 +2,35 @@ import assert from 'node:assert/strict';
 import {mkdir,writeFile} from 'node:fs/promises';
 import {chromium,webkit} from 'playwright';
 const base=process.env.WELCOME_BASE_URL||'http://127.0.0.1:3000',out='welcome-proof';await mkdir(out,{recursive:true});
-const results=[];let failed=false;
+const results=[];let page;
 for(const [engine,api] of [['chromium',chromium],['webkit',webkit]]){
  const browser=await api.launch({headless:true});
  try{
- for(const [name,width,height] of [['desktop',1366,768],['ipad-landscape',1024,768],['ipad-portrait',768,1024],['phone',390,844],['small-phone',320,640]]){
-  const context=await browser.newContext({viewport:{width,height},reducedMotion:'reduce'}),page=await context.newPage();let fields=[],layout={};
-  try{
+  for(const [name,width,height] of [['desktop',1366,768],['ipad-landscape',1024,768],['ipad-portrait',768,1024],['phone',390,844],['small-phone',320,640]]){
+   page=await browser.newPage({viewport:{width,height},reducedMotion:'reduce'});
    await page.goto(base+'/event-prep',{waitUntil:'networkidle'});await page.getByLabel('Event title',{exact:true}).waitFor();
-   await page.evaluate(async()=>{await document.fonts.ready;document.querySelector('.epPage').scrollTo(0,0);await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));});await page.waitForTimeout(300);
-   fields=await page.locator('.epFields input:not([type=checkbox]),.epFields select').evaluateAll(elements=>elements.map(e=>{const r=e.getBoundingClientRect(),label=e.closest('label').getBoundingClientRect(),s=getComputedStyle(e);return {type:e.type,name:e.closest('label').textContent,left:r.left,right:r.right,width:r.width,labelLeft:label.left,labelRight:label.right,cssWidth:s.width,minWidth:s.minWidth,maxWidth:s.maxWidth,appearance:s.appearance};}));
-   layout=await page.evaluate(()=>({innerWidth,outerWidth,visualWidth:visualViewport?.width,grid:getComputedStyle(document.querySelector('.epGrid')).gridTemplateColumns,fields:getComputedStyle(document.querySelector('.epFields')).gridTemplateColumns,narrow:matchMedia('(max-width:900px)').matches,scrollWidth:document.querySelector('.epPage').scrollWidth,clientWidth:document.querySelector('.epPage').clientWidth,overflow:[...document.querySelectorAll('.epPage *')].filter(e=>e.namespaceURI==='http://www.w3.org/1999/xhtml').map(e=>({tag:e.tagName,cls:e.className,text:e.textContent?.slice(0,90),left:e.getBoundingClientRect().left,right:e.getBoundingClientRect().right,scroll:e.scrollWidth,client:e.clientWidth})).filter(e=>e.left<0||e.right>innerWidth+1||e.scroll>e.client+2).slice(0,30)}));
-   await page.screenshot({path:`${out}/prep-top-${engine}-${name}.png`,fullPage:true});await page.locator('.epFields select').first().scrollIntoViewIfNeeded();await page.screenshot({path:`${out}/prep-fields-${engine}-${name}.png`,fullPage:true});
-   for(const f of fields){assert(f.left>=f.labelLeft-1&&f.right<=f.labelRight+1,engine+' '+name+' field stays inside label: '+JSON.stringify({field:f,layout}));assert(f.width>=80,engine+' '+name+' readable field width: '+JSON.stringify(f));}
-   assert(layout.scrollWidth<=layout.clientWidth+1,engine+' '+name+' horizontal overflow '+JSON.stringify(layout));results.push({engine,viewport:[width,height],test:name,passed:true,fields,layout});
-  }catch(e){failed=true;results.push({engine,viewport:[width,height],test:name,passed:false,fields,layout,error:e.message});console.error(e.message);}
-  finally{await context.close();await writeFile(`${out}/preparation-layout-results.json`,JSON.stringify({base,results},null,2));}
- }
- }finally{await browser.close();}
+   const initial=await page.evaluate(()=>({tabs:document.querySelector('.epSteps').getBoundingClientRect().bottom,preview:document.querySelector('.epPreview').getBoundingClientRect().bottom,toolbar:document.querySelector('.epToolbar').getBoundingClientRect().top}));
+   assert(initial.tabs<initial.toolbar,engine+' '+name+' editing steps visible immediately');
+   if(width>900)assert(initial.preview<initial.toolbar,engine+' '+name+' full preview stays above toolbar');
+   for(const tab of ['Details','Design','Event check','Backups']){
+    await page.getByRole('tab',{name:tab,exact:true}).click();await page.waitForTimeout(150);
+    const fields=await page.locator('.epFields input,.epFields select').evaluateAll(elements=>elements.map(e=>{const r=e.getBoundingClientRect(),label=e.closest('label').getBoundingClientRect();return {type:e.type,name:e.closest('label').textContent,left:r.left,right:r.right,width:r.width,labelLeft:label.left,labelRight:label.right};}));
+    for(const field of fields){assert(field.left>=field.labelLeft-1&&field.right<=field.labelRight+1,engine+' '+name+' field stays inside label: '+field.name);assert(field.width>=80,engine+' '+name+' readable field width: '+field.name);}
+    const geometry=await page.locator('.epPage').evaluate(e=>({clientWidth:e.clientWidth,scrollWidth:e.scrollWidth}));
+    assert(geometry.scrollWidth<=geometry.clientWidth+1,JSON.stringify({engine,name,tab,geometry}));
+    for(const selector of ['.epToolbarActions button','.epSteps button']){
+     for(const control of await page.locator(selector).all()){
+      await control.scrollIntoViewIfNeeded();const box=await control.boundingBox();assert(box.height>=44);
+      assert(box.x>=-1&&box.x+box.width<=width+1);
+      const covered=await control.evaluate(e=>{const r=e.getBoundingClientRect();return !e.contains(document.elementFromPoint(r.x+r.width/2,r.y+r.height/2));});assert(!covered,engine+' '+name+' '+tab+' control not covered');
+     }
+    }
+    await page.locator('.epPage').evaluate(e=>e.scrollTo(0,0));
+    await page.screenshot({path:`${out}/studio-${engine}-${name}-${tab.replaceAll(' ','-')}.png`,fullPage:true});
+    results.push({engine,viewport:[width,height],test:name,tab,passed:true,fields});
+   }
+   await page.close();
+  }
+ }catch(error){if(page)await page.screenshot({path:`${out}/studio-layout-failure-${engine}.png`,fullPage:true}).catch(()=>{});await writeFile(`${out}/preparation-layout-results.json`,JSON.stringify({base,results,error:error.message},null,2));throw error;}finally{await browser.close();}
 }
-console.log(JSON.stringify({preparationLayouts:results.filter(r=>r.passed).length,failed:results.filter(r=>!r.passed).length,base}));if(failed)process.exitCode=1;
+await writeFile(`${out}/preparation-layout-results.json`,JSON.stringify({base,results},null,2));console.log(JSON.stringify({preparationLayouts:results.length,failed:0,base}));

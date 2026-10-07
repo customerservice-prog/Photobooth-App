@@ -43,6 +43,7 @@ jobs:
           trap 'kill $SERVER_PID 2>/dev/null || true' EXIT
           node scripts/welcome-proof.mjs
           node scripts/preparation-layout-proof.mjs
+          node scripts/event-studio-proof.mjs
       - name: Browser proof against deployed Railway booth
         if: github.ref == 'refs/heads/main'
         env:
@@ -53,7 +54,7 @@ jobs:
           for(let n=0;n<90;n++){
             try{
               const r=await fetch(process.env.WELCOME_BASE_URL+'/event-prep',{cache:'no-store',signal:AbortSignal.timeout(8000)});
-              if(r.ok&&(await r.text()).includes('Event preparation')){ready=true;break;}
+              if(r.ok&&(await r.text()).includes('data-studio-version="2026-10-07"')){ready=true;break;}
             }catch{}
             await new Promise(resolve=>setTimeout(resolve,5000));
           }
@@ -62,6 +63,7 @@ jobs:
           mv welcome-proof local-welcome-proof
           node scripts/welcome-proof.mjs
           node scripts/preparation-layout-proof.mjs
+          node scripts/event-studio-proof.mjs
       - uses: actions/upload-artifact@v4
         if: always()
         with:
