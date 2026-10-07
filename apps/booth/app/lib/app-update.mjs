@@ -1,5 +1,5 @@
 // Read-only update checks. Never touch event settings, counters, photo storage,
-// cookies, service-worker registrations or caches. The user chooses when to reload.
+// cookies, service-worker registrations or browser caches; the user chooses when to reload.
 const RELEASE=/^\d{4}\.\d{2}\.\d{2}\.\d{1,4}$/;
 export function validateAppVersion(value){
   if(!value||value.app!=='friendly-photo-booth'||value.schema!==1||typeof value.version!=='string'||!RELEASE.test(value.version))throw new Error('The update response was not recognized. Keep the booth open and try again.');
