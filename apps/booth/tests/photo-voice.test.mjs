@@ -21,3 +21,21 @@ test('voice is optional and never blocks the visual countdown',()=>{
   assert.equal(speakCue('smile',{synth:null,Utterance:null}),false);
   assert.doesNotThrow(()=>stopTalking(null));
 });
+
+import {playRecordedVoice,VOICE_CLIPS} from '../app/lib/photo-voice.mjs';
+test('recorded cues cover initial tap, full countdown, and next pose',()=>{
+ assert.deepEqual(Object.keys(VOICE_CLIPS),['start','countdown','next']);
+ assert(VOICE_CLIPS.countdown.includes('2026.10.07.7'));
+});
+test('guest tap plays audible asset without waiting for camera and all cues reuse one audio element',async()=>{
+ const sounds=[],states=[];
+ class FakeAudio {constructor(){sounds.push('new');}pause(){sounds.push('pause');}play(){sounds.push(this.src);return Promise.resolve();}}
+ assert.equal(playRecordedVoice('start',{AudioCtor:FakeAudio,onState:s=>states.push(s)}),true);
+ assert.equal(playRecordedVoice('countdown',{AudioCtor:FakeAudio,onState:s=>states.push(s)}),true);
+ assert.equal(playRecordedVoice('next',{AudioCtor:FakeAudio,onState:s=>states.push(s)}),true);
+ await Promise.resolve();await Promise.resolve();
+ assert.equal(sounds.filter(x=>x==='new').length,1);
+ assert.deepEqual(sounds.filter(x=>x.startsWith('/voice/')),Object.values(VOICE_CLIPS));
+ assert.equal(states.at(-1),'playing');
+ stopTalking(null);
+});
