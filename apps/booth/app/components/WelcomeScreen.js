@@ -1,6 +1,7 @@
 'use client';
 import {memo,useEffect,useState} from 'react';
 import PrintCard from './PrintCard';
+import AppUpdate from './AppUpdate';
 import {normalizePrintPackage,printsRemaining} from '../lib/print-package.mjs';
 import {eventMonogram} from '../lib/event-config.mjs';
 import {scheduleLabel} from '../lib/event-workspace.mjs';
@@ -48,6 +49,6 @@ export default function WelcomeScreen({cfg,eventName,online,starting,installed,p
   <div className="bwExperience" aria-label="Start your photo session"><button type="button" className="bwPhotoButton" data-testid="welcome-photo" disabled={starting} onClick={onStartPhotos}><span className="bwCameraTile"><Mark size={28}/></span><span className="bwButtonWords"><strong>{starting?'Starting camera…':'Take a Photo'}</strong><small>{rules.shotsPerSession} poses · {available?'print or keep it digital':'digital keepsake'}</small></span><span className="bwRoundArrow"><Mark name="arrow" size={22}/></span></button>
   <ol className="bwPhotoSteps" aria-label="How your photo session works"><li><span className="bwStepNumber" aria-hidden="true">01</span><strong>Strike a pose</strong><small>{rules.shotsPerSession} photos, one keepsake</small></li><li><span className="bwStepNumber" aria-hidden="true">02</span><strong>Choose your design</strong><small>Make the moment yours</small></li><li><span className="bwStepNumber" aria-hidden="true">03</span><strong>{available?'Print or save':'Save your photos'}</strong><small>{available?'Your photo, your choice':'Keep a digital copy'}</small></li></ol>
   <p className="bwChoiceNote"><Mark name={available?'print':'share'} size={16}/>{available?'Choose print or digital after your photos.':'Digital photos are available. Ask the attendant about printing.'}</p></div></section><WelcomeProof cfg={cfg} shots={rules.shotsPerSession}/></div>
-  <footer className="bwFooter"><span className={'bwConnection'+(online?'':' bwOffline')} role="status"><i/>{online?'Online':'Offline · keep booth open'}</span><span className="bwCredit">Made for your good times.<b>Friendly Party Rental</b></span><div className="bwUtilities">{!installed&&<button type="button" onClick={onInstall}>Add to iPad</button>}<button type="button" onClick={onOperator} aria-label="Operator controls (tap five times)">Staff</button></div></footer>
+  <footer className="bwFooter"><span className={'bwConnection'+(online?'':' bwOffline')} role="status"><i/>{online?'Online':'Offline · keep booth open'}</span><span className="bwCredit">Made for your good times.<b>Friendly Party Rental</b></span><div className="bwUtilities"><AppUpdate disabled={starting}/>{!installed&&<button type="button" onClick={onInstall}>Add to iPad</button>}<button type="button" onClick={onOperator} aria-label="Operator controls (tap five times)">Staff</button></div></footer>
  </div></div>;
 }

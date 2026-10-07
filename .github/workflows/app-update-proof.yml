@@ -1,0 +1,64 @@
+name: Safe iPad app update proof
+on:
+  push:
+    branches: [main]
+    paths: ['apps/booth/**', '.github/workflows/app-update-proof.yml']
+  pull_request:
+    branches: [main]
+    paths: ['apps/booth/**', '.github/workflows/app-update-proof.yml']
+permissions:
+  contents: read
+concurrency:
+  group: app-update-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: apps/booth
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install --no-audit --no-fund
+      - run: npm install --no-save playwright@1.55.0
+      - run: npx playwright install --with-deps chromium webkit
+      - name: Unit regressions and production build
+        run: |
+          mkdir -p update-proof
+          npm run test:delivery 2>&1 | tee update-proof/unit.log
+          npm run build 2>&1 | tee update-proof/build.log
+      - name: Test safe updates in Chromium and WebKit
+        run: |
+          npm run start > update-proof/server.log 2>&1 &
+          PID=$!
+          trap 'kill $PID 2>/dev/null || true' EXIT
+          node scripts/app-update-proof.mjs
+      - name: Check the exact deployed app update
+        if: github.ref == 'refs/heads/main'
+        env:
+          UPDATE_BASE_URL: https://photobooth-booth-production.up.railway.app
+        run: |
+          node --input-type=module <<'NODE'
+          import {BOOTH_RELEASE} from './app/lib/booth-launch.mjs';
+          let ready=false;
+          for(let n=0;n<60;n++){
+            try{const r=await fetch(process.env.UPDATE_BASE_URL+'/api/app-version?check='+Date.now(),{cache:'no-store',signal:AbortSignal.timeout(8000)});if(r.ok&&(await r.json()).version===BOOTH_RELEASE){ready=true;break;}}catch{}
+            await new Promise(r=>setTimeout(r,5000));
+          }
+          if(!ready)throw new Error('The requested app release is not deployed.');
+          NODE
+          mv update-proof local-update-proof
+          node scripts/app-update-proof.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: safe-app-update-${{ github.run_id }}
+          path: |
+            apps/booth/update-proof/
+            apps/booth/local-update-proof/
+          retention-days: 3
