@@ -31,11 +31,22 @@ for(const [engine,api] of [['chromium',chromium],['webkit',webkit]]){
   },{cfg,keys:EVENT_KEYS,source:archiveSource});
   await page.getByTestId('launch-demo').click();await page.getByTestId('welcome-photo').waitFor();await page.waitForFunction(()=>!document.querySelector('[data-testid=app-update]')?.disabled);
   async function snapshot(){return page.evaluate(async source=>{
-   const api=new Function(source.replace(/\bexport /g,'')+'\nreturn {listCaptures};')(),photos=[];
-   for(const scope of ['oct10-2026:live','oct10-2026:demo'])for(const row of await api.listCaptures(scope)){const hashes=[];for(const blob of [row.collage,...row.poses,...(row.keepsake?[row.keepsake]:[])])hashes.push(Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',await blob.arrayBuffer()))).join(','));photos.push({key:row.key,hashes});}
+   // Compare stored bytes directly, not temporary Blob handles affected by
+   // WebKit's offline transport emulation. No photo is rewritten to test it.
+   const api=new Function(source.replace(/\bexport /g,'')+'\nreturn {openArchive};')(),db=await api.openArchive();let records;
+   try{records=await new Promise((resolve,reject)=>{const tx=db.transaction('captures','readonly'),req=tx.objectStore('captures').getAll();let rows;req.onsuccess=()=>{rows=req.result;};tx.oncomplete=()=>resolve(rows);tx.onerror=()=>reject(tx.error);tx.onabort=()=>reject(tx.error||new Error('Snapshot interrupted'));});}finally{db.close();}
+   const photos=[];
+   for(const row of records.filter(r=>['oct10-2026:live','oct10-2026:demo'].includes(r.scope)).sort((a,b)=>a.key.localeCompare(b.key))){
+    const {collage,poses,keepsake,...metadata}=row,hashes=[];
+    for(const bytes of [collage,...poses,...(keepsake?[keepsake]:[])]){
+     if(!(bytes instanceof ArrayBuffer)&&!ArrayBuffer.isView(bytes))throw new Error('Expected the persisted JPEG byte buffer.');
+     hashes.push(Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',bytes))).join(','));
+    }
+    photos.push({...metadata,hashes,hasKeepsake:Boolean(keepsake)});
+   }
    return {storage:Object.fromEntries(Object.keys(localStorage).sort().map(k=>[k,localStorage.getItem(k)])),photos};
   },archiveSource);}
-  const before=await snapshot();await page.getByTestId('app-update').click();const dialog=page.getByRole('dialog',{name:'Update Friendly Booth'});await dialog.waitFor();await page.waitForFunction(()=>!document.querySelector('[data-testid=app-update-load]')?.disabled);assert((await dialog.innerText()).includes(BOOTH_RELEASE));
+  const before=await snapshot();assert.equal(before.photos.length,2);assert(before.photos.every(r=>r.hashes.length===5));await page.getByTestId('app-update').click();const dialog=page.getByRole('dialog',{name:'Update Friendly Booth'});await dialog.waitFor();await page.waitForFunction(()=>!document.querySelector('[data-testid=app-update-load]')?.disabled);assert((await dialog.innerText()).includes(BOOTH_RELEASE));
   for(const [name,width,height] of [['ipad-landscape',1024,768],['ipad-portrait',768,1024],['phone',390,844],['small-phone',320,640],['phone-landscape',844,390]]){
    await page.setViewportSize({width,height});await page.waitForTimeout(80);const b=await dialog.boundingBox();assert(b.x>=0&&b.y>=0&&b.x+b.width<=width+1&&b.y+b.height<=height+1,name+' dialog inside viewport');assert(await dialog.evaluate(e=>e.scrollWidth<=e.clientWidth+1));
    await page.getByTestId('app-update-load').scrollIntoViewIfNeeded();const control=await page.getByTestId('app-update-load').boundingBox();assert(control.height>=44);await page.screenshot({path:`${out}/${engine}-${name}.png`});pass('update-dialog-'+name);
