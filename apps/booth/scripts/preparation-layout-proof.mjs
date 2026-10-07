@@ -9,6 +9,9 @@ for(const [engine,api] of [['chromium',chromium],['webkit',webkit]]){
   for(const [name,width,height] of [['desktop',1366,768],['ipad-landscape',1024,768],['ipad-portrait',768,1024],['phone',390,844],['small-phone',320,640]]){
    page=await browser.newPage({viewport:{width,height},reducedMotion:'reduce'});
    await page.goto(base+'/event-prep',{waitUntil:'networkidle'});await page.getByLabel('Event title',{exact:true}).waitFor();
+   const initial=await page.evaluate(()=>({tabs:document.querySelector('.epSteps').getBoundingClientRect().bottom,preview:document.querySelector('.epPreview').getBoundingClientRect().bottom,toolbar:document.querySelector('.epToolbar').getBoundingClientRect().top}));
+   assert(initial.tabs<initial.toolbar,engine+' '+name+' editing steps visible immediately');
+   if(width>900)assert(initial.preview<initial.toolbar,engine+' '+name+' full preview stays above toolbar');
    for(const tab of ['Details','Design','Event check','Backups']){
     await page.getByRole('tab',{name:tab,exact:true}).click();await page.waitForTimeout(150);
     const fields=await page.locator('.epFields input,.epFields select').evaluateAll(elements=>elements.map(e=>{const r=e.getBoundingClientRect(),label=e.closest('label').getBoundingClientRect();return {type:e.type,name:e.closest('label').textContent,left:r.left,right:r.right,width:r.width,labelLeft:label.left,labelRight:label.right};}));

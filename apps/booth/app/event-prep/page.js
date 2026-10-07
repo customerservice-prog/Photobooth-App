@@ -8,6 +8,7 @@ import {ADMIN_EVENT_URL,EVENT_KEYS,PREP_CHECKS,readEventDraft,saveEventDraft,val
 import {archiveCount,exportPhotos,downloadBlob,openArchive} from '../lib/event-photo-archive.mjs';
 import {STUDIO_STEPS,PALETTES,previewConfiguration,updateStudioDraft,remainingChecks,readPreviewPhoto,studioPosePreview,studioScheduleLabel} from '../lib/event-studio.mjs';
 import './preparation.css';
+import './studio-viewport.css';
 
 function Icon({name='camera'}){
  const paths={camera:<><rect x="3" y="6" width="18" height="15" rx="4"/><path d="M8 6l2-3h4l2 3"/><circle cx="12" cy="13" r="4"/></>,arrow:<path d="M4 12h16m-6-6 6 6-6 6"/>,check:<path d="m5 12 4 4L19 6"/>,spark:<path d="m12 2 3 7 7 3-7 3-3 7-3-7-7-3 7-3z"/>,save:<><path d="M5 3h12l4 4v14H3V3z"/><path d="M7 3v6h10V3M7 21v-7h10v7"/></>};
@@ -23,7 +24,7 @@ export default function EventPreparation(){
  useEffect(()=>{if(error)pageRef.current?.querySelector('.epError')?.scrollIntoView({block:'center'});},[error]);
  useEffect(()=>{if(!dirty)return;const stop=e=>{if(!leaving.current){e.preventDefault();e.returnValue='';}};window.addEventListener('beforeunload',stop);return()=>window.removeEventListener('beforeunload',stop);},[dirty]);
  useEffect(()=>{let active=true;setPreviewError('');studioPosePreview(shots,primary,accent,photo).then(v=>{if(active)setSample(v);}).catch(e=>{if(active){setSample('');setPreviewError(e.message);}});return()=>{active=false;};},[shots,primary,accent,photo]);
- function loadSaved(){try{baseline.current=localStorage.getItem(EVENT_KEYS.config);const cfg=validatePreparation(readEventDraft(localStorage));setDraft(cfg);setDirty(false);setError('');}catch(e){setError(e.message);}try{setPrintCount(usage(localStorage,liveWorkspace()));}catch(e){setPrintCount(null);setError(e.message);}}
+ function loadSaved(){let loaded=false;try{const raw=localStorage.getItem(EVENT_KEYS.config),cfg=validatePreparation(readEventDraft(localStorage));baseline.current=raw;setDraft(cfg);setDirty(false);setError('');loaded=true;}catch(e){setError(e.message);}try{setPrintCount(usage(localStorage,liveWorkspace()));}catch(e){setPrintCount(null);setError(e.message);}return loaded;}
  async function refreshCounts(){try{const [live,demo]=await Promise.all([archiveCount(liveWorkspace().archive),archiveCount(demoWorkspace().archive)]);setCounts({live,demo});setStorageReady(true);setStorage('Photo storage is available in this browser.');}catch{setCounts({live:null,demo:null});setStorageReady(false);setStorage('Photo storage is unavailable. Check this device before launch.');}}
  function change(key,value){setDraft(c=>updateStudioDraft(c,key,value));setDirty(true);setMessage('');setError('');}
  function detail(key,value){change('details',{...draft.details,[key]:value});}
@@ -38,7 +39,7 @@ export default function EventPreparation(){
  async function protect(){setBusy(true);try{const db=await openArchive();db.close();const granted=await navigator.storage?.persist?.();setStorage(granted?'Protected storage granted. Keep exporting photo backups.':'Protected storage not granted. Export photos regularly.');}catch(e){setError(e.message);}finally{setBusy(false);}}
  async function choosePhoto(e){const file=e.target.files?.[0];e.target.value='';if(!file)return;const task=++photoTask.current;setPhotoBusy(true);setPreviewError('');try{const result=await readPreviewPhoto(file);if(task===photoTask.current)setPhoto(result);}catch(e){if(task===photoTask.current)setPreviewError(e.message);}finally{if(task===photoTask.current)setPhotoBusy(false);}}
  function clearPhoto(){photoTask.current++;setPhoto('');setPhotoBusy(false);setPreviewError('');}
- function reload(){loadSaved();setModal('');setMessage('Loaded the saved setup. Photos and counters unchanged.');}
+ function reload(){const loaded=loadSaved();setModal('');setMessage(loaded?'Loaded the saved setup. Photos and counters unchanged.':'Saved setup could not be loaded. Your current edits are still here.');}
  if(!draft)return <main className="epPage" data-studio-version="2026-10-07"><div className="epWrap epLoading"><Icon/><h1>Event preparation</h1><p role={error?'alert':'status'}>{error||'Opening your event studio…'}</p>{error&&<label>Restore settings<input type="file" accept="application/json,.json" onChange={restore}/></label>}</div></main>;
  const cfg=previewConfiguration(draft),total=108+Number(draft.printPackage.addOnPrints||0),left=printCount===null?null:Math.max(0,total-printCount),checksLeft=remainingChecks(draft),complete=6-checksLeft,designs=getDesigns('other');
  const currentDesign=designs.find(d=>d.id===draft.defaultTemplate)||designs[0],canLaunch=readyForEvent(draft)&&storageReady&&printCount!==null;
@@ -51,6 +52,7 @@ export default function EventPreparation(){
    <section className="epEditor epCard" aria-label="Edit your event"><nav className="epSteps" role="tablist" aria-label="Event preparation steps">{STUDIO_STEPS.map((name,i)=><button type="button" role="tab" key={name} id={'ep-tab-'+i} aria-controls={'ep-panel-'+i} aria-selected={step===i} tabIndex={step===i?0:-1} onKeyDown={e=>tabKey(e,i)} onClick={()=>go(i)}><span aria-hidden="true">{String(i+1).padStart(2,'0')}</span>{name}</button>)}</nav>
     {error&&<p className="epError" role="alert">{error}</p>}
     <div className="epPanel" role="tabpanel" id={'ep-panel-'+step} aria-labelledby={'ep-tab-'+step}>
+     <button type="button" className="epQuickPreview" onClick={()=>setModal('preview')}>Preview keepsake <Icon name="spark"/></button>
      {step===0&&<><div className="epSectionTitle"><span className="epEyebrow">01 / THE DETAILS</span><h2>Make it personal.</h2><p>Start with what you know. Everything can be changed later.</p></div><div className="epFields">
       <label className="epWide">Event title<input value={draft.title} maxLength={100} onChange={e=>change('title',e.target.value)}/></label>
       <label className="epWide">Name to show on photos (optional)<input value={draft.details?.honoree||''} placeholder="Add her name when confirmed" maxLength={80} onChange={e=>detail('honoree',e.target.value)}/></label>
