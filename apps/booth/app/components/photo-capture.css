@@ -274,3 +274,45 @@
   .booth .pcStage .pcGlimmer{animation:none!important}
   .booth .pcStage .pcCircle{transition:none!important}
 }
+
+
+/* A real, clearly visible rest between separate photo captures. */
+.booth .pcStage[data-phase="pause"] .pcCircle{
+ border-color:#f1d4a8;
+ box-shadow:0 0 0 10px #f1d4a811,0 12px 46px #061d16aa;
+}
+.booth .pcPoseBreak{
+ display:flex;align-items:center;justify-content:center;flex-wrap:wrap;
+ gap:clamp(10px,2.2vw,24px);
+ max-width:100%;
+ padding:10px 16px;
+ background:rgba(10,33,26,.84);
+ border:1px solid rgba(255,229,186,.75);
+ border-radius:19px;
+ box-shadow:0 8px 26px #041a16aa;
+}
+.booth .pcPoseTimer{display:flex;align-items:center;gap:8px;color:#fff5df}
+.booth .pcPoseTimer strong{font:600 clamp(32px,5.5vmin,52px)/1 Georgia,serif;color:#ffe4a5}
+.booth .pcPoseTimer span{font:600 11px/1.25 system-ui,sans-serif;max-width:85px;text-align:left}
+.booth .pcPoseReady{
+ min-height:54px;
+ border:1px solid #fff4ce;
+ border-radius:14px;
+ padding:12px 19px;
+ font:750 clamp(13px,1.8vmin,17px)/1.2 system-ui,sans-serif;
+ color:#19382e;background:#ffdf9d;
+ box-shadow:0 5px 14px #081f19aa;
+}
+.booth .pcPoseReady:focus-visible{outline:3px solid white;outline-offset:3px}
+.booth .pcPoseReady span{padding-left:5px}
+@media(max-height:700px) and (min-width:601px){
+ .booth .pcPoseBreak{padding:6px 11px}
+ .booth .pcPoseReady{min-height:44px;padding:9px 12px;font-size:12px}
+ .booth .pcPoseTimer strong{font-size:31px}
+}
+@media(max-width:600px){
+ .booth .pcPoseBreak{flex-direction:column;gap:6px;padding:8px 12px}
+ .booth .pcPoseTimer strong{font-size:29px}
+ .booth .pcPoseTimer span{max-width:none;font-size:10px}
+ .booth .pcPoseReady{min-height:44px;font-size:12px;padding:8px 13px}
+}
