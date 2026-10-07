@@ -10,6 +10,7 @@ export function switchEventDraft(cfg,type){
 }
 export function composeEventConfig(cfg,input){
  const type=validType(cfg.type),details={};for(const key of fields[type])details[key]=value(input[key],key==='age'?3:80);
+ for(const key of ['primaryColor','secondaryColor']){const color=input[key]??cfg.details?.[key];if(/^#[0-9a-f]{6}$/i.test(String(color||'')))details[key]=color;}
  if(details.age&&!/^\d{1,3}$/.test(details.age))throw new Error('Age must contain numbers only, or leave it blank.');
  if(details.classYear&&!/^\d{4}$/.test(details.classYear))throw new Error('Enter a four-digit class year, or leave it blank.');
  if(type==='mitzvah')details.mitzvahType=details.mitzvahType||'Bar Mitzvah';
@@ -27,25 +28,18 @@ export function eventMonogram(cfg){
  const words=cfg.type==='wedding'&&cfg.details?.partner1&&cfg.details?.partner2?[cfg.details.partner1,cfg.details.partner2]:String(cfg.title||'').split(/\s+/).filter(w=>w&&!['&','and'].includes(w.toLowerCase()));
  return words.slice(0,2).map(w=>[...w][0]?.toUpperCase()).join('')||'FP';
 }
-// Repair only the known old test-preset bug, without guessing real customer names.
 export function normalizeEventConfig(cfg){
  const type=validType(cfg.type),primary={birthday:'honoree',mitzvah:'honoree',graduation:'graduate',corporate:'company',other:'eventName'}[type];
  if(type!=='wedding'&&cfg.title==='Bryan Wedding'&&!cfg.details?.[primary])return switchEventDraft({...cfg,type:'wedding'},type);
  return {...cfg,type};
 }
-
-// Run validation on every Save, including after Back / choosing the same occasion.
-// Dirty flags only control preview presentation; they must never bypass required fields.
 export function finalizeEventSetup(draft){
  const next=composeEventConfig(draft,{...draft.details,date:draft.date}),d=next.details;
  const complete=next.type==='wedding'?!!(d.partner1&&d.partner2):
   ['birthday','mitzvah'].includes(next.type)?!!d.honoree:
   next.type==='graduation'?!!d.graduate:
   next.type==='corporate'?!!(d.company||d.eventName):!!d.eventName;
- if(!complete)throw new Error(next.type==='wedding'?
-  'Enter both names so every keepsake has the right couple.':
-  'Enter the event name or person’s name above.');
+ if(!complete)throw new Error(next.type==='wedding'?'Enter both names so every keepsake has the right couple.':'Enter the event name or person’s name above.');
  if(!next.date)throw new Error('Add the event date.');
- return {...next,setupComplete:true,defaultTemplate:
-  ['ivory','blush','champagne'].includes(draft.defaultTemplate)?draft.defaultTemplate:'ivory'};
+ return {...next,setupComplete:true,defaultTemplate:['ivory','blush','champagne'].includes(draft.defaultTemplate)?draft.defaultTemplate:'ivory'};
 }

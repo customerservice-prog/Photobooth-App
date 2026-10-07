@@ -1,0 +1,31 @@
+name: Photo archive storage proof
+on:
+  pull_request:
+    branches: [main]
+    paths: ['apps/booth/app/lib/event-photo-archive.mjs', 'apps/booth/scripts/archive-storage-proof.mjs', '.github/workflows/archive-storage-proof.yml']
+  push:
+    branches: [feature/editable-event-preparation]
+permissions:
+  contents: read
+jobs:
+  storage:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: apps/booth
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install --no-audit --no-fund
+      - run: npm install --no-save playwright@1.55.0
+      - run: npx playwright install --with-deps chromium webkit
+      - run: node scripts/archive-storage-proof.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: archive-storage-proof-${{ github.run_id }}
+          path: apps/booth/welcome-proof/
+          retention-days: 3
