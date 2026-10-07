@@ -51,6 +51,7 @@ export async function runPhotoSequence({total=4,signal,capture,onProgress=()=>{}
  const emit=(phase,current,count=null)=>{check(signal);onProgress({phase,current,total,count,completed:shots.length,shots:[...shots]});};
  for(let index=0;index<total;index++){
   check(signal);const current=index+1;
+  if(index>0){emit('next',current);onCue('next'+current,{current,total});await wait(3200,signal);}
   emit('pose',current);onCue('ready',{current,total});await wait(650,signal);
   for(let count=3;count>=1;count--){emit('countdown',current,count);onCue(String(count),{current,total});await wait(1000,signal);}
   emit('smile',current);onCue('smile',{current,total});await wait(300,signal);check(signal);

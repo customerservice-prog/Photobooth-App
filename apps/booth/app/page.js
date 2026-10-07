@@ -4,7 +4,7 @@ import PhotoPreview from './components/PhotoPreview';
 import WelcomeScreen from './components/WelcomeScreen';
 import PhotoCapture from './components/PhotoCapture';
 import {runPhotoSequence,takeFreshPhoto,waitForPose} from './lib/photo-sequence.mjs';
-import {speakCue,stopTalking} from './lib/photo-voice.mjs';
+import {playPhotoCue,preparePhotoAudio,stopTalking} from './lib/photo-voice.mjs';
 import {normalizeEventConfig} from './lib/event-config.mjs';
 import {normalizePrintPackage,printsRemaining,canPrint} from './lib/print-package.mjs';
 import {composePhotoStrip} from './lib/photo-strip.mjs';
@@ -68,6 +68,8 @@ export default function Booth(){
     setCapture({phase:'ready',current:1,total,completed:0,shots:[]});
     setError('');setFilter('original');setTemplate(cfg.defaultTemplate||'ivory');setPhoto(null);setPoses([]);setEditing(false);stopCamera();captureId.current=null;
     try{
+      await preparePhotoAudio();
+      if(id!==run.current||controller.signal.aborted)return;
       const s=await navigator.mediaDevices.getUserMedia({video:{facingMode:'user',width:{ideal:1920},height:{ideal:1080}},audio:false});
       if(id!==run.current||controller.signal.aborted){s.getTracks().forEach(t=>t.stop());return;}
       stream.current=s;setStep('camera');const ready=await waitForVideo(s);
@@ -77,7 +79,7 @@ export default function Booth(){
       const shots=await runPhotoSequence({total,signal:controller.signal,
         capture:options=>takeFreshPhoto(video.current,options),
         onProgress:next=>{if(id===run.current){capturePhase.current=next.phase;setCapture(next);}},
-        onCue:cue=>{if(id===run.current)speakCue(cue)}
+        onCue:cue=>{if(id===run.current)playPhotoCue(cue)}
       });
       stopTalking();const data=total===1?shots[0]:await composePhotoStrip(shots,cfg);if(id!==run.current)return;
       stopCamera();await save(data,shots);if(id!==run.current)return;

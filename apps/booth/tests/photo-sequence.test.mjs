@@ -28,3 +28,16 @@ test('ended camera cannot be captured',()=>{const video=camera();video.track.rea
 test('older-browser fallback requires its camera clock to advance',async()=>{const video=camera();const p=takeFreshPhoto(video,{snapshot:()=>jpeg,previousTime:1,timeoutMs:100});setTimeout(()=>{video.currentTime=2;},5);assert.equal((await p).mediaTime,2);});
 test('streams with repeated media time use advancing presented-frame identifiers',async()=>{let number=0;const shots=await runPhotoSequence({wait:instant,capture:async()=>({data:jpeg,mediaTime:0,presentedFrames:++number})});assert.equal(shots.length,4);assert.equal(number,4);});
 test('fresh-photo callback accepts a new presented frame even with a repeated timestamp',async()=>{const video=camera();video.requestVideoFrameCallback=fn=>setTimeout(()=>fn(0,{mediaTime:0,presentedFrames:9}),1);video.cancelVideoFrameCallback=clearTimeout;const frame=await takeFreshPhoto(video,{previousTime:0,previousFrame:8,timeoutMs:20,snapshot:()=>jpeg});assert.equal(frame.presentedFrames,9);});
+
+test('each following photo gets a spoken transition and time to change pose',async()=>{
+ const events=[],cues=[],delays=[];
+ await runPhotoSequence({total:4,wait:async ms=>delays.push(ms),capture:async({index})=>({data:jpeg,mediaTime:index+1}),onProgress:e=>events.push(e),onCue:c=>cues.push(c)});
+ assert.deepEqual(events.filter(e=>e.phase==='next').map(e=>[e.current,e.completed]),[[2,1],[3,2],[4,3]]);
+ assert.deepEqual(cues.filter(c=>c.startsWith('next')),['next2','next3','next4']);
+ assert.equal(delays.filter(ms=>ms===3200).length,3);
+});
+test('cancelling during next-pose guidance prevents the next capture',async()=>{
+ const c=new AbortController();let captured=0;
+ await assert.rejects(runPhotoSequence({signal:c.signal,wait:instant,capture:async()=>({data:jpeg,mediaTime:++captured}),onProgress:e=>{if(e.phase==='next')c.abort();}}),{name:'AbortError'});
+ assert.equal(captured,1);
+});

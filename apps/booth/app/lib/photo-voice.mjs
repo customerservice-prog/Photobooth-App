@@ -11,7 +11,7 @@ export function speakCue(cue,{synth=globalThis.speechSynthesis,Utterance=globalT
   const text=VOICE_CUES[cue]||String(cue||'').trim();
   if(!text)return false;
   try{
-    synth.cancel();
+    // Keep queued fallback speech intact; cancellation is reserved for ending a session.
     const utterance=new Utterance(text);
     utterance.rate=cue==='smile'?0.92:0.88;
     utterance.pitch=cue==='smile'?1.16:1.06;
@@ -25,5 +25,40 @@ export function speakCue(cue,{synth=globalThis.speechSynthesis,Utterance=globalT
   }catch{return false;}
 }
 export function stopTalking(synth=globalThis.speechSynthesis){
+  stopPhotoAudio();
   try{synth?.cancel?.();}catch{}
+}
+
+
+const CLIPS=['ready','3','2','1','smile','next2','next3','next4'];
+let context, buffers=new Map(), active=new Set(), generation=0;
+export async function preparePhotoAudio({Context=globalThis.AudioContext||globalThis.webkitAudioContext,fetcher=globalThis.fetch}={}){
+ const attempt=++generation;
+ if(!Context)throw new Error('Voice audio is unavailable in this browser. Open the booth in Safari and try again.');
+ context ||= new Context();
+ // Called directly from the guest tap, before camera permission or any timers.
+ const resume=context.resume();
+ await resume;
+ if(context.state!=='running')throw new Error('Sound is blocked. Tap the photo button again to enable voice guidance.');
+ await Promise.all(CLIPS.map(async key=>{
+  if(buffers.has(key))return;
+  const response=await fetcher('/audio/'+key+'.wav');
+  if(!response.ok)throw new Error('Voice guidance could not load. Check the connection, then tap the photo button again.');
+  const buffer=await context.decodeAudioData(await response.arrayBuffer());
+  buffers.set(key,buffer);
+ }));
+ if(attempt!==generation)throw Object.assign(new Error('Audio cancelled'),{name:'AbortError'});
+ // An audible confirmation verifies the same speaker route used by the countdown.
+ playPhotoCue('ready');
+}
+export function playPhotoCue(key){
+ const buffer=buffers.get(key);
+ if(!buffer||context?.state!=='running')return false;
+ const source=context.createBufferSource();source.buffer=buffer;source.connect(context.destination);
+ active.add(source);source.onended=()=>{active.delete(source);source.disconnect();};source.start();return true;
+}
+export function stopPhotoAudio(){
+ generation++;
+ for(const source of active){try{source.stop();source.disconnect();}catch{}}
+ active.clear();
 }
