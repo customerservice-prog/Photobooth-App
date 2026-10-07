@@ -18,7 +18,7 @@ export function cameraJpeg(video){
  const canvas=document.createElement('canvas');canvas.width=video.videoWidth;canvas.height=video.videoHeight;
  try{const ctx=canvas.getContext('2d');if(!ctx)throw new Error('This camera photo could not be prepared.');ctx.translate(canvas.width,0);ctx.scale(-1,1);ctx.drawImage(video,0,0);return canvas.toDataURL('image/jpeg',.92);}finally{canvas.width=0;canvas.height=0;}
 }
-export function takeFreshPhoto(video,{signal,previousTime=-1,timeoutMs=4000,snapshot=cameraJpeg}={}){
+export function takeFreshPhoto(video,{signal,previousTime=-1,previousFrame=-1,timeoutMs=4000,snapshot=cameraJpeg}={}){
  check(signal);cameraReady(video);
  // Capture inside the callback for a NEW presented video frame, not a cached still.
  // Older browsers fall back to an advancing video media clock.
@@ -30,12 +30,13 @@ export function takeFreshPhoto(video,{signal,previousTime=-1,timeoutMs=4000,snap
   const abort=()=>finish(cancelled());
   const timer=setTimeout(()=>finish(new Error('The camera is not sending new photos. Check the camera, then try again.')),timeoutMs);
   signal?.addEventListener('abort',abort,{once:true});
-  const capture=time=>{try{check(signal);cameraReady(video);finish(null,{data:snapshot(video),mediaTime:time});}catch(error){finish(error);}};
+  const capture=(time,presentedFrames)=>{try{check(signal);cameraReady(video);finish(null,{data:snapshot(video),mediaTime:time,presentedFrames});}catch(error){finish(error);}};
   if(typeof video.requestVideoFrameCallback==='function'){
    const next=()=>{frameId=video.requestVideoFrameCallback((_now,metadata)=>{
     frameId=null;if(settled)return;
-    const time=Number(metadata.mediaTime);
-    if(Number.isFinite(time)&&time>previousTime)capture(time);else next();
+    // Accept either advancing media time or an advancing presented-frame identifier.
+    const time=Number(metadata.mediaTime),frames=Number(metadata.presentedFrames);
+    if((Number.isSafeInteger(frames)&&frames>previousFrame)||(Number.isFinite(time)&&time>previousTime))capture(time,frames);else next();
    });};
    try{next();}catch(error){finish(error);}
   }else{
@@ -46,16 +47,18 @@ export function takeFreshPhoto(video,{signal,previousTime=-1,timeoutMs=4000,snap
 }
 export async function runPhotoSequence({total=4,signal,capture,onProgress=()=>{},wait=waitForPose}){
  if(![3,4].includes(total)||typeof capture!=='function')throw new Error('Choose a three- or four-photo session.');
- const shots=[];let previousTime=-1;
+ const shots=[];let previousTime=-1,previousFrame=-1;
  const emit=(phase,current,count=null)=>{check(signal);onProgress({phase,current,total,count,completed:shots.length,shots:[...shots]});};
  for(let index=0;index<total;index++){
   check(signal);const current=index+1;
   emit('pose',current);await wait(650,signal);
   for(let count=3;count>=1;count--){emit('countdown',current,count);await wait(1000,signal);}
   emit('smile',current);await wait(250,signal);check(signal);
-  const frame=await capture({index,previousTime,signal});check(signal);
-  if(!frame||!/^data:image\/jpeg;base64,/.test(frame.data)||!Number.isFinite(frame.mediaTime)||frame.mediaTime<=previousTime)throw new Error('A new camera photo was not received. Please try the session again.');
-  previousTime=frame.mediaTime;shots.push(frame.data);
+  const frame=await capture({index,previousTime,previousFrame,signal});check(signal);
+  if(!frame||!/^data:image\/jpeg;base64,/.test(frame.data)||!((Number.isFinite(frame.mediaTime)&&frame.mediaTime>previousTime)||(Number.isSafeInteger(frame.presentedFrames)&&frame.presentedFrames>previousFrame)))throw new Error('A new camera photo was not received. Please try the session again.');
+  if(Number.isFinite(frame.mediaTime))previousTime=frame.mediaTime;
+  if(Number.isSafeInteger(frame.presentedFrames))previousFrame=frame.presentedFrames;
+  shots.push(frame.data);
   emit('captured',current);await wait(250,signal);
  }
  emit('processing',total);

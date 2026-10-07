@@ -5,7 +5,7 @@ export default function PhotoCapture({videoRef,progress,onCancel}){
  const {phase='ready',current=1,total=4,count=null,completed=0,shots=[]}=progress;
  const processing=phase==='processing',snap=phase==='smile'||phase==='captured';
  const title=processing?'Making your keepsake…':snap?'Smile!':phase==='ready'?'Finding your best angle…':current===1?'Find your best smile.':current===total?'One more. Make it yours.':'A new pose. A new memory.';
- const instruction=processing?'All '+total+' photos are taken. Your print choices are next.':phase==='ready'?'Getting the camera ready.':phase==='captured'?'Got it!':phase==='countdown'?'Look at the camera above the screen.':snap?'Hold that lovely pose.':current===1?'Get comfortable. Your photos start in a moment.':'Change your pose. The next countdown starts now.';
+ const instruction=processing?'All '+total+' photos are taken. Your print choices are next.':phase==='ready'?'Getting the camera ready.':phase==='captured'?'Got it!':phase==='countdown'?'Look at the camera and hold your pose.':snap?'Hold that lovely pose.':current===1?'Get comfortable. Your photos start in a moment.':'Change your pose. The next countdown starts now.';
  return <section className="pcStage" aria-label="Photo session" data-capture-version="smile-sequence-v1" data-phase={phase} data-shot={current} data-completed={completed} data-total={total}>
   <video ref={videoRef} className="pcCamera" playsInline muted autoPlay/>
   <div className="pcShade" aria-hidden="true"/>
