@@ -1,0 +1,63 @@
+import assert from 'node:assert/strict';
+import {mkdir,readFile,writeFile} from 'node:fs/promises';
+import {chromium,webkit} from 'playwright';
+import {octoberPreset,EVENT_KEYS} from '../app/lib/event-workspace.mjs';
+const base=process.env.SEQUENCE_BASE_URL||'http://127.0.0.1:3000',out='sequence-proof',smoke=process.env.SEQUENCE_SMOKE==='1',results=[];
+const archiveSource=await readFile(new URL('../app/lib/event-photo-archive.mjs',import.meta.url),'utf8');
+await mkdir(out,{recursive:true});
+for(let i=0;i<60;i++){try{if((await fetch(base)).ok)break;}catch{}if(i===59)throw new Error('Booth is not ready');await new Promise(r=>setTimeout(r,1000));}
+for(const [engine,api] of [['chromium',chromium],['webkit',webkit]]){
+ const browser=await api.launch({headless:true});let context,page;
+ const pass=(test,extra={})=>results.push({engine,test,passed:true,...extra});
+ async function open(total=4){
+  if(context)await context.close();context=await browser.newContext({viewport:{width:1366,height:768},reducedMotion:'reduce'});
+  const cfg=octoberPreset();cfg.printPackage.shotsPerSession=total;
+  await context.addInitScript(({cfg,keys})=>{
+   localStorage.setItem(keys.config,JSON.stringify(cfg));if(localStorage.getItem(keys.liveUsage)===null)localStorage.setItem(keys.liveUsage,'17');if(localStorage.getItem(keys.demoUsage)===null)localStorage.setItem(keys.demoUsage,'0');
+   window.__cameraCalls=0;window.__cameraDraws=[];window.__frameMetadata=[];
+   const originalFrame=HTMLVideoElement.prototype.requestVideoFrameCallback;
+   if(originalFrame)HTMLVideoElement.prototype.requestVideoFrameCallback=function(callback){return originalFrame.call(this,(now,meta)=>{window.__frameMetadata.push({mediaTime:meta.mediaTime,presentedFrames:meta.presentedFrames});callback(now,meta);});};window.__captureEvents=[];window.__printCalls=0;
+   window.print=()=>{window.__printCalls++;};
+   const realDraw=CanvasRenderingContext2D.prototype.drawImage;
+   CanvasRenderingContext2D.prototype.drawImage=function(source,...rest){if(source instanceof HTMLVideoElement)window.__cameraDraws.push({mediaTime:source.currentTime,at:performance.now()});return realDraw.call(this,source,...rest);};
+   Object.defineProperty(navigator,'mediaDevices',{configurable:true,value:{getUserMedia:async constraints=>{
+    if(constraints.audio!==false)throw new Error('No audio is permitted');window.__cameraCalls++;
+    const canvas=document.createElement('canvas');canvas.width=640;canvas.height=480;const ctx=canvas.getContext('2d');let frame=0;
+    const draw=()=>{frame++;ctx.fillStyle=['#36628a','#6f517d','#437267','#88523e'][Math.floor(frame/7)%4];ctx.fillRect(0,0,640,480);ctx.fillStyle='#fff1d2';ctx.font='bold 68px sans-serif';ctx.fillText('LIVE FRAME '+frame,35,220);ctx.fillRect(frame%600,310,20,30);};draw();
+    const stream=canvas.captureStream(20),tick=setInterval(draw,70);window.__cameraTrack=stream.getVideoTracks()[0];window.__cameraTick=tick;window.__stopCamera=()=>{clearInterval(tick);stream.getTracks().forEach(t=>t.stop());};return stream;
+   }}});
+   document.addEventListener('DOMContentLoaded',()=>{
+    let last='';new MutationObserver(()=>{const s=document.querySelector('.pcStage');if(!s)return;const value=[s.dataset.phase,s.dataset.shot,s.dataset.completed].join('/');if(value!==last){last=value;window.__captureEvents.push({phase:s.dataset.phase,shot:Number(s.dataset.shot),completed:Number(s.dataset.completed),printVisible:Boolean(document.querySelector('.ksStudio'))});}}).observe(document.body,{subtree:true,childList:true,attributes:true,attributeFilter:['data-phase','data-shot','data-completed']});
+   });
+  },{cfg,keys:EVENT_KEYS});
+  page=await context.newPage();page.setDefaultTimeout(15000);const errors=[];page.on('pageerror',e=>errors.push(e.message));page.__errors=errors;
+  await page.goto(base+'/?event=oct10-2026&demo=1',{waitUntil:'networkidle'});await page.getByTestId('welcome-photo').waitFor();
+ }
+ async function archive(){return page.evaluate(async source=>{const api=new Function(source.replace(/\bexport /g,'')+'\nreturn {listCaptures};')();const all=await api.listCaptures('oct10-2026:demo');return Promise.all(all.map(async record=>({id:record.id,poses:await Promise.all(record.poses.map(async blob=>Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',await blob.arrayBuffer()))).map(b=>b.toString(16).padStart(2,'0')).join('')))})));},archiveSource);}
+ try{
+  await open();await page.getByTestId('welcome-photo').dblclick();await page.locator('.pcStage[data-phase="countdown"]').waitFor();
+  assert.equal(await page.locator('.pcDigit').evaluate(e=>getComputedStyle(e).animationName),'none');await page.emulateMedia({reducedMotion:'no-preference'});assert.equal(await page.locator('.pcDigit').evaluate(e=>getComputedStyle(e).animationName),'pcNumberIn');pass('animated-countdown-respects-reduced-motion');
+  for(const [name,width,height] of [['desktop',1366,768],['ipad-landscape',1024,768],['ipad-portrait',768,1024],['phone',390,844],['small-phone',320,640],['phone-landscape',844,390]]){
+   await page.setViewportSize({width,height});await page.waitForTimeout(80);
+   const geometry=await page.locator('.pcStage').evaluate(e=>({w:e.clientWidth,sw:e.scrollWidth,h:e.clientHeight,sh:e.scrollHeight}));assert(geometry.sw<=geometry.w+1,name+' horizontal fit');assert(geometry.sh<=geometry.h+1,name+' vertical fit');
+   for(const control of await page.locator('.pcFooterBar button,.pcFooterBar a').all()){const b=await control.boundingBox();assert(b.y>=0&&b.y+b.height<=height+1);assert(b.height>=44);const covered=await control.evaluate(e=>{const b=e.getBoundingClientRect();return !e.contains(document.elementFromPoint(b.x+b.width/2,b.y+b.height/2));});assert(!covered,name+' uncovered controls');}
+   await page.screenshot({path:`${out}/${engine}-${name}-countdown.png`});pass('countdown-layout-'+name,{geometry});
+  }
+  await page.setViewportSize({width:1366,height:768});await page.locator('.pcStage[data-phase="smile"]').waitFor();await page.screenshot({path:`${out}/${engine}-smile-cue.png`});await page.waitForFunction(()=>Number(document.querySelector('.pcStage')?.dataset.completed)>=1);const completed=Number(await page.locator('.pcStage').getAttribute('data-completed'));assert.equal(await page.locator('.ksStudio').count(),0);assert.equal(await page.locator('.pcStrip img').count(),completed);await page.screenshot({path:`${out}/${engine}-first-real-photo.png`});
+  await page.locator('.ksStudio').waitFor({timeout:45000});const draws=await page.evaluate(()=>window.__cameraDraws),events=await page.evaluate(()=>window.__captureEvents);
+  assert.equal(draws.length,4);for(let i=1;i<4;i++){assert(draws[i].at-draws[i-1].at>=3000);}
+  assert.deepEqual([...new Set(events.filter(e=>e.phase==='smile').map(e=>e.shot))],[1,2,3,4]);assert(events.every(e=>!e.printVisible));assert.equal(await page.evaluate(()=>window.__cameraCalls),1);
+  const metadata=await page.evaluate(()=>window.__frameMetadata);assert(metadata.length>=4);assert(new Set(metadata.map(m=>m.presentedFrames)).size>=4||new Set(metadata.map(m=>m.mediaTime)).size>=4,'four new presented frames');
+  const saved=await archive();assert.equal(saved.length,1);assert.equal(saved[0].poses.length,4);assert.equal(new Set(saved[0].poses).size,4);
+  assert.equal(await page.evaluate(()=>window.__printCalls),0);assert.equal(await page.evaluate(k=>localStorage.getItem(k),EVENT_KEYS.liveUsage),'17');assert.equal(await page.evaluate(k=>localStorage.getItem(k),EVENT_KEYS.demoUsage),'0');
+  assert.equal(await page.evaluate(()=>window.__cameraTrack.readyState),'ended');assert.deepEqual(page.__errors,[]);
+  await page.screenshot({path:`${out}/${engine}-four-different-photos-preview.png`});pass('four-unique-camera-frames-before-print-page',{draws,events,metadata,photoHashes:saved[0].poses});pass('double-tap-one-camera-session');pass('capture-does-not-print-or-use-allowance');
+  if(!smoke){
+   await open();await page.getByTestId('welcome-photo').click();await page.locator('.pcStage[data-completed="1"]').waitFor();await page.getByRole('button',{name:'Cancel session',exact:true}).click();await page.getByTestId('welcome-photo').waitFor();await page.waitForTimeout(4400);assert.equal(await page.evaluate(()=>window.__cameraDraws.length),1);assert.equal(await page.locator('.ksStudio').count(),0);assert.equal((await archive()).length,0);assert.equal(await page.evaluate(()=>window.__cameraTrack.readyState),'ended');pass('cancel-after-first-photo-prevents-late-captures-or-partial-archive');
+   await open(3);await page.getByTestId('welcome-photo').click();await page.locator('.ksStudio').waitFor({timeout:45000});const three=await archive();assert.equal(three.length,1);assert.equal(three[0].poses.length,3);assert.equal(new Set(three[0].poses).size,3);assert.equal(await page.evaluate(()=>window.__cameraDraws.length),3);pass('three-pose-setting-still-captures-three-different-photos');
+   await open();await page.getByTestId('welcome-photo').click();await page.locator('.pcStage[data-completed="1"]').waitFor();await page.evaluate(()=>window.__stopCamera());await page.getByTestId('welcome-photo').waitFor({timeout:10000});assert((await page.locator('.boothAlert').innerText()).includes('camera stopped'));assert.equal((await archive()).length,0);assert.equal(await page.locator('.ksStudio').count(),0);pass('camera-interruption-does-not-show-or-save-incomplete-sheet');
+   await page.getByTestId('welcome-photo').click();await page.locator('.pcStage[data-phase="countdown"]').waitFor();await page.evaluate(()=>{Object.defineProperty(document,'visibilityState',{configurable:true,get:()=> 'hidden'});document.dispatchEvent(new Event('visibilitychange'));});await page.getByTestId('welcome-photo').waitFor();await page.waitForTimeout(800);assert((await page.locator('.boothAlert').innerText()).includes('background'));assert.equal(await page.evaluate(()=>window.__cameraTrack.readyState),'ended');assert.equal((await archive()).length,0);pass('backgrounding-stops-session-without-bursting-stale-timers');
+  }
+ }catch(error){if(page)await page.screenshot({path:`${out}/${engine}-failure.png`,fullPage:true}).catch(()=>{});const diagnostic=page?await page.evaluate(()=>({draws:window.__cameraDraws,metadata:window.__frameMetadata,events:window.__captureEvents,alert:document.querySelector('.boothAlert')?.textContent})).catch(()=>null):null;results.push({engine,passed:false,message:error.message,stack:error.stack,diagnostic});throw error;}finally{await browser.close();await writeFile(`${out}/results.json`,JSON.stringify({base,smoke,results},null,2));}
+}
+console.log(JSON.stringify({base,passed:results.filter(r=>r.passed).length,failed:results.filter(r=>!r.passed).length}));

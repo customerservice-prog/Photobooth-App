@@ -2,6 +2,8 @@
 import {useCallback,useEffect,useRef,useState} from 'react';
 import PhotoPreview from './components/PhotoPreview';
 import WelcomeScreen from './components/WelcomeScreen';
+import PhotoCapture from './components/PhotoCapture';
+import {runPhotoSequence,takeFreshPhoto,waitForPose} from './lib/photo-sequence.mjs';
 import {normalizeEventConfig} from './lib/event-config.mjs';
 import {normalizePrintPackage,printsRemaining,canPrint} from './lib/print-package.mjs';
 import {composePhotoStrip} from './lib/photo-strip.mjs';
@@ -18,8 +20,8 @@ const filters={original:'none',glam:'brightness(1.08) contrast(.96) saturate(.88
 export default function Booth(){
   const [scope,setScope]=useState(workspace()),[initialized,setInitialized]=useState(false);
   const {config:CFG,photos:STORE,usage:PRINT_USAGE}=scope;
-  const[step,setStep]=useState('welcome'),[count,setCount]=useState(3),[photo,setPhoto]=useState(null),[error,setError]=useState(''),[online,setOnline]=useState(true),[saved,setSaved]=useState(0),[operator,setOperator]=useState(false),[printing,setPrinting]=useState(false),[cfg,setCfg]=useState(defaultCfg),[gallery,setGallery]=useState([]),[filter,setFilter]=useState('original'),[template,setTemplate]=useState('ivory'),[installOpen,setInstallOpen]=useState(false),[installed,setInstalled]=useState(false),[editing,setEditing]=useState(false),[starting,setStarting]=useState(false),[previewActive,setPreviewActive]=useState(false),[shotProgress,setShotProgress]=useState({current:0,total:0}),[printsUsed,setPrintsUsed]=useState(0);
-  const video=useRef(null),stream=useRef(null),timer=useRef(null),tapTimer=useRef(null),tap=useRef(0),startGuard=useRef(false),run=useRef(0),printCleanup=useRef(()=>{}),captureId=useRef(null),printGuard=useRef(false);
+  const[step,setStep]=useState('welcome'),[photo,setPhoto]=useState(null),[error,setError]=useState(''),[online,setOnline]=useState(true),[saved,setSaved]=useState(0),[operator,setOperator]=useState(false),[printing,setPrinting]=useState(false),[cfg,setCfg]=useState(defaultCfg),[gallery,setGallery]=useState([]),[filter,setFilter]=useState('original'),[template,setTemplate]=useState('ivory'),[installOpen,setInstallOpen]=useState(false),[installed,setInstalled]=useState(false),[editing,setEditing]=useState(false),[starting,setStarting]=useState(false),[previewActive,setPreviewActive]=useState(false),[capture,setCapture]=useState({phase:'ready',current:1,total:4,completed:0,shots:[]}),[printsUsed,setPrintsUsed]=useState(0);
+  const video=useRef(null),stream=useRef(null),timer=useRef(null),tapTimer=useRef(null),tap=useRef(0),startGuard=useRef(false),run=useRef(0),printCleanup=useRef(()=>{}),captureId=useRef(null),printGuard=useRef(false),captureAbort=useRef(null),capturePhase=useRef('ready');
   useEffect(()=>{
     let active=true;
     setOnline(navigator.onLine);setInstalled(navigator.standalone===true||window.matchMedia?.('(display-mode: standalone)').matches===true);
@@ -44,7 +46,7 @@ export default function Booth(){
       if(active)setInitialized(true);
     }catch(e){if(active)setError(e.message||'Saved settings could not be read. No photos or counters were reset.');}}
     load();
-    return()=>{active=false;removeEventListener('online',f);removeEventListener('offline',f);clearTimeout(timer.current);clearTimeout(tapTimer.current);printCleanup.current();run.current++;stopCamera();};
+    return()=>{active=false;removeEventListener('online',f);removeEventListener('offline',f);clearTimeout(timer.current);clearTimeout(tapTimer.current);printCleanup.current();captureAbort.current?.abort();run.current++;stopCamera();};
   },[]);
   useEffect(()=>{
     clearTimeout(timer.current);
@@ -55,29 +57,38 @@ export default function Booth(){
   },[step,editing,operator,printing,previewActive]);
   const archiveArtifact=useCallback(async artifact=>{if(scope.managed&&captureId.current)await saveKeepsake(scope.archive,captureId.current,artifact.blob);},[scope.managed,scope.archive]);
   async function waitForVideo(s){for(let i=0;i<50;i++){if(stream.current!==s)return false;const v=video.current;if(v){if(v.srcObject!==s)v.srcObject=s;v.play().catch(()=>{});if(v.videoWidth>0&&v.readyState>=2)return true}await new Promise(r=>setTimeout(r,80))}return false}
+  useEffect(()=>{
+    const stopHidden=()=>{if(document.visibilityState==='hidden'&&captureAbort.current&&!['processing','done'].includes(capturePhase.current)){cancelCapture('Photo session stopped when the booth went into the background. Tap Take a Photo to start again.');}};
+    document.addEventListener('visibilitychange',stopHidden);return()=>document.removeEventListener('visibilitychange',stopHidden);
+  },[]);
   async function begin(){
     if(startGuard.current||!initialized)return;startGuard.current=true;setStarting(true);const id=++run.current;
+    captureAbort.current?.abort();const controller=new AbortController();captureAbort.current=controller;capturePhase.current='ready';
+    setCapture({phase:'ready',current:1,total:normalizePrintPackage(cfg.printPackage).shotsPerSession,completed:0,shots:[]});
     setError('');setFilter('original');setTemplate(cfg.defaultTemplate||'ivory');setPhoto(null);setEditing(false);stopCamera();captureId.current=null;
-    try{const s=await navigator.mediaDevices.getUserMedia({video:{facingMode:'user',width:{ideal:1920},height:{ideal:1080}},audio:false});if(id!==run.current){s.getTracks().forEach(t=>t.stop());return}stream.current=s;setStep('camera');const ready=await waitForVideo(s);if(stream.current!==s)return;if(!ready){captureFail();return}await new Promise(r=>setTimeout(r,350));if(stream.current===s)setStep('countdown')}
-    catch{if(id===run.current){setError('Camera unavailable. Allow camera access for this booth, then try again.');setStep('welcome')}}
-    finally{startGuard.current=false;setStarting(false)}
-  }
-  useEffect(()=>{if(step!=='countdown')return;setCount(3);let n=3;const i=setInterval(()=>{n--;if(n<=0){clearInterval(i);takePhoto()}else setCount(n)},900);return()=>clearInterval(i)},[step]);
-  function captureFrame(v){const c=document.createElement('canvas');c.width=v.videoWidth;c.height=v.videoHeight;const x=c.getContext('2d');if(!x)throw new Error('Camera frame could not be prepared.');x.translate(c.width,0);x.scale(-1,1);x.drawImage(v,0,0);return c.toDataURL('image/jpeg',.92)}
-  async function takePhoto(){
-    const v=video.current;if(!v?.videoWidth){captureFail();return}
-    const id=run.current,total=normalizePrintPackage(cfg.printPackage).shotsPerSession,shots=[];
-    setStep('photoSeries');setShotProgress({current:0,total});
     try{
-      for(let i=0;i<total;i++){
-        if(i>0)await new Promise(r=>setTimeout(r,950));
-        if(id!==run.current)return;
-        if(!video.current?.videoWidth)throw new Error('Camera was interrupted.');
-        shots.push(captureFrame(video.current));setShotProgress({current:i+1,total});
-      }
+      const s=await navigator.mediaDevices.getUserMedia({video:{facingMode:'user',width:{ideal:1920},height:{ideal:1080}},audio:false});
+      if(id!==run.current||controller.signal.aborted){s.getTracks().forEach(t=>t.stop());return;}
+      stream.current=s;setStep('camera');const ready=await waitForVideo(s);
+      if(id!==run.current||stream.current!==s)return;
+      if(!ready)throw new Error('Camera was not ready. Allow camera access, then try again.');
+      await waitForPose(250,controller.signal);setStep('photoSeries');
+      const shots=await runPhotoSequence({total:normalizePrintPackage(cfg.printPackage).shotsPerSession,signal:controller.signal,
+        capture:options=>takeFreshPhoto(video.current,options),
+        onProgress:next=>{if(id===run.current){capturePhase.current=next.phase;setCapture(next);}}
+      });
       const data=await composePhotoStrip(shots,cfg);if(id!==run.current)return;
-      stopCamera();await save(data,shots);if(id!==run.current)return;setPhoto(data);setStep('preview');
-    }catch(e){if(id!==run.current)return;setError(e.message||'The photo strip could not be created. Please try again.');stopCamera();setStep('welcome')}
+      stopCamera();await save(data,shots);if(id!==run.current)return;
+      capturePhase.current='done';setPhoto(data);setCapture({phase:'ready',current:1,total:shots.length,completed:0,shots:[]});setStep('preview');
+    }catch(e){
+      if(id!==run.current||controller.signal.aborted)return;
+      controller.abort();stopCamera();setCapture({phase:'ready',current:1,total:4,completed:0,shots:[]});
+      setError(e.name==='NotAllowedError'?'Camera unavailable. Allow camera access for this booth, then try again.':e.message||'The photo session could not finish. Please try again.');setStep('welcome');
+    }finally{if(id===run.current){captureAbort.current=null;startGuard.current=false;setStarting(false);}}
+  }
+  function cancelCapture(message=''){
+    captureAbort.current?.abort();captureAbort.current=null;run.current++;stopCamera();startGuard.current=false;setStarting(false);captureId.current=null;capturePhase.current='ready';
+    setCapture({phase:'ready',current:1,total:4,completed:0,shots:[]});setPhoto(null);setError(message);setStep('welcome');
   }
   function captureFail(){setError('Camera was not ready. Please try again.');stopCamera();setStep('welcome')}
   async function save(data,shots){
@@ -92,7 +103,7 @@ export default function Booth(){
   function retake(){setPhoto(null);begin()}
   function finish(){setStep('thanks')}
   useEffect(()=>{if(step!=='thanks')return;const thankTimer=setTimeout(reset,4500);return()=>clearTimeout(thankTimer);},[step]);
-  function reset(){printCleanup.current();setPreviewActive(false);run.current++;stopCamera();setPhoto(null);setError('');setPrinting(false);setFilter('original');setTemplate(cfg.defaultTemplate||'ivory');setShotProgress({current:0,total:0});setEditing(false);captureId.current=null;setStep('welcome')}
+  function reset(){printCleanup.current();setPreviewActive(false);captureAbort.current?.abort();captureAbort.current=null;startGuard.current=false;setStarting(false);run.current++;stopCamera();setPhoto(null);setError('');setPrinting(false);setFilter('original');setTemplate(cfg.defaultTemplate||'ivory');setCapture({phase:'ready',current:1,total:4,completed:0,shots:[]});setEditing(false);captureId.current=null;setStep('welcome')}
   function requestPrint(){
     if(printGuard.current||printing)return false;printGuard.current=true;
     try{const settings=normalizePrintPackage(cfg.printPackage),used=usage(localStorage,scope);if(!canPrint(settings,used,false)){setError(printsRemaining(settings,used)<=0?'The event print allowance has been reached. Digital delivery is still available.':'Printing is disabled for this event.');return false;}
@@ -105,13 +116,13 @@ export default function Booth(){
   function secret(){tap.current++;clearTimeout(tapTimer.current);tapTimer.current=setTimeout(()=>tap.current=0,2200);if(tap.current>=5){tap.current=0;setOperator(true)}}
   function recover(p){captureId.current=p.id;setPhoto(p.data);setOperator(false);setEditing(false);setStep('preview')}
   const eventMeta=eventTypes[cfg.type]||eventTypes.other;
-  const isPreview=step==='preview';
+  const isPreview=step==='preview',isCapturing=['camera','photoSeries'].includes(step);
   return <>{scope.managed&&<div className="workspaceBanner"><span>{scope.demo?'OFFICE DEMO · no physical prints · event allowance unchanged':'ACTUAL EVENT · photos saved on this device'}</span><a href="/event-prep">Event preparation →</a></div>}
-  <main className={`booth theme-${cfg.type||'other'}${step==='welcome'?' bwWelcomeMode':''}`} data-build="keepsake-gallery-v3" data-capture-mode="photo" data-managed-event={scope.managed?'true':undefined}>
-    {!isPreview&&step!=='welcome'&&<a className="floatingHelp" href="/help" aria-label="Photo booth help">Help</a>}
-    {!isPreview&&step!=='welcome'&&<button className="operator" aria-label="Operator controls (tap five times)" onClick={secret}/>}
+  <main className={`booth theme-${cfg.type||'other'}${step==='welcome'?' bwWelcomeMode':''}`} data-build="smile-sequence-v1" data-capture-mode="photo" data-managed-event={scope.managed?'true':undefined}>
+    {!isPreview&&!isCapturing&&step!=='welcome'&&<a className="floatingHelp" href="/help" aria-label="Photo booth help">Help</a>}
+    {!isPreview&&!isCapturing&&step!=='welcome'&&<button className="operator" aria-label="Operator controls (tap five times)" onClick={secret}/>}
     {step==='welcome'&&<WelcomeScreen cfg={cfg} eventName={eventMeta.name} online={online} starting={starting||!initialized} installed={installed} printsUsed={printsUsed} onStartPhotos={begin} onInstall={()=>setInstallOpen(true)} onOperator={secret}/>}
-    {['camera','countdown','photoSeries'].includes(step)&&<><video ref={video} className="camera" playsInline muted autoPlay/><div className="captureTop"><strong>{step==='photoSeries'?'Photo strip in progress':'Look at the camera'}</strong><div>{step==='photoSeries'?`Photo ${shotProgress.current} of ${shotProgress.total} · change your pose`:'Ready when you are. Smile.'}</div></div>{step==='countdown'&&<div className="count" aria-live="polite">{count}</div>}</>}
+    {isCapturing&&<PhotoCapture videoRef={video} progress={capture} onCancel={()=>cancelCapture()}/>}
     {step==='preview'&&photo&&<PhotoPreview photo={photo} cfg={cfg} filter={filter} filters={filters} template={template} printing={printing} editing={editing} printPackage={normalizePrintPackage(cfg.printPackage)} printsUsed={printsUsed} onEdit={setEditing} onCommitEvent={persistConfig} onSessionActive={setPreviewActive} onTemplate={setTemplate} onFilter={setFilter} onPrint={requestPrint} onRetake={retake} onFinish={finish} onArchive={scope.managed?archiveArtifact:undefined}/>}
     {step==='thanks'&&<section className="screen"><div className="check">✓</div><h1 className="hero">Enjoy the celebration.</h1><p className="sub">The booth will be ready for the next guest in a moment.</p></section>}
     {error&&<div className="boothAlert" role="alert"><div className="error">{error}<button onClick={()=>setError('')} aria-label="Dismiss message">×</button></div></div>}
