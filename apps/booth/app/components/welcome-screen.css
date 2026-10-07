@@ -35,3 +35,17 @@
 @media(max-width:360px){.bwBrand small{max-width:108px;letter-spacing:.25px;font-size:6px}.bwBrand{gap:6px}.bwBrand b{font-size:12px}.bwHeaderActions .bwHelp{width:44px;padding:0}.bwHeaderActions .bwHelp>span{position:absolute;clip-path:inset(50%);width:1px;height:1px;overflow:hidden;white-space:nowrap}.bwShowcase{min-height:440px}.bwShowcaseTop em{font-size:21px}.bwShowcaseTop>svg{display:none}}
 @media(prefers-reduced-motion:reduce){.booth.bwWelcomeMode .bwPhotoButton,.booth.bwWelcomeMode .bwExtra{transition:none!important;transform:none!important}}
 @media print{.bwWelcome{display:none!important}}
+
+.bwSessionChoices{display:grid;grid-template-columns:minmax(0,.82fr) minmax(0,1.18fr);gap:12px}
+.bwSessionCard{position:relative;display:flex;align-items:center;gap:13px;min-width:0;min-height:98px;padding:16px 17px;border-radius:18px;text-align:left;transition:transform .18s ease,box-shadow .18s ease,border-color .18s ease}
+.bwQuickSession{border:1px solid #c9d1c3;background:linear-gradient(135deg,#fffdf8,#eef2e9);color:#28483b;box-shadow:0 8px 20px #28483b0e}
+.bwFourSession{border:1px solid #1f4237;background:radial-gradient(circle at 90% 10%,#6f8a7344,transparent 34%),linear-gradient(112deg,#315748,#183d31);color:#fffaf0;box-shadow:0 13px 28px #1f493122,inset 0 1px 0 #ffffff20}
+.bwSessionCard:hover:not(:disabled){transform:translateY(-2px)}.bwQuickSession:hover:not(:disabled){border-color:#96aa91;box-shadow:0 11px 24px #28483b18}.bwFourSession:hover:not(:disabled){box-shadow:0 15px 34px #254b3230}
+.bwSessionCard:active:not(:disabled){transform:translateY(1px)}
+.bwSessionIcon{width:46px;height:46px;display:grid;place-items:center;flex:none;border-radius:14px;border:1px solid currentColor;opacity:.88}.bwFourSession .bwSessionIcon{color:#ecd8ab;background:#ffffff08;border-color:#ead9af45}.bwQuickSession .bwSessionIcon{color:#927448;background:#fff}
+.bwSessionWords{min-width:0;flex:1}.bwSessionKicker{display:block;margin-bottom:4px;font-size:8px;line-height:1.4;font-weight:700;letter-spacing:1.5px}.bwQuickSession .bwSessionKicker{color:#8f774d}.bwFourSession .bwSessionKicker{color:#d8c49b}
+.bwSessionWords strong{display:block;font:400 24px/1.18 Georgia,serif;letter-spacing:-.2px}.bwSessionWords small{display:block;margin-top:5px;font-size:10px;line-height:1.45}.bwQuickSession .bwSessionWords small{color:#687569}.bwFourSession .bwSessionWords small{color:#d8e0d3}
+.bwSessionBadge{position:absolute;top:-9px;right:15px;padding:4px 9px;border-radius:999px;background:#d8bf8a;color:#294437;font-size:7px;font-weight:800;letter-spacing:1px;box-shadow:0 3px 8px #0002}
+.bwSessionCard .bwRoundArrow{width:34px;height:34px}
+@media(max-width:620px){.bwSessionChoices{grid-template-columns:1fr}.bwSessionCard{min-height:88px}.bwSessionWords strong{font-size:22px}.bwSessionBadge{top:-7px}}
+@media(max-width:360px){.bwSessionCard{padding:13px 12px}.bwSessionIcon{width:40px;height:40px}.bwSessionWords small{font-size:9px}.bwSessionCard .bwRoundArrow{width:30px;height:30px}}
