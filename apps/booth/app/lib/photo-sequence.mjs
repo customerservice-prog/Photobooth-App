@@ -59,7 +59,13 @@ export async function runPhotoSequence({total=4,signal,capture,onProgress=()=>{}
   if(Number.isFinite(frame.mediaTime))previousTime=frame.mediaTime;
   if(Number.isSafeInteger(frame.presentedFrames))previousFrame=frame.presentedFrames;
   shots.push(frame.data);
-  emit('captured',current);await wait(250,signal);
+  emit('captured',current);await wait(450,signal);
+  if(index<total-1){
+   // A spoken and visual reminder before the next shot. Do not show another
+   // capture or make another camera request until this transition completes.
+   emit('next',current+1);onCue('next',{previous:current,current:current+1,total});
+   await wait(3300,signal);
+  }
  }
  emit('processing',total);
  return shots;

@@ -49,3 +49,8 @@
 .bwSessionCard .bwRoundArrow{width:34px;height:34px}
 @media(max-width:620px){.bwSessionChoices{grid-template-columns:1fr}.bwSessionCard{min-height:88px}.bwSessionWords strong{font-size:22px}.bwSessionBadge{top:-7px}}
 @media(max-width:360px){.bwSessionCard{padding:13px 12px}.bwSessionIcon{width:40px;height:40px}.bwSessionWords small{font-size:9px}.bwSessionCard .bwRoundArrow{width:30px;height:30px}}
+
+.bwSoundCheck{border:1px solid #d1b987;border-radius:25px;padding:8px 12px;min-height:44px;margin-left:8px;background:#f7edcf;color:#243e32;font-size:12px;font-weight:700;white-space:nowrap;cursor:pointer}
+.bwSoundCheck:focus-visible{outline:3px solid #43715b;outline-offset:2px}
+.bwSoundWarning{font-size:12px;line-height:1.5;color:#85421d;margin:5px 0}
+@media(max-width:620px){.bwSoundCheck{margin:7px 0 0;display:inline-flex;align-items:center}}

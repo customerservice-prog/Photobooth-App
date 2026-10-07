@@ -30,3 +30,11 @@
 @keyframes pcSoundPulse{0%{transform:scale(.82);opacity:0}35%{opacity:.7}100%{transform:scale(1.12);opacity:0}}
 @media(max-height:650px){.pcVoiceBadge{min-height:24px;padding:3px 8px;font-size:7px}}
 @media(prefers-reduced-motion:reduce){.booth .pcVoiceBadge i,.booth .pcSoundWave{animation:none!important}}
+
+/* Announce the next frame in large type even with sound turned off. */
+.pcNextDigit{display:flex;align-items:center;justify-content:center;flex-direction:column;color:#fff4d5;font:italic clamp(74px,14vmin,142px)/.94 Georgia,serif;text-shadow:0 4px 24px #172c2b66}
+.pcNextDigit small{font:700 clamp(10px,1.7vmin,15px)/1.2 -apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;letter-spacing:2px;margin-top:9px;color:#f5da9f}
+.pcNextWords h1{color:#ffe5a5}.pcNextWords p{font-size:clamp(13px,2vmin,17px);max-width:560px;font-weight:700;line-height:1.5}
+.pcEnableSound{border:1px solid #ffe1a9;border-radius:30px;background:#ffe5ae;color:#16372c;font-weight:750;font-size:12px;min-height:44px;padding:8px 19px}
+.pcEnableSound:focus-visible{outline:3px solid white;outline-offset:3px}
+@media(max-height:650px){.pcNextDigit{font-size:78px}.pcNextWords p{font-size:11px}.pcEnableSound{min-height:36px;font-size:10px;padding:5px 12px}}
