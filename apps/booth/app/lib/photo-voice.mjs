@@ -31,14 +31,22 @@ export function stopTalking(synth=globalThis.speechSynthesis){
 
 
 const CLIPS=['ready','3','2','1','smile','next2','next3','next4'];
+let mediaRoute;
 let context, buffers=new Map(), active=new Set(), generation=0;
 export async function preparePhotoAudio({Context=globalThis.AudioContext||globalThis.webkitAudioContext,fetcher=globalThis.fetch}={}){
  const attempt=++generation;
  if(!Context)throw new Error('Voice audio is unavailable in this browser. Open the booth in Safari and try again.');
  context ||= new Context();
+ // HTML media playback keeps the iPad media audio route open, including when
+ // the hardware silent switch would otherwise mute Web Audio.
+ let routeReady;
+ if(typeof globalThis.Audio==='function'){
+  mediaRoute ||= new Audio('/audio/media-route.wav');mediaRoute.loop=true;
+  routeReady=mediaRoute.play();
+ }
  // Called directly from the guest tap, before camera permission or any timers.
  const resume=context.resume();
- await resume;
+ await Promise.all([resume,routeReady]);
  if(context.state!=='running')throw new Error('Sound is blocked. Tap the photo button again to enable voice guidance.');
  await Promise.all(CLIPS.map(async key=>{
   if(buffers.has(key))return;
@@ -58,7 +66,7 @@ export function playPhotoCue(key){
  active.add(source);source.onended=()=>{active.delete(source);source.disconnect();};source.start();return Math.ceil(buffer.duration*1000);
 }
 export function stopPhotoAudio(){
- generation++;
+ generation++;try{mediaRoute?.pause();}catch{}
  for(const source of active){try{source.stop();source.disconnect();}catch{}}
  active.clear();
 }
