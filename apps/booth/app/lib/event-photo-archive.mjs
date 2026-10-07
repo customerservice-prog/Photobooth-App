@@ -22,7 +22,7 @@ function jpeg(data){
 const photoBlob=value=>value instanceof Blob?value:new Blob([value],{type:'image/jpeg'});
 function materialize(record){return {...record,collage:photoBlob(record.collage),poses:record.poses.map(photoBlob),keepsake:record.keepsake?photoBlob(record.keepsake):null};}
 export async function saveCapture(scope,id,data,shots,cfg){
- if(!scope||!id||!Array.isArray(shots)||shots.length<3||shots.length>4)throw new Error('The photo session is incomplete.');
+ if(!scope||!id||!Array.isArray(shots)||![1,3,4].includes(shots.length))throw new Error('The photo session is incomplete.');
  const record={key:scope+':'+id,id,scope,createdAt:new Date().toISOString(),encoding:'jpeg-arraybuffer',collage:jpeg(data),poses:shots.map(jpeg),keepsake:null,title:String(cfg.title||''),eventDate:String(cfg.date||'')};
  await transaction('readwrite',s=>s.add(record));return materialize(record);
 }
