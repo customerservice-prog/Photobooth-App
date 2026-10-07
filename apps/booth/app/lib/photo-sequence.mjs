@@ -45,15 +45,15 @@ export function takeFreshPhoto(video,{signal,previousTime=-1,previousFrame=-1,ti
   }
  });
 }
-export async function runPhotoSequence({total=4,signal,capture,onProgress=()=>{},wait=waitForPose}){
- if(![3,4].includes(total)||typeof capture!=='function')throw new Error('Choose a three- or four-photo session.');
+export async function runPhotoSequence({total=4,signal,capture,onProgress=()=>{},onCue=()=>{},wait=waitForPose}){
+ if(![1,3,4].includes(total)||typeof capture!=='function')throw new Error('Choose a one-, three-, or four-photo session.');
  const shots=[];let previousTime=-1,previousFrame=-1;
  const emit=(phase,current,count=null)=>{check(signal);onProgress({phase,current,total,count,completed:shots.length,shots:[...shots]});};
  for(let index=0;index<total;index++){
   check(signal);const current=index+1;
-  emit('pose',current);await wait(650,signal);
-  for(let count=3;count>=1;count--){emit('countdown',current,count);await wait(1000,signal);}
-  emit('smile',current);await wait(250,signal);check(signal);
+  emit('pose',current);onCue('ready',{current,total});await wait(650,signal);
+  for(let count=3;count>=1;count--){emit('countdown',current,count);onCue(String(count),{current,total});await wait(1000,signal);}
+  emit('smile',current);onCue('smile',{current,total});await wait(300,signal);check(signal);
   const frame=await capture({index,previousTime,previousFrame,signal});check(signal);
   if(!frame||!/^data:image\/jpeg;base64,/.test(frame.data)||!((Number.isFinite(frame.mediaTime)&&frame.mediaTime>previousTime)||(Number.isSafeInteger(frame.presentedFrames)&&frame.presentedFrames>previousFrame)))throw new Error('A new camera photo was not received. Please try the session again.');
   if(Number.isFinite(frame.mediaTime))previousTime=frame.mediaTime;
