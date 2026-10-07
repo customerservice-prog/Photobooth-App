@@ -42,20 +42,20 @@ export async function preparePhotoAudio({Context=globalThis.AudioContext||global
  if(context.state!=='running')throw new Error('Sound is blocked. Tap the photo button again to enable voice guidance.');
  await Promise.all(CLIPS.map(async key=>{
   if(buffers.has(key))return;
-  const response=await fetcher('/audio/'+key+'.wav');
+  const response=await fetcher('/audio/'+key+'.wav',{signal:AbortSignal.timeout(15000)});
   if(!response.ok)throw new Error('Voice guidance could not load. Check the connection, then tap the photo button again.');
   const buffer=await context.decodeAudioData(await response.arrayBuffer());
   buffers.set(key,buffer);
  }));
  if(attempt!==generation)throw Object.assign(new Error('Audio cancelled'),{name:'AbortError'});
  // An audible confirmation verifies the same speaker route used by the countdown.
- playPhotoCue('ready');
+ if(!playPhotoCue('ready'))throw new Error('Sound was paused. Tap the photo button again.');
 }
 export function playPhotoCue(key){
  const buffer=buffers.get(key);
  if(!buffer||context?.state!=='running')return false;
  const source=context.createBufferSource();source.buffer=buffer;source.connect(context.destination);
- active.add(source);source.onended=()=>{active.delete(source);source.disconnect();};source.start();return true;
+ active.add(source);source.onended=()=>{active.delete(source);source.disconnect();};source.start();return Math.ceil(buffer.duration*1000);
 }
 export function stopPhotoAudio(){
  generation++;

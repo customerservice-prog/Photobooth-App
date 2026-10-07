@@ -79,7 +79,7 @@ export default function Booth(){
       const shots=await runPhotoSequence({total,signal:controller.signal,
         capture:options=>takeFreshPhoto(video.current,options),
         onProgress:next=>{if(id===run.current){capturePhase.current=next.phase;setCapture(next);}},
-        onCue:cue=>{if(id===run.current)playPhotoCue(cue)}
+        onCue:cue=>{if(id!==run.current)return;const duration=playPhotoCue(cue);if(!duration)throw new Error('Voice audio paused. Tap the photo button to start again.');return duration;}
       });
       stopTalking();const data=total===1?shots[0]:await composePhotoStrip(shots,cfg);if(id!==run.current)return;
       stopCamera();await save(data,shots);if(id!==run.current)return;

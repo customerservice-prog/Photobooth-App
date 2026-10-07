@@ -34,10 +34,15 @@ test('each following photo gets a spoken transition and time to change pose',asy
  await runPhotoSequence({total:4,wait:async ms=>delays.push(ms),capture:async({index})=>({data:jpeg,mediaTime:index+1}),onProgress:e=>events.push(e),onCue:c=>cues.push(c)});
  assert.deepEqual(events.filter(e=>e.phase==='next').map(e=>[e.current,e.completed]),[[2,1],[3,2],[4,3]]);
  assert.deepEqual(cues.filter(c=>c.startsWith('next')),['next2','next3','next4']);
- assert.equal(delays.filter(ms=>ms===3200).length,3);
+ assert.equal(delays.filter(ms=>ms===3500).length,3);
 });
 test('cancelling during next-pose guidance prevents the next capture',async()=>{
  const c=new AbortController();let captured=0;
  await assert.rejects(runPhotoSequence({signal:c.signal,wait:instant,capture:async()=>({data:jpeg,mediaTime:++captured}),onProgress:e=>{if(e.phase==='next')c.abort();}}),{name:'AbortError'});
  assert.equal(captured,1);
+});
+
+test('next countdown waits until its spoken announcement finishes',async()=>{
+ const delays=[];await runPhotoSequence({total:4,wait:async ms=>delays.push(ms),capture:async({index})=>({data:jpeg,mediaTime:index+1}),onCue:c=>c.startsWith('next')?4700:0});
+ assert.equal(delays.filter(ms=>ms===5000).length,3);
 });
