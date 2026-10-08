@@ -73,7 +73,7 @@ export default async function EventDetailPage({params}){
      <div className="stepList">
       {['Open your imported event on the event iPad','Tap Test speaker and listen to the countdown','Take a 1 Photo session and a 4 Photos session','Print a real 4×6 Canon SELPHY test sheet','Check the event title, colors and paper output'].map((label,i)=><div key={label} className="stepItem"><span className="stepIcon">{i+1}</span><strong className="stepItemBody">{label}</strong></div>)}
      </div>
-     <div className="buttonRow"><a href={BOOTH_URL+'/print-test'} className="btn btn2" target="_blank" rel="noopener noreferrer">Open printer test ↗</a><a href={BOOTH_URL} className="btn btn2" target="_blank" rel="noopener noreferrer">Guest booth homepage ↗</a></div>
+     <div className="buttonRow"><Link href={"/events/"+event.id+"/backups"} className="btn btn2">Private photo backups →</Link><a href={BOOTH_URL+'/print-test'} className="btn btn2" target="_blank" rel="noopener noreferrer">Open printer test ↗</a><a href={BOOTH_URL} className="btn btn2" target="_blank" rel="noopener noreferrer">Guest booth homepage ↗</a></div>
      <div className="noticeOnly" style={{marginTop:14}}>Send the event again after later admin changes. This transfer does not continuously update an iPad in the background, and it never clears existing photo backups or print usage.</div>
     </section>
     <details className="card eventMoreDetails">
