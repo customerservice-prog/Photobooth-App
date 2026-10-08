@@ -14,8 +14,8 @@ export default function BoothLauncher(){
         <div className="blSmile" aria-hidden="true"><svg viewBox="0 0 64 64" fill="none"><circle cx="32" cy="32" r="27"/><path d="M20 37c5 12 19 12 24 0M22 23v3m20-3v3"/></svg></div>
         <p className="blEyebrow">YOUR IPAD STARTS HERE</p>
         <h1 id="blTitle">A fresh start.<br/><em>Nothing lost.</em></h1>
-        <p className="blIntro">Open the customer’s office demo with the Smile countdown and separate poses. This page does not reset saved event details, photos, or print counts.</p>
-        <a className="blPrimary" data-testid="launch-demo" href={freshBoothEntry('demo',stamp)}><span>Open October 10 office demo<small>Photos only · no physical prints in demo mode</small></span><span aria-hidden="true">→</span></a>
+        <p className="blIntro">When an event has been loaded on this iPad, it opens automatically. For a new iPad, staff must first send an event from the admin dashboard. Nothing here resets photos or print counts.</p>
+        <a className="blPrimary" data-testid="launch-demo" href={freshBoothEntry('demo',stamp)}><span>Office demo (testing only)<small>No physical prints — never use as the customer event</small></span><span aria-hidden="true">→</span></a>
         <div className="blFlow" aria-label="What happens after Take a Photo"><span>3–2–1 &amp; Smile!</span><span>Each pose captured</span><span>Then print choices</span></div>
         <p className="blDetail">Tap <strong>Take a Photo</strong> on the next screen. The countdown appears after camera access is allowed. A four-pose session takes four separate photos automatically before showing the design page.</p>
         <div className="blOther"><a data-testid="launch-preparation" href={freshBoothEntry('preparation',stamp)}>Edit the customer’s event →</a><a data-testid="launch-saved" href={freshBoothEntry('saved',stamp)}>Open the general saved booth →</a></div>
