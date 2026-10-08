@@ -56,7 +56,7 @@ export function readiness(event){
   {id:'customer',title:'Customer details',ready:Boolean(event.customer?.name||event.customerId),href:'client'},
   {id:'venue',title:'Venue and address',ready:Boolean(event.venueName?.trim()&&event.venueAddress?.trim()),href:'venue'},
   {id:'booth',title:'Booth assigned',ready:Boolean(event.boothId||event.booth?.id),href:'equipment'},
-  {id:'design',title:'Print design selected',ready:Boolean(event.templateId||event.template?.id),href:'equipment'}
+  {id:'design',title:'Approved customer artwork',ready:Boolean(event.templateId||event.template?.id||event.theme?.boothExperience?.approvedDesign),href:'style'}
  ];
  const complete=checks.filter(x=>x.ready).length;
  return {checks,complete,total:checks.length,ready:complete===checks.length,next:checks.find(x=>!x.ready)||null};
