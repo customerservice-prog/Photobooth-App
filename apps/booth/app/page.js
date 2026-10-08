@@ -122,6 +122,7 @@ export default function Booth(){
       // Wait at most one second for optional audio. No network/audio failure
       // can hold the camera or the guest hostage.
       await Promise.race([audioPromise,waitForPose(1000,controller.signal)]);
+      if(!audioReady)setVoiceStatus('unavailable');
       await waitForPose(250,controller.signal);setStep('photoSeries');
       const shots=await runPhotoSequence({total,signal:controller.signal,pauseSeconds:normalizeGuestPause(cfg.photoPauseSeconds),
         onPause:({seconds,signal,onTick})=>waitForGuestReady({seconds,signal,onTick,registerReady:ready=>{resumeGuestPause.current=ready;}}),
