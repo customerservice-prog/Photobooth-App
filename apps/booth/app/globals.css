@@ -15,17 +15,14 @@
 @media(max-height:740px) and (min-width:901px){.actions.studio{padding:20px 22px;gap:13px}.studio h2{font-size:30px}.templateChip{min-height:66px}.action{padding:11px 14px}.photoPane{padding:26px 20px}.screen{padding-top:44px}.monogram{margin-bottom:12px}}
 @media(max-width:900px),(orientation:portrait){.preview{display:block;height:100dvh;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch}.photoPane{height:auto;min-height:0;padding:28px 22px 20px;gap:12px;overflow:visible}.luxuryPrint{width:min(100%,320px,calc(43dvh*.666667))}.printText strong{font-size:21px}.printMotif{width:40px;height:20px}.printText{gap:3px}.printText small,.printDate{font-size:9px}.actions.studio{height:auto;min-height:0;overflow:visible;border-left:0;border-top:1px solid var(--line);padding:24px max(22px,calc((100vw - 700px)/2));gap:16px}.guestActions{margin-top:0}.helpGrid{grid-template-columns:1fr}.screen{padding:64px 24px 80px}.hero{font-size:48px}.experienceGrid{gap:10px}.experienceCard{min-height:146px;padding:18px}.experienceCard strong{font-size:23px}.previewHeading .kicker{display:none}.studio h2{margin:0 0 8px}.fieldGrid{grid-template-columns:1fr 1fr}.floatingHelp{right:12px}}
 @media(max-width:540px){.experienceGrid{grid-template-columns:1fr}.experienceCard{min-height:90px;padding:16px}.experienceIcon{float:left;margin:4px 18px 20px 0}.experienceCard small{margin-top:4px}.hero{font-size:38px}.sub{font-size:16px}.screen{padding:70px 18px}.photoPane{padding:24px 18px 16px}.luxuryPrint{width:min(75vw,280px);padding:15px;gap:10px}.actions.studio{padding:22px 18px max(24px,env(safe-area-inset-bottom))}.templateChip{font-size:13px}.fieldGrid,.diagGrid,.ownerChecklist{grid-template-columns:1fr}.captureTop strong{font-size:22px}.count{width:120px;height:120px;font-size:80px}.helpActions{flex-direction:column}.helpHero h1{font-size:38px}}
-/* Explicit physical dimensions. Screen viewport rules cannot override the 4x6 sheet. */
+/* Print the finished JPEG only. The former legacy card stylesheet was removed. */
 @page{size:4in 6in;margin:0}
 @media print{
-  html,body{width:4in!important;height:6in!important;margin:0!important;padding:0!important;overflow:hidden!important;background:#fff!important}
-  .booth{display:block!important;width:4in!important;height:6in!important;overflow:hidden!important;background:#fff!important}
-  .booth>*{display:none!important}.booth>.preview{display:block!important;width:4in!important;height:6in!important;overflow:hidden!important;background:#fff!important}
-  .preview>*{display:none!important}.preview>.photoPane{display:block!important;width:4in!important;height:6in!important;min-height:0!important;margin:0!important;padding:0!important;overflow:hidden!important;background:#fff!important}
-  .photoPane .luxuryPrint{display:grid!important;width:4in!important;height:6in!important;max-width:none!important;aspect-ratio:auto!important;grid-template-rows:minmax(0,1fr) 1.22in;gap:.08in;padding:.15in;border:0;box-shadow:none;transform:none;print-color-adjust:exact;-webkit-print-color-adjust:exact}
-  .luxuryPrint::before{inset:.07in}.photoFrame{height:auto!important;min-height:0!important}.photoFrame img{width:100%!important;height:100%!important}
-  .printText{height:1.22in!important;gap:.025in;padding:0 .025in!important}.printText strong{font-size:.22in!important;line-height:1.08!important}.printText small,.printDate{font-size:.085in!important}.printMotif{width:.56in;height:.28in}.printMonogram{font-size:.075in;margin-top:.015in;letter-spacing:.025in}
-  .keepsakeLabel,.actions,.readyDot,.foot,.operator,.floatingHelp{display:none!important}
+ html,body{width:4in!important;height:6in!important;margin:0!important;padding:0!important;overflow:visible!important;background:#fff!important}
+ .booth,.booth>.preview{display:block!important;position:static!important;width:4in!important;height:6in!important;overflow:visible!important;background:#fff!important}
+ .booth>*:not(.preview),.preview>*:not(.ksPrintOnly){display:none!important}
+ .preview>.ksPrintOnly{display:block!important;position:fixed!important;inset:0!important;width:4in!important;height:6in!important;padding:0!important;margin:0!important;overflow:visible!important}
+ .ksExactPrintImage{display:block!important;width:4in!important;height:6in!important;object-fit:fill!important}
 }
 .boothAlert{position:absolute;z-index:70;bottom:20px;left:20px;right:20px;pointer-events:none}.boothAlert .error{pointer-events:auto;display:flex;gap:16px;align-items:center;margin:auto}.boothAlert button{min-width:44px;min-height:44px;background:transparent;border:1px solid #b67d69;color:inherit;border-radius:8px;font-size:22px;margin-left:auto}@media print{.boothAlert{display:none!important}}
 
