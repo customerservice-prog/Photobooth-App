@@ -26,13 +26,16 @@ const sections=[
     'If that still fails, open Safari once, visit the booth, allow camera access, then reopen the Home Screen app.',
     'Do not start printing or sharing while the camera preview is still loading.'
   ]},
-  {id:'guided-access',title:'Keep guests from leaving the booth',steps:[
-    'Open Friendly Booth from the iPad Home Screen.',
-    'Turn Guest Lock ON in the hidden operator controls.',
-    'Use Apple Guided Access for the actual device lock: triple-click the iPad top/side button, choose Guided Access, then Start.',
-    'Set a Guided Access passcode that guests do not know.',
-    'At the end of the rental, triple-click the top/side button again, enter the Guided Access passcode, and tap End.',
-    'A website cannot block iPad system gestures by itself; Guided Access is the iPad-level lock that prevents guests from leaving the app.'
+  {id:'guided-access',title:'Keep guests in the booth and prevent screen sleep',steps:[
+    'Open Friendly Booth from its Home Screen icon on the event iPad. Set up the event and make a test photo before locking the iPad.',
+    'In iPad Settings → Accessibility → Guided Access, turn Guided Access on. Under Passcode Settings, set a private staff-only Guided Access passcode.',
+    'Under Guided Access → Display Auto-Lock, select Never for an always-on screen, or choose a shorter time if staff wants the display to sleep.',
+    'Open Friendly Booth and triple-click the iPad top button (or Home button on an older iPad). Select Guided Access.',
+    'Open Session Settings / Options. Keep Touch enabled; disable Top / Home Button so guests cannot use the sleep button; leave Time Limit off. Tap Start.',
+    'In Friendly Booth → Staff tools, keep Keep the screen awake on for an additional screen-on request. Staff can turn it off to allow normal sleep, but the Guided Access display setting must also permit sleep.',
+    'Test the Home swipe, a photo session, printing and sharing with the actual iPad before guests arrive. Guided Access may limit switching to other apps for sharing.',
+    'To leave when staff wants to, triple-click the top / Home button, authenticate with the Guided Access passcode or approved biometrics, then tap End.',
+    'The booth website cannot start, verify, or override Apple Guided Access. Do not consider the iPad locked until the physical Guided Access test succeeds.'
   ]},
   {id:'offline',title:'No internet / weak service',steps:[
     'Do not close the booth app if the venue internet drops.',
@@ -97,7 +100,7 @@ export default function Help(){
     <section className="panicCard"><strong>During an event:</strong> If a guest is waiting, save the photo first. Then troubleshoot. Do not clear Safari data, uninstall the Home Screen app, or reset the iPad while photos still need recovery.
     </section>
     <div className="helpGrid">{sections.map(s=><details id={s.id} className="helpSection" key={s.id} open={s.id==='printer'||s.id==='send'}><summary>{s.title}<span>+</span></summary><ol>{s.steps.map(x=><li key={x}>{x}</li>)}</ol></details>)}</div>
-    <section className="ownerCard"><div className="kicker">Owner / attendant end-of-event</div><h2>Before packing up</h2><div className="ownerChecklist"><span>□ End Guided Access</span><span>□ Confirm Guest Lock can be disabled</span><span>□ Check local photo recovery</span><span>□ Print one final test</span><span>□ Confirm printer, paper, ink, charger</span><span>□ Close booth only after recovery is checked</span></div></section>
+    <section className="ownerCard"><div className="kicker">Owner / attendant end-of-event</div><h2>Before packing up</h2><div className="ownerChecklist"><span>□ End Guided Access</span><span>□ Set preferred screen sleep setting for packing up</span><span>□ Check local photo recovery</span><span>□ Print one final test</span><span>□ Confirm printer, paper, ink, charger</span><span>□ Close booth only after recovery is checked</span></div></section>
     <div className="helpActions"><a href="/bryan-wedding">← Back to Booth</a><a href="/test">Open Full Rehearsal Test</a></div>
   </div></main>
 }

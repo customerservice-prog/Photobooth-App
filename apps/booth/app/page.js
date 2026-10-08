@@ -12,6 +12,7 @@ import {normalizePrintPackage,printsRemaining,canPrint} from './lib/print-packag
 import {composePhotoStrip} from './lib/photo-strip.mjs';
 import {workspace,readEventDraft,saveEventDraft,usage,ownPrintUsage,readyForEvent} from './lib/event-workspace.mjs';
 import {saveCapture,saveKeepsake,archiveCount,recentCaptures,openArchive,capturePoses} from './lib/event-photo-archive.mjs';
+import {createScreenAwakeController,readScreenAwakeSetting,saveScreenAwakeSetting} from './lib/screen-awake.mjs';
 import './event-prep/preparation.css';
 const RESET_MS=90000;
 const defaultCfg={title:'Our Celebration',subtitle:'Friendly Photo Booth',date:new Date().toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'}),type:'other',printPackage:normalizePrintPackage()};
@@ -25,6 +26,26 @@ export default function Booth(){
   const {config:CFG,photos:STORE,usage:PRINT_USAGE}=scope;
   const[step,setStep]=useState('welcome'),[photo,setPhoto]=useState(null),[poses,setPoses]=useState([]),[error,setError]=useState(''),[online,setOnline]=useState(true),[saved,setSaved]=useState(0),[operator,setOperator]=useState(false),[printing,setPrinting]=useState(false),[cfg,setCfg]=useState(defaultCfg),[gallery,setGallery]=useState([]),[filter,setFilter]=useState('original'),[template,setTemplate]=useState('ivory'),[installOpen,setInstallOpen]=useState(false),[installed,setInstalled]=useState(false),[editing,setEditing]=useState(false),[starting,setStarting]=useState(false),[previewActive,setPreviewActive]=useState(false),[capture,setCapture]=useState({phase:'ready',current:1,total:4,completed:0,shots:[]}),[sessionShots,setSessionShots]=useState(4),[printsUsed,setPrintsUsed]=useState(0),[voiceStatus,setVoiceStatus]=useState('idle');
   const video=useRef(null),stream=useRef(null),timer=useRef(null),startGuard=useRef(false),run=useRef(0),printCleanup=useRef(()=>{}),captureId=useRef(null),printGuard=useRef(false),captureAbort=useRef(null),capturePhase=useRef('ready'),resumeGuestPause=useRef(null);
+  // The staff preference is per iPad, not per guest or transferred event.
+  // Keeping the display awake is best-effort; iPad Guided Access is the OS lock.
+  const [keepScreenAwake,setKeepScreenAwake]=useState(true);
+  const [screenAwakeStatus,setScreenAwakeStatus]=useState('requesting');
+  const screenAwakeController=useRef(null);
+  useEffect(()=>{
+    const wanted=readScreenAwakeSetting(localStorage);
+    setKeepScreenAwake(wanted);
+    const controller=createScreenAwakeController({doc:document,win:window,nav:navigator,onStatus:setScreenAwakeStatus});
+    screenAwakeController.current=controller;
+    controller.start(wanted);
+    return()=>{screenAwakeController.current=null;controller.stop();};
+  },[]);
+  function changeKeepScreenAwake(next){
+    setKeepScreenAwake(next);
+    screenAwakeController.current?.setEnabled(next);
+    if(!saveScreenAwakeSetting(localStorage,next))
+      setError('This iPad could not remember the screen setting. Check storage before the event.');
+  }
+  function retryScreenAwake(){void screenAwakeController.current?.retry();}
   useEffect(()=>{
     let active=true;
     setOnline(navigator.onLine);setInstalled(navigator.standalone===true||window.matchMedia?.('(display-mode: standalone)').matches===true);
@@ -156,6 +177,10 @@ export default function Booth(){
      cfg={cfg}
      eventTypes={eventTypes}
      voiceStatus={voiceStatus}
+     keepScreenAwake={keepScreenAwake}
+     screenAwakeStatus={screenAwakeStatus}
+     onToggleScreenAwake={changeKeepScreenAwake}
+     onRetryScreenAwake={retryScreenAwake}
     />}
   </main></>;
 }
