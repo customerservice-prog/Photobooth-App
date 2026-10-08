@@ -71,6 +71,7 @@ export function experienceFrom(event){
   format:e.format==='strip'?'strip':'card',
   strips:e.strips===2||e.strips==='2'?2:1,
   photoFit:e.photoFit==='fit'?'fit':'fill',
+  design:['ivory','blush','champagne'].includes(e.design)?e.design:'champagne',
   paletteId:pal?.id||'champagne',
   primary:validColor(e.primary)||pal?.primary||COLORS[0].primary,
   accent:validColor(e.accent)||pal?.accent||COLORS[0].accent,
@@ -90,7 +91,7 @@ export function mergeExperience(theme,form){
  const original=current.boothExperience&&typeof current.boothExperience==='object'&&!Array.isArray(current.boothExperience)?current.boothExperience:{};
  const e={
   ...original,...existing,featured,pauseSeconds:PHOTO_PAUSES.includes(pause)?pause:6,
-  format,strips,photoFit,
+  format,strips,photoFit,design:['ivory','blush','champagne'].includes(get(form,'design'))?get(form,'design'):'champagne',
   paletteId:palette.id,
   primary:choose('primaryColor',palette.primary),accent:choose('accentColor',palette.accent)
  };
