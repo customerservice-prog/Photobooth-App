@@ -16,7 +16,7 @@ export function renderClassicPhotoStrip({poses,cfg={},template='ivory',stripMode
  const rules=normalizePrintLayouts(cfg.printLayouts),design=getStripDesign(template),copy=eventCopy(cfg);
  const total=[3,4].includes(Number(cfg.printPackage?.shotsPerSession))?Number(cfg.printPackage.shotsPerSession):4;
  const shots=sample&&(!poses||poses.length===0)?null:validateShotSet(poses,total);
- const mode=(stripMode||rules.stripMode)==='single'?'single':'double',columns=mode==='double'?[0,600]:[300];
+ const mode=(stripMode||rules.stripMode)==='double'?'double':'single',columns=mode==='double'?[0,600]:[300];
  const primary=rules.useEventColors?safeHex(cfg.details?.primaryColor,'#24352f'):'#232824';
  const accent=rules.useEventColors?safeHex(cfg.details?.secondaryColor,'#d8c49b'):'#777777';
  const paper=design.id==='blush'?'#17241f':'#fffdf7',ink=design.id==='blush'?'#fffdf7':primary;
@@ -32,7 +32,7 @@ export function renderClassicPhotoStrip({poses,cfg={},template='ivory',stripMode
  column+=text(title,129,496,42,design.id==='champagne'?contrast(primary):ink,{face:'serif',lines:2,bounds:[100,190]});
  for(const [i,cell] of stripPhotoCells(total).entries()){
   column+=rect(cell.x-4,cell.y-4,cell.w+8,cell.h+8,accent)+rect(cell.x,cell.y,cell.w,cell.h,design.id==='blush'?'#243b32':'#e9e8df');
-  column+=shots?`<image data-guest-photo="true" data-pose="${i+1}" href="${esc(shots[i])}" x="${cell.x}" y="${cell.y}" width="${cell.w}" height="${cell.h}" preserveAspectRatio="xMidYMid meet"/>`:
+  column+=shots?`<image data-guest-photo="true" data-pose="${i+1}" href="${esc(shots[i])}" x="${cell.x}" y="${cell.y}" width="${cell.w}" height="${cell.h}" preserveAspectRatio="${cfg.photoFit==='fit'?'xMidYMid meet':'xMidYMid slice'}"/>`:
    text(String(i+1).padStart(2,'0'),cell.y+cell.h*.53,cell.w-30,70,'#476051',{face:'serif'})+text('YOUR POSE',cell.y+cell.h*.75,cell.w-30,17,'#476051',{tracking:3});
   column+=`<g aria-hidden="true"><rect x="${cell.x+8}" y="${cell.y+8}" width="38" height="26" rx="13" fill="${ink}" opacity=".84"/><text x="${cell.x+27}" y="${cell.y+26}" text-anchor="middle" font-family="Arial,sans-serif" font-size="12" font-weight="700" fill="${paper}">${String(i+1).padStart(2,'0')}</text></g>`;
  }
