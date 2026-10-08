@@ -1,6 +1,7 @@
 import {lettering} from '../atelier-lettering.mjs';
 import {rose} from '../generated/atelier-assets.mjs';
 import {eventCopy} from '../keepsake-model.mjs';
+import {renderApprovedPhotoGrid} from '../approved-photo-grid.mjs';
 export const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&apos;'}[c]));
 export const R=(x,y,w,h,fill='none',stroke='none',sw=1,rx=0)=>`<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="${rx}" fill="${fill}" stroke="${stroke}" stroke-width="${sw}"/>`;
 export const P=(d,fill='none',stroke='none',width=1)=>`<path d="${d}" fill="${fill}" stroke="${stroke}" stroke-width="${width}"/>`;
@@ -17,16 +18,18 @@ export function context(input,spec){
  let photo=input.photo||'';if(!/^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+$/.test(photo)&&photo!=='/print-test.svg')photo='';
  const filter=['none','brightness(1.08) contrast(.96) saturate(.88)','grayscale(1) contrast(1.08) brightness(1.04)','sepia(.18) saturate(.92) brightness(1.03)'].includes(input.filter)?input.filter:'none';
  const gold=`url(#${id}-gold)`,silver=`url(#${id}-silver)`;
- return {cfg,c:copy,d:spec,id,photo,filter,gold,silver,monogram:String(input.monogram||copy.title.split(/\s+/).filter(w=>w&&w!=='&').slice(0,2).map(w=>[...w][0]).join('')).slice(0,8)};
+ return {cfg,c:copy,d:spec,id,photo,filter,gold,silver,approvedFour:input.approvedFour===true,poses:input.poses,sample:input.sample===true,monogram:String(input.monogram||copy.title.split(/\s+/).filter(w=>w&&w!=='&').slice(0,2).map(w=>[...w][0]).join('')).slice(0,8)};
 }
 export function begin(q){const {d,id}=q;return R(0,0,1200,1800,d.paper)+`<defs><linearGradient id="${id}-gold" x1="0" y1="0" x2="1" y2=".8"><stop stop-color="#9a7841"/><stop offset=".32" stop-color="#d9bf87"/><stop offset=".47" stop-color="#f3dfab"/><stop offset=".68" stop-color="#b19252"/><stop offset="1" stop-color="#cbae73"/></linearGradient><linearGradient id="${id}-silver" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#7d9fb0"/><stop offset=".45" stop-color="#e8eff0"/><stop offset="1" stop-color="#7da3b4"/></linearGradient><linearGradient id="${id}-wash" x1="0" y1="0" x2=".7" y2="1"><stop stop-color="${d.accent}" stop-opacity=".20"/><stop offset="1" stop-color="${d.paper}" stop-opacity=".02"/></linearGradient></defs>`;}
 export function finish(q,art){return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 1800" width="1200" height="1800" role="img" aria-label="${esc(q.d.name+' — '+q.c.title)}" data-design="${q.d.family}-${q.d.id}" data-template-key="${q.d.key}" data-layout="${q.d.layout}" data-collection="event-families"><title>${esc(q.c.title)}</title>${art}</svg>`;}
 export function photo(q,{x=125,y=350,w=950,h=1000,shape='rect',radius=0}={}){
  const clip=shape==='arch'?P(`M${x} ${y+h}V${y+w/2}a${w/2} ${w/2} 0 0 1 ${w} 0V${y+h}Z`,'white'):shape==='cut'?P(`M${x+45} ${y}H${x+w-45}l45 45v${h-90}l-45 45H${x+45}l-45-45V${y+45}Z`,'white'):R(x,y,w,h,'white','none',0,radius);
  const contain=q.cfg.photoFit==='fit'||q.photo==='/print-test.svg',fit=contain?'xMidYMid meet':'xMidYMid slice';
- const box=containedPhotoBox({x,y,w,h,shape},contain);
+ // A four-photo grid must remain inside the actual arch/cut shape, even when
+ // each individual pose fills its own rectangle.
+ const box=containedPhotoBox({x,y,w,h,shape},contain||q.approvedFour);
  const fallback=R(x,y,w,h,'#d7d9d1')+P(`M${x} ${y+h}Q${x+w/2} ${y+h*.1} ${x+w} ${y+h}Z`,'#a8b5ad')+C(x+w/2,y+h*.34,w*.15,'#bbc7bc');
- const media=q.photo?`<image data-guest-photo="true" href="${esc(q.photo)}" x="${box.x}" y="${box.y}" width="${box.w}" height="${box.h}" preserveAspectRatio="${fit}" style="filter:${q.filter}"/>`:fallback;
+ const media=q.approvedFour?renderApprovedPhotoGrid({poses:q.poses,sample:q.sample,cfg:q.cfg,box:{...box,radius},id:q.id}):q.photo?`<image data-guest-photo="true" href="${esc(q.photo)}" x="${box.x}" y="${box.y}" width="${box.w}" height="${box.h}" preserveAspectRatio="${fit}" style="filter:${q.filter}"/>`:fallback;
  return `<defs><clipPath id="${q.id}-photo">${clip}</clipPath></defs><g clip-path="url(#${q.id}-photo)">${R(x,y,w,h,'#d6d5c9')}${media}</g><g fill="none" stroke="${q.gold}" stroke-width="3">${clip.replace(/fill="white"/g,'fill="none"').replace(/stroke="none"/g,'stroke="'+q.gold+'"').replace(/stroke-width="[0-9.]+"/g,'stroke-width="3"')}</g>`;
 }
 // A contained photograph must fit inside the actual arch, not just its bounding rectangle.

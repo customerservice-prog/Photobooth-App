@@ -47,7 +47,7 @@ try{
    assert.equal(await page.evaluate(()=>window.__printCalls),1);
    assert.equal(await page.evaluate(k=>localStorage.getItem(k),EVENT_KEYS.liveUsage),'17');
    assert.equal(await page.evaluate(k=>localStorage.getItem(k),EVENT_KEYS.demoUsage),'2');
-   assert.match(await page.getByTestId('approved-print').innerText(),/Print requested/);
+   await page.waitForFunction(()=>document.querySelector('[data-testid="approved-print"]')?.textContent?.includes('Print requested'));
    pass('chromium-demo-opens-AirPrint-without-consuming-customer-allowance-or-offering-guest-designs');
    await page.getByRole('button',{name:/^Done/}).click();await page.waitForSelector('.bwWelcome[data-capture-mode="photo"]',{timeout:10000});
    await page.goto(base+'/oct10-demo',{waitUntil:'networkidle'});await page.waitForURL('**/?event=oct10-2026&demo=1');await page.getByTestId('welcome-four-photo').waitFor();assert.equal(await page.evaluate(k=>localStorage.getItem(k),EVENT_KEYS.liveUsage),'17');assert.equal(await page.evaluate(k=>localStorage.getItem(k),EVENT_KEYS.demoUsage),'2');assert.equal(await page.evaluate(k=>JSON.parse(localStorage.getItem(k)).details.primaryColor,EVENT_KEYS.config),'#334455');pass('chromium-original-demo-link-preserves-edits-and-counters');
