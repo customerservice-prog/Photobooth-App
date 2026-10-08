@@ -28,6 +28,7 @@ export default function StaffDashboard({onClose,onReset,onVoiceTest,onRecover,on
    </section>
    <h3 className="operatorSectionTitle">What do you need to do?</h3>
    <nav className="operatorQuickGrid" aria-label="Staff quick actions">
+    <a className="operatorQuickCard operatorGuestCard" href="/load-event" data-testid="operator-load-event"><span aria-hidden="true">⇪</span><strong>Load an event</strong><small>Import event settings from your admin</small></a>
     <a className="operatorQuickCard" href={setupHref}><span aria-hidden="true">✎</span><strong>Event setup</strong><small>Names, colors, print layouts</small></a>
     <button className="operatorQuickCard" type="button" data-testid="operator-sound-test" onClick={onVoiceTest}><span aria-hidden="true">♫</span><strong>Test speaker</strong><small>Check countdown audio</small></button>
     <a className="operatorQuickCard" href="/print-test"><span aria-hidden="true">▤</span><strong>Canon test print</strong><small>Check paper and colors</small></a>
