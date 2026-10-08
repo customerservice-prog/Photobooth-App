@@ -1,6 +1,7 @@
 import {NextResponse} from 'next/server';
 import {createHash,timingSafeEqual} from 'node:crypto';
 import {STAFF_COOKIE,makeStaffSession} from '../../../lib/staff-auth.mjs';
+import {isValidStaffPin} from '../../../lib/staff-pin.mjs';
 export const runtime='nodejs',dynamic='force-dynamic';
 const attempts=new Map();
 export async function GET(){
@@ -17,7 +18,7 @@ export async function POST(request){
  const data=await request.json().catch(()=>({})),pin=String(data.pin||'');
  const hash=process.env.BOOTH_STAFF_PIN_SHA256||'';
  const reference=/^[0-9a-f]{64}$/i.test(hash)?Buffer.from(hash,'hex'):Buffer.alloc(32);
- const correct=/^\d{8}$/.test(pin)&&timingSafeEqual(createHash('sha256').update(pin).digest(),reference);
+ const correct=isValidStaffPin(pin)&&timingSafeEqual(createHash('sha256').update(pin).digest(),reference);
  const configured=process.env.BOOTH_SECURITY_ENFORCED==='true'&&!!process.env.BOOTH_STAFF_SESSION_SECRET;
  if(!correct||!configured){
   a.count++;attempts.set(ip,a);
