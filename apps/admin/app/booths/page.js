@@ -1,2 +1,29 @@
-import Link from 'next/link';import {prisma} from '../../lib/prisma';export const dynamic='force-dynamic';
-export default async function BoothsPage(){let booths=[],err=null;try{booths=await prisma.booth.findMany({include:{devices:true,events:{take:1,orderBy:{date:'asc'}}},orderBy:{name:'asc'}})}catch(e){err=e.message}return <main className="page"><div style={{display:'flex',justifyContent:'space-between',alignItems:'end',gap:20,flexWrap:'wrap'}}><div><div className="eyebrow">Hardware fleet</div><h1 className="title">Booths</h1><p className="muted">Know what is ready before it leaves the warehouse.</p></div><Link className="btn" href="/booths/new">＋ Register Booth</Link></div>{err&&<div className="card" style={{padding:20,marginTop:25,color:'#e78d8d'}}>{err}</div>}<div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(270px,1fr))',gap:16,marginTop:28}}>{booths.map(b=><article className="card" key={b.id} style={{padding:22}}><div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}><div style={{width:48,height:48,borderRadius:14,display:'grid',placeItems:'center',background:'#171713',border:'1px solid #3b3323',color:'#c8a760',fontSize:20}}>◉</div><span style={{fontSize:9,letterSpacing:1.2,textTransform:'uppercase',color:b.status==='ONLINE'?'#c8a760':'#817d74'}}>{b.status}</span></div><h2 style={{fontFamily:'Georgia,serif',fontWeight:400,marginBottom:6}}>{b.name}</h2><div className="muted" style={{fontSize:12}}>Canon SELPHY · {b.devices.length} device{b.devices.length===1?'':'s'}</div><div style={{borderTop:'1px solid #282923',marginTop:18,paddingTop:14,fontSize:11,color:'#8f8a81'}}>Printer adapter <span style={{float:'right',color:'#c6c0b4'}}>{b.printerAdapter}</span></div><div style={{paddingTop:10,fontSize:11,color:'#8f8a81'}}>Software <span style={{float:'right',color:'#c6c0b4'}}>{b.softwareVersion||'Not reported'}</span></div></article>)}{!err&&!booths.length&&<div className="card" style={{padding:42,textAlign:'center',gridColumn:'1/-1'}}><div style={{fontSize:34,color:'#c8a760'}}>◉</div><h2 style={{fontFamily:'Georgia,serif',fontWeight:400}}>Register tomorrow's iPad booth</h2><p className="muted">Add the physical booth so it can be assigned to the wedding.</p><Link className="btn" href="/booths/new">Register Booth</Link></div>}</div></main>}
+import Link from 'next/link';
+import {prisma} from '../../lib/prisma';
+import {PageHeader,EmptyState,DatabaseError,StateTag} from '../StudioUI';
+export const dynamic='force-dynamic';
+export default async function BoothsPage(){
+ let booths=[],error=null;
+ try{booths=await prisma.booth.findMany({include:{
+  devices:true,events:{orderBy:{date:'asc'},take:3},
+  heartbeats:{orderBy:{createdAt:'desc'},take:1}
+ },orderBy:{name:'asc'}})}catch(e){error=e}
+ return <main className="page">
+  <PageHeader eyebrow="YOUR EQUIPMENT" title="My photo booths" subtitle="Find each registered booth, its assigned events and its last reported status. A stored “Online” label is not a live connection test."><Link href="/booths/new" className="btn">＋ Add a booth</Link></PageHeader>
+  {error?<DatabaseError topic="photo booths"/>:<>
+   {booths.length?<div className="uiCards">{booths.map(b=>{
+    const last=b.heartbeats?.[0],recent=last&&Date.now()-new Date(last.createdAt).getTime()<15*60*1000;
+    return <article className="card cardPad" key={b.id}><div className="sectionHeader"><div style={{width:47,height:47,borderRadius:13,display:'grid',placeItems:'center',color:'#285c41',background:'#e7f0e6',fontSize:25}}>▣</div><span className={'statusChip'+(recent?'':' neutral')}>{recent?'Recent check-in':b.status==='MAINTENANCE'?'Maintenance':'No recent check-in'}</span></div>
+     <h2 className="sectionTitle" style={{marginTop:10}}>{b.name}</h2><p className="rowSubtitle">{b.devices.length} paired device{b.devices.length===1?'':'s'} · {b.printerAdapter==='canon_selphy'?'Canon SELPHY':b.printerAdapter}</p>
+     <div className="rowList" style={{marginTop:13}}>
+      <div className="listRow"><span className="rowMeta">Recorded status</span><strong>{b.status}</strong></div>
+      <div className="listRow"><span className="rowMeta">Last report</span><strong>{last?new Date(last.createdAt).toLocaleString('en-US'):'Not reported'}</strong></div>
+      <div className="listRow"><span className="rowMeta">Software version</span><strong>{last?.appVersion||b.softwareVersion||'Not reported'}</strong></div>
+     </div>
+     <div className="helpNote" style={{marginTop:12}}>{last?.printerStatus?'Printer reported: '+last.printerStatus+'. ':'No verified live printer status. '}Run a physical test print on the assigned iPad before leaving.</div>
+     {b.events?.length>0&&<div style={{marginTop:15}}><strong>Assigned events</strong><div className="rowList">{b.events.map(e=><Link href={'/events/'+e.id} className="listRow" key={e.id}><span className="rowTitle">{e.name}</span><span className="stepArrow">→</span></Link>)}</div></div>}
+    </article>;
+   })}</div>:<EmptyState title="No booths registered" description="Add the iPad booth that you plan to use. Registration creates an equipment record; it doesn’t connect the device automatically." href="/booths/new" label="Add first booth"/>}
+  </>}
+ </main>;
+}
