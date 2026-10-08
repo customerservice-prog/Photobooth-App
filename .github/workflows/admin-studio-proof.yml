@@ -35,3 +35,63 @@ jobs:
       - name: Production compile of every admin route
         working-directory: apps/admin
         run: npm run build
+
+  admin-browser:
+    needs: admin-build
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: booth
+          POSTGRES_PASSWORD: booth
+          POSTGRES_DB: booth
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U booth -d booth"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 12
+    env:
+      DATABASE_URL: postgresql://booth:booth@127.0.0.1:5432/booth?schema=public
+      NEXT_TELEMETRY_DISABLED: '1'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install admin and browser tools
+        working-directory: apps/admin
+        run: |
+          npm install --no-audit --no-fund
+          npm install --no-save playwright@1.55.0
+          npx playwright install --with-deps chromium
+      - name: Create disposable PostgreSQL schema and event records
+        working-directory: apps/admin
+        run: |
+          npx prisma generate
+          npx prisma db push --skip-generate
+          node scripts/seed-smoke.mjs
+      - name: Build real admin routes
+        working-directory: apps/admin
+        run: npm run build
+      - name: Test actual event editing, saves and responsive navigation
+        working-directory: apps/admin
+        run: |
+          mkdir -p admin-proof
+          npx next start -p 3001 > admin-proof/server.log 2>&1 &
+          SERVER_PID=$!
+          trap 'kill $SERVER_PID 2>/dev/null || true' EXIT
+          for i in $(seq 1 60); do
+            if curl -fsS http://127.0.0.1:3001/dashboard > /dev/null; then break; fi
+            sleep 1
+          done
+          node scripts/admin-browser-proof.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: friendly-admin-smoke-${{ github.run_id }}
+          path: apps/admin/admin-proof/
+          retention-days: 3
