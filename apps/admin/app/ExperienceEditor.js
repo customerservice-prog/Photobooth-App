@@ -8,6 +8,7 @@ export default function ExperienceEditor({initial}){
  const [strips,setStrips]=useState(initial.strips);
  const [fit,setFit]=useState(initial.photoFit);
  const [palette,setPalette]=useState(initial.paletteId);
+ const [design,setDesign]=useState(initial.design||'champagne');
  const [primary,setPrimary]=useState(initial.primary);
  const [accent,setAccent]=useState(initial.accent);
  function choosePalette(p){setPalette(p.id);setPrimary(p.primary);setAccent(p.accent);}
@@ -30,6 +31,11 @@ export default function ExperienceEditor({initial}){
    <div className="choiceGrid" role="group" aria-label="Preferred keepsake format">
     <label className="choice"><input type="radio" name="format" value="card" checked={format==='card'} onChange={()=>setFormat('card')}/><span><strong>4×6 Card</strong><small>A full-size keepsake on one sheet</small></span></label>
     <label className="choice"><input type="radio" name="format" value="strip" checked={format==='strip'} onChange={()=>setFormat('strip')}/><span><strong>Photo Strip</strong><small>Four pictures stacked, classic booth style</small></span></label>
+   </div>
+   <div className="formGrid" style={{marginTop:16}}>
+    <label className="formField">Actual booth keepsake design<select className="input" name="design" value={design} onChange={e=>setDesign(e.target.value)}>
+     <option value="ivory">Classic White</option><option value="blush">Modern Contrast</option><option value="champagne">Celebration</option>
+    </select><small>This selects an existing print design in the guest booth when staff loads the event.</small></label>
    </div>
    <div className="formGrid" style={{marginTop:16}}>
     <label className="formField">Photo strips per 4×6 sheet<select name="strips" className="input" value={strips} onChange={e=>setStrips(Number(e.target.value))}><option value="1">One centered strip (default)</option><option value="2">Two matching strips (optional)</option></select><small>Both choices use one physical print request per session.</small></label>
