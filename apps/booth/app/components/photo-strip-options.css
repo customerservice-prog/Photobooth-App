@@ -16,3 +16,16 @@
 @media(max-width:600px){.psStripModeCards{grid-template-columns:1fr}.psStripModeCards legend,.psStripModeCards>p{grid-column:1}.psStripModeCards>button{min-height:74px}}
 
 .psSingleSessionNote{margin:0 0 14px;padding:12px 14px;border:1px solid #d1d8c9;border-radius:12px;background:linear-gradient(135deg,#f8f6ee,#edf2e9);color:#5a6858;font:12px/1.55 system-ui,sans-serif}.psSingleSessionNote strong{display:block;margin-bottom:3px;color:#2e4a38;font-size:13px}
+
+
+/* Exact SELPHY 4×6 output: print the exported JPEG, never the browser page. */
+.ksExactPrintImage{display:none}
+@media print{
+ @page{size:4in 6in;margin:0}
+ html,body,#__next{width:4in!important;height:6in!important;min-height:0!important;margin:0!important;padding:0!important;overflow:visible!important;background:white!important}
+ body *{visibility:hidden!important}
+ .ksPrintOnly,.ksPrintOnly *{visibility:visible!important}
+ .ksPrintOnly{display:block!important;position:fixed!important;inset:0!important;width:4in!important;height:6in!important;min-width:0!important;min-height:0!important;margin:0!important;padding:0!important;border:0!important;overflow:hidden!important;background:white!important;transform:none!important;box-shadow:none!important}
+ .ksExactPrintImage{display:block!important;width:4in!important;height:6in!important;max-width:none!important;max-height:none!important;margin:0!important;padding:0!important;object-fit:fill!important;page-break-inside:avoid!important;break-inside:avoid!important}
+ .ksTopbar,.ksContent,.ksDock,.workspaceBanner,.ksStudio > :not(.ksPrintOnly){display:none!important}
+}
