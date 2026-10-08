@@ -41,7 +41,7 @@ export function configFromBoothHandoff(payload,existing={}){
  const old=existing&&typeof existing==='object'?existing:{};
  const displayName=String(payload.name||title).trim().slice(0,65)||title;
  const details={...(old.details&&typeof old.details==='object'?old.details:{}),
-  eventName:title,primaryColor:payload.a.toLowerCase(),secondaryColor:payload.b.toLowerCase(),
+  eventName:displayName,primaryColor:payload.a.toLowerCase(),secondaryColor:payload.b.toLowerCase(),
   ...(payload.type==='graduation'?{graduate:displayName,classYear:payload.year||''}:{honoree:displayName})};
  const previousLayouts=normalizePrintLayouts(old.printLayouts);
  const defaultLayout=payload.mode==='strip'?'photo_strip':'card';
