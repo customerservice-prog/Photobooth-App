@@ -1,6 +1,20 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {buildBoothHandoffPayload,makeBoothHandoffLink} from '../../admin/lib/booth-transfer.mjs';
+// This booth-only test must work in Railway's scoped apps/booth build context.
+// The cross-app encoder is exercised by GitHub's admin and Playwright workflows.
+function buildBoothHandoffPayload(ev){
+ const e=ev.theme.boothExperience;
+ return {v:1,id:ev.id,rev:ev.updatedAt.toISOString(),title:ev.name,
+  date:ev.date.toISOString().slice(0,10),
+  start:ev.startTime.toISOString().slice(11,16),end:ev.endTime.toISOString().slice(11,16),
+  type:'other',f:e.featured,p:e.pauseSeconds,mode:e.format,s:e.strips,fit:e.photoFit,
+  a:e.primary,b:e.accent,limit:ev.maxPrints,on:ev.printingEnabled&&ev.maxPrints>0,
+  qr:ev.qrSharingEnabled,design:'champagne'};
+}
+function makeBoothHandoffLink(ev){
+ return 'https://photobooth-booth-production.up.railway.app/handoff#'
+  +Buffer.from(JSON.stringify(buildBoothHandoffPayload(ev)),'utf8').toString('base64url');
+}
 import {decodeBoothHandoff,configFromBoothHandoff,applyBoothHandoff} from '../app/lib/booth-handoff.mjs';
 import {workspace,EVENT_KEYS,LEGACY_KEYS,usage} from '../app/lib/event-workspace.mjs';
 const event={
