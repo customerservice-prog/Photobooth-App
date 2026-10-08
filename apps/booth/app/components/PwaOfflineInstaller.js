@@ -4,6 +4,10 @@ import {useEffect} from 'react';
 export default function PwaOfflineInstaller(){
  useEffect(()=>{
   if(!('serviceWorker' in navigator)||!window.isSecureContext)return;
+  // Install only in the actual Home Screen app. Browser rehearsals and guest
+  // photo audio must never be interrupted by worker installation.
+  const installed=navigator.standalone===true||window.matchMedia?.('(display-mode: standalone)').matches===true;
+  if(!installed)return;
   let gone=false,registration=null;
   function warm(){
    if(gone||!navigator.serviceWorker.controller||navigator.onLine===false)return;
