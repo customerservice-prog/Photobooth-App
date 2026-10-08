@@ -3,6 +3,7 @@ import {useEffect,useRef,useState} from 'react';
 import {decodeBoothHandoff} from '../lib/booth-handoff.mjs';
 import {workspace} from '../lib/event-workspace.mjs';
 import {backupEnabled,saveBackupToken,syncEventPhotos} from '../lib/backup-sync.mjs';
+import StaffBackupPanel from './StaffBackupPanel';
 import './staff-dashboard.css';
 
 // A functional staff dashboard shared by demo and live contexts. The staff
@@ -87,6 +88,7 @@ export default function StaffDashboard({onClose,onReset,onVoiceTest,onRecover,on
     <div><small>PHOTOS</small><strong>{saved}</strong><span>{managed?'Archived sessions':'Recent local photos'}</span></div>
     <div><small>DEVICE</small><strong>{installed?'Installed':'Browser'}</strong><span>{installed?'Home Screen app':'Open on iPad for events'}</span></div>
    </section>
+   <StaffBackupPanel/>
    <section className="operatorKioskCard" data-testid="operator-kiosk-card" aria-label="iPad guest display">
     <div className="operatorKioskTop">
      <div><span className="operatorOverline">IPAD EVENT MODE</span><h3>Keep guests in the Photo Booth</h3><p>The booth can request an always-on display. iPad Guided Access is required to stop guests switching apps.</p></div>
