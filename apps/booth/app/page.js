@@ -194,6 +194,7 @@ export default function Booth(){
      screenAwakeStatus={screenAwakeStatus}
      onToggleScreenAwake={changeKeepScreenAwake}
      onRetryScreenAwake={retryScreenAwake}
+     onReviewPrint={reviewPrint}
     />}
   </main></>;
 }
