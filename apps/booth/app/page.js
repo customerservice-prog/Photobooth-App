@@ -151,7 +151,7 @@ export default function Booth(){
       const ownUsed=ownPrintUsage(localStorage,scope);
       localStorage.setItem(PRINT_USAGE,String(ownUsed+1));setPrintsUsed(used+1);
       if(scope.demo)return 'demo';
-      if(!print()){localStorage.setItem(PRINT_USAGE,String(ownUsed));setPrintsUsed(used);return false;}return true;
+      if(!print()){localStorage.setItem(PRINT_USAGE,String(ownUsed));setPrintsUsed(used);return false;}try{logPrintRequest(localStorage,scope);}catch{}return true;
     }catch(e){setError(e.message||'Print counter could not be saved. No print was sent.');return false;}finally{printGuard.current=false;}
   }
   function print(){if(printing)return false;clearTimeout(timer.current);setPrinting(true);let fallback;const release=()=>{clearTimeout(fallback);removeEventListener('afterprint',release);setPrinting(false);printCleanup.current=()=>{};};printCleanup.current=release;addEventListener('afterprint',release);fallback=setTimeout(release,120000);try{window.print();return true;}catch{release();setError('Print options could not open. Please try again.');return false;}}
