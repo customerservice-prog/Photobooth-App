@@ -1,7 +1,7 @@
 'use client';
 import {useEffect,useRef,useState} from 'react';
 import {BOOTH_RELEASE} from '../lib/booth-launch.mjs';
-import {compareReleases,readAppVersion,updateDestination} from '../lib/app-update.mjs';
+import {compareReleases,readAppVersion,updateDestination,refreshInstalledWorkerOnManualUpdate} from '../lib/app-update.mjs';
 import './app-update.css';
 
 function UpdateDialog({children,onClose}){
@@ -28,6 +28,11 @@ export default function AppUpdate({disabled=false}){
       if(reload){
         // A late network response must never interrupt a newly started session.
         if(document.querySelector('.pcStage,.ksStudio'))return;
+        // Explicitly refresh the installed iPad app shell before reloading.
+        // No cache/data clearing and no reload while guests are capturing.
+        await refreshInstalledWorkerOnManualUpdate();
+        if(!active.current||!allowed.current||controller.signal.aborted||
+           document.querySelector('.pcStage,.ksStudio'))return;
         window.location.replace(updateDestination(window.location.pathname,window.location.search,info.version));
       }
     }catch(e){if(active.current&&!controller.signal.aborted)setError(e.message);}
