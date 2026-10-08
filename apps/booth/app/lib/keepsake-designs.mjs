@@ -8,6 +8,7 @@ import {renderCelebration} from './templates/celebration.mjs';
 import {getDesign} from './template-registry.mjs';
 import {renderClassicPhotoStrip} from './classic-photo-strip.mjs';
 import {applySvgPhotoFinish} from './svg-photo-finish.mjs';
+import {applyEventPaletteTrim} from './setup-lookbook.mjs';
 export {getDesigns,getDesign,TEMPLATE_FAMILIES} from './template-registry.mjs';
 export {EVENT_LABELS,eventCopy,fitText} from './keepsake-model.mjs';
 const renderers={wedding:renderWeddingBirthday,birthday:renderWeddingBirthday,mitzvah:renderMitzvah,graduation:renderGraduation,corporate:renderCorporate,other:renderCelebration};
@@ -17,5 +18,5 @@ export function renderKeepsake(input={}){
  const spec=getDesign(cfg.type,input.template),safe={...input,cfg:{...cfg,type:spec.family},template:spec.id};
  const svg=renderers[spec.family](safe,spec);
  const identified=['wedding','birthday'].includes(spec.family)?svg.replace('data-collection="atelier"',`data-collection="event-families" data-template-key="${spec.key}"`):svg;
- return applySvgPhotoFinish(identified,input.filter,input.id);
+ return applyEventPaletteTrim(applySvgPhotoFinish(identified,input.filter,input.id),cfg.details);
 }
