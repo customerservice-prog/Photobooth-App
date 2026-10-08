@@ -1,3 +1,19 @@
-import Link from "next/link";import {createTemplate} from "../actions";
-const CATEGORIES=["Wedding","Birthday","Graduation","Sweet 16","Baby Shower","Corporate","Christmas","Holiday","Prom","Anniversary","Quinceanera","School","General Party"];
-export default function NewTemplatePage(){return <main className="page"><div style={{maxWidth:850}}><Link href="/templates" style={{color:"#8e8a82",fontSize:12,textDecoration:"none"}}>← Design Studio</Link><div className="eyebrow" style={{marginTop:24}}>Print design</div><h1 className="title">Create a template.</h1><p className="muted">Start with the correct print canvas. For the Canon SELPHY wedding workflow, 4×6 at 300 DPI is the safest default.</p><form action={createTemplate} className="card" style={{padding:28,marginTop:28}}><div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(240px,1fr))",gap:18}}><label style={{fontSize:12,color:"#b8b3a8"}}>Design name *<input className="input" style={{marginTop:7}} name="name" placeholder="Ivory & Gold Wedding" required/></label><label style={{fontSize:12,color:"#b8b3a8"}}>Category<select className="input" style={{marginTop:7}} name="category" defaultValue="Wedding">{CATEGORIES.map(c=><option key={c}>{c}</option>)}</select></label><label style={{fontSize:12,color:"#b8b3a8"}}>Print format<select className="input" style={{marginTop:7}} name="format" defaultValue="4x6_portrait"><option value="4x6_portrait">4×6 Portrait · 1200×1800</option><option value="4x6_landscape">4×6 Landscape · 1800×1200</option><option value="2x6_strip">2×6 Photo Strip · 600×1800</option></select></label></div><div style={{marginTop:24,padding:18,border:"1px solid #302b20",borderRadius:12,background:"rgba(196,159,81,.05)"}}><div className="eyebrow">Wedding recommendation</div><p style={{marginBottom:0,color:"#c6c0b4",fontSize:13,lineHeight:1.6}}>Use a 4×6 design with generous photo space, restrained typography, and a safe margin around names and dates so borderless printing does not crop important details.</p></div><div style={{display:"flex",justifyContent:"flex-end",gap:10,marginTop:22}}><Link className="btn btn2" href="/templates">Cancel</Link><button className="btn" type="submit" style={{cursor:"pointer"}}>Create Design →</button></div></form></div></main>}
+import Link from 'next/link';
+import {createTemplate} from '../actions';
+import {PageHeader} from '../../StudioUI';
+const CATEGORIES=['Wedding','Birthday','Graduation','Bar / Bat Mitzvah','Sweet 16','Baby Shower','Corporate','Holiday','Anniversary','Quinceañera','School','General Party'];
+export default function NewTemplatePage(){
+ return <main className="page pageCompact">
+  <Link href="/templates" className="btnPlain" style={{paddingLeft:0}}>← Print designs</Link>
+  <PageHeader eyebrow="DESIGN LIBRARY" title="Register a print design" subtitle="This creates a design record and blank canvas in the admin database. It does not automatically install new printable artwork on an iPad."/>
+  <form action={createTemplate} className="card formSection">
+   <div className="formGrid">
+    <label className="formField">Design name *<input className="input" name="name" required placeholder="Ivory & Gold Wedding"/></label>
+    <label className="formField">Occasion<select name="category" className="input" defaultValue="Wedding">{CATEGORIES.map(c=><option key={c}>{c}</option>)}</select></label>
+    <label className="formField">Print sheet format<select name="format" className="input" defaultValue="4x6_portrait"><option value="4x6_portrait">4×6 Portrait · 1200 × 1800</option><option value="4x6_landscape">4×6 Landscape · 1800 × 1200</option><option value="2x6_strip">2×6 Strip · 600 × 1800</option></select></label>
+   </div>
+   <div className="warningNote" style={{margin:'19px 0'}}>The live guest booth already offers one centered strip or two matching strips on a 4×6 sheet. Registering a 2×6 canvas here does not deploy a new strip design to that app.</div>
+   <div className="buttonRow"><button className="btn" type="submit">Create design record</button><Link href="/templates" className="btn btn2">Cancel</Link></div>
+  </form>
+ </main>;
+}
