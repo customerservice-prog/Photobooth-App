@@ -10,7 +10,7 @@ import {normalizeGuestPause,waitForGuestReady} from './lib/guest-pause.mjs';
 import {normalizeEventConfig} from './lib/event-config.mjs';
 import {normalizePrintPackage,printsRemaining,canPrint} from './lib/print-package.mjs';
 import {composePhotoStrip} from './lib/photo-strip.mjs';
-import {workspace,readEventDraft,saveEventDraft,usage,readyForEvent} from './lib/event-workspace.mjs';
+import {workspace,readEventDraft,saveEventDraft,usage,ownPrintUsage,readyForEvent} from './lib/event-workspace.mjs';
 import {saveCapture,saveKeepsake,archiveCount,recentCaptures,openArchive,capturePoses} from './lib/event-photo-archive.mjs';
 import './event-prep/preparation.css';
 const RESET_MS=90000;
@@ -42,7 +42,7 @@ export default function Booth(){
       if(target.managed||target.imported){
         // A demo, a transferred event and a real October event never share data.
         if(target.managed&&localStorage.getItem(target.config)===null)saveEventDraft(localStorage,c);
-        if(localStorage.getItem(target.usage)===null)localStorage.setItem(target.usage,String(used));
+        if(localStorage.getItem(target.usage)===null)localStorage.setItem(target.usage,String(ownPrintUsage(localStorage,target)));
         const db=await openArchive();db.close();
         const [n,recent]=await Promise.all([archiveCount(target.archive),recentCaptures(target.archive)]);
         if(active){setSaved(n);setGallery(recent);}
@@ -116,9 +116,12 @@ export default function Booth(){
   function requestPrint(){
     if(printGuard.current||printing)return false;printGuard.current=true;
     try{const settings=normalizePrintPackage(cfg.printPackage),used=usage(localStorage,scope);if(!canPrint(settings,used,false)){setError(printsRemaining(settings,used)<=0?'The event print allowance has been reached. Digital delivery is still available.':'Printing is disabled for this event.');return false;}
-      localStorage.setItem(PRINT_USAGE,String(used+1));setPrintsUsed(used+1);
+      // The original October booth and its admin transfer contribute to one
+      // allowance, but each increments only its own already-existing counter.
+      const ownUsed=ownPrintUsage(localStorage,scope);
+      localStorage.setItem(PRINT_USAGE,String(ownUsed+1));setPrintsUsed(used+1);
       if(scope.demo)return 'demo';
-      if(!print()){localStorage.setItem(PRINT_USAGE,String(used));setPrintsUsed(used);return false;}return true;
+      if(!print()){localStorage.setItem(PRINT_USAGE,String(ownUsed));setPrintsUsed(used);return false;}return true;
     }catch(e){setError(e.message||'Print counter could not be saved. No print was sent.');return false;}finally{printGuard.current=false;}
   }
   function print(){if(printing)return false;clearTimeout(timer.current);setPrinting(true);let fallback;const release=()=>{clearTimeout(fallback);removeEventListener('afterprint',release);setPrinting(false);printCleanup.current=()=>{};};printCleanup.current=release;addEventListener('afterprint',release);fallback=setTimeout(release,120000);try{window.print();return true;}catch{release();setError('Print options could not open. Please try again.');return false;}}
@@ -126,7 +129,7 @@ export default function Booth(){
   async function recover(p){const token=++run.current;setError('');let originals=[];try{if(scope.managed||scope.imported)originals=await capturePoses(scope.archive,p.id);}catch{setError('The original poses could not be opened. The saved card is still available; retake to create a photo strip.');}if(token!==run.current)return;captureId.current=p.id;setSessionShots(originals.length===1?1:originals.length===3?3:4);setPoses(originals);setPhoto(p.data);setOperator(false);setEditing(false);setStep('preview')}
   const eventMeta=eventTypes[cfg.type]||eventTypes.other;
   const isPreview=step==='preview',isCapturing=['camera','photoSeries'].includes(step);
-  return <>{(scope.managed||scope.imported)&&<div className="workspaceBanner"><span>{scope.imported?'EVENT FROM STAFF · settings and photos saved on this iPad':scope.demo?'OFFICE DEMO · no physical prints · event allowance unchanged':'ACTUAL EVENT · photos saved on this device'}</span><a href={scope.imported?scope.setup:'/event-prep'}>{scope.imported?'Edit this booth setup →':'Event preparation →'}</a></div>}
+  return <>{(scope.managed||scope.imported)&&<div className="workspaceBanner"><span>{scope.imported?'EVENT FROM STAFF · settings and photos saved on this iPad':scope.demo?'OFFICE DEMO · no physical prints · event allowance unchanged':'ACTUAL EVENT · photos saved on this device'}</span><a href={scope.imported?scope.setup:'/event-prep'}>{scope.imported?'Edit this booth setup →':'Event preparation →'}</a>{scope.linkedOctober&&<a href="/event-prep">Earlier October photos & backups →</a>}</div>}
   <main className={`booth theme-${cfg.type||'other'}${step==='welcome'?' bwWelcomeMode':''}`} data-build="smile-sequence-v1" data-capture-mode="photo" data-managed-event={scope.managed?'true':undefined}>
     {!isPreview&&!isCapturing&&step!=='welcome'&&<a className="floatingHelp" href="/help" aria-label="Photo booth help">Help</a>}
     {step==='welcome'&&<WelcomeScreen cfg={cfg} eventName={eventMeta.name} online={online} starting={starting||!initialized} installed={installed} printsUsed={printsUsed} onStartQuick={()=>begin(1)} onStartFour={()=>begin(4)} onInstall={()=>setInstallOpen(true)} onOperator={()=>setOperator(true)} voiceStatus={voiceStatus} onVoiceTest={testSpeaker}/>}
