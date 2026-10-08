@@ -1,6 +1,8 @@
 'use client';
 import {useEffect,useRef,useState} from 'react';
 import {decodeBoothHandoff} from '../lib/booth-handoff.mjs';
+import {workspace} from '../lib/event-workspace.mjs';
+import {backupEnabled,saveBackupToken,syncEventPhotos} from '../lib/backup-sync.mjs';
 import './staff-dashboard.css';
 
 // A functional staff dashboard shared by demo and live contexts. The staff
@@ -21,6 +23,7 @@ export default function StaffDashboard({onClose,onReset,onVoiceTest,onRecover,on
   requestAnimationFrame(()=>{section.scrollIntoView({block:'center',behavior:'smooth'});section.querySelector('input')?.focus();});
  }
  const [handoffText,setHandoffText]=useState(''),[handoffError,setHandoffError]=useState('');
+ const [backupState,setBackupState]=useState('checking');
  const awakeMessage=!keepScreenAwake
   ?'Off by staff choice. The iPad may sleep according to its iPadOS settings.'
   :screenAwakeStatus==='active'
