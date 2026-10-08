@@ -6,8 +6,14 @@ import './staff-dashboard.css';
 // A functional staff dashboard shared by demo and live contexts. The staff
 // confirmation is not authentication; the iPad must be supervised/Guided Access.
 export default function StaffDashboard({onClose,onReset,onVoiceTest,onRecover,onSaveConfig,onLoadBryan,
- online,saved,installed,managed,demo,remaining,setupHref,photos=[],cfg,eventTypes,voiceStatus}){
- const ref=useRef(null),closeRef=useRef(onClose),transferRef=useRef(null);closeRef.current=onClose;
+ online,saved,installed,managed,demo,remaining,setupHref,photos=[],cfg,eventTypes,voiceStatus,
+ keepScreenAwake=true,screenAwakeStatus='requesting',onToggleScreenAwake,onRetryScreenAwake}){
+ const ref=useRef(null),closeRef=useRef(onClose),transferRef=useRef(null),kioskRef=useRef(null);closeRef.current=onClose;
+ function showKioskGuide(){
+  const section=kioskRef.current;if(!section)return;
+  section.open=true;
+  requestAnimationFrame(()=>section.scrollIntoView({block:'center',behavior:'smooth'}));
+ }
  function showEventTransfer(){
   const section=transferRef.current;
   if(!section)return;
@@ -15,6 +21,19 @@ export default function StaffDashboard({onClose,onReset,onVoiceTest,onRecover,on
   requestAnimationFrame(()=>{section.scrollIntoView({block:'center',behavior:'smooth'});section.querySelector('input')?.focus();});
  }
  const [handoffText,setHandoffText]=useState(''),[handoffError,setHandoffError]=useState('');
+ const awakeMessage=!keepScreenAwake
+  ?'Off by staff choice. The iPad may sleep according to its iPadOS settings.'
+  :screenAwakeStatus==='active'
+   ?'On: the booth has an active keep-awake request while this screen is visible.'
+   :screenAwakeStatus==='unsupported'
+    ?'This browser does not support keep-awake. Set Guided Access Display Auto-Lock to Never.'
+    :screenAwakeStatus==='blocked'
+     ?'The iPad refused the keep-awake request. Try again; Guided Access can still prevent Auto-Lock.'
+     :screenAwakeStatus==='interrupted'
+      ?'Keep-awake was interrupted by the device. Tap Try again or interact with the booth.'
+      :screenAwakeStatus==='waiting'
+       ?'Waiting until the Photo Booth is the visible app.'
+       :'Asking the iPad to keep the display on…';
  function reviewTransfer(e){
   e.preventDefault();setHandoffError('');
   try{
@@ -52,8 +71,37 @@ export default function StaffDashboard({onClose,onReset,onVoiceTest,onRecover,on
     <div><small>PHOTOS</small><strong>{saved}</strong><span>{managed?'Archived sessions':'Recent local photos'}</span></div>
     <div><small>DEVICE</small><strong>{installed?'Installed':'Browser'}</strong><span>{installed?'Home Screen app':'Open on iPad for events'}</span></div>
    </section>
+   <section className="operatorKioskCard" data-testid="operator-kiosk-card" aria-label="iPad guest display">
+    <div className="operatorKioskTop">
+     <div><span className="operatorOverline">IPAD EVENT MODE</span><h3>Keep guests in the Photo Booth</h3><p>The booth can request an always-on display. iPad Guided Access is required to stop guests switching apps.</p></div>
+     <span className="operatorDeviceOnly">This iPad only</span>
+    </div>
+    <label className="operatorWakeToggle">
+     <input type="checkbox" role="switch" checked={keepScreenAwake} data-testid="operator-awake-toggle" onChange={e=>onToggleScreenAwake?.(e.target.checked)}/>
+     <span><strong>Keep the screen awake</strong><small>{keepScreenAwake?'On during Photo Booth use':'Off — allow normal screen sleep'}</small></span>
+    </label>
+    <div className="operatorWakeStatus" role="status" data-testid="operator-awake-status">
+     <span aria-hidden="true">{keepScreenAwake&&screenAwakeStatus==='active'?'✓':'ⓘ'}</span>
+     <p>{awakeMessage}</p>
+     {keepScreenAwake&&['blocked','interrupted'].includes(screenAwakeStatus)&&<button type="button" onClick={onRetryScreenAwake} data-testid="operator-awake-retry">Try again</button>}
+    </div>
+    <details ref={kioskRef} className="operatorKioskGuide" data-testid="operator-guided-access">
+     <summary>Lock the iPad so guests cannot leave <span>iPad Settings · one-time setup</span></summary>
+     <div>
+      <ol>
+       <li>On the iPad, open <strong>Settings → Accessibility → Guided Access</strong>. Turn it on and create a staff-only passcode in Passcode Settings.</li>
+       <li>Set <strong>Guided Access → Display Auto-Lock → Never</strong> to keep the screen on for the event. Choose a shorter interval instead if you want the display to sleep.</li>
+       <li>Open the installed <strong>Friendly Booth</strong> Home Screen icon. Triple-click the <strong>top button</strong> (or Home button on older iPads), then choose Guided Access.</li>
+       <li>Under Session Settings / Options, leave <strong>Touch ON</strong>, disable <strong>Top / Home Button</strong> to prevent guest sleep-button use, and leave Time Limit off. Tap <strong>Start</strong>.</li>
+       <li>Test the Home gesture, printer and photo sharing on the physical iPad before guests arrive. To unlock for staff: triple-click, authenticate, then tap <strong>End</strong>.</li>
+      </ol>
+      <p><strong>Important:</strong> The website cannot start or detect Guided Access. An active keep-awake request does not mean the iPad is locked. For physical events, keep the iPad plugged in.</p>
+     </div>
+    </details>
+   </section>
    <h3 className="operatorSectionTitle">What do you need to do?</h3>
    <nav className="operatorQuickGrid" aria-label="Staff quick actions">
+    <button className="operatorQuickCard operatorGuestCard" type="button" data-testid="operator-lock-ipad" onClick={showKioskGuide}><span aria-hidden="true">▣</span><strong>Lock iPad for guests</strong><small>Guided Access setup steps</small></button>
     <button className="operatorQuickCard operatorGuestCard" type="button" data-testid="operator-load-event" onClick={showEventTransfer}><span aria-hidden="true">⇪</span><strong>Load an event</strong><small>Send admin settings to this iPad</small></button>
     <a className="operatorQuickCard" href={setupHref}><span aria-hidden="true">✎</span><strong>Event setup</strong><small>Names, colors, print layouts</small></a>
     <button className="operatorQuickCard" type="button" data-testid="operator-sound-test" onClick={onVoiceTest}><span aria-hidden="true">♫</span><strong>Test speaker</strong><small>Check countdown audio</small></button>
@@ -104,7 +152,7 @@ export default function StaffDashboard({onClose,onReset,onVoiceTest,onRecover,on
      <button className="operatorDangerText" type="button" onClick={onLoadBryan}>Load sample wedding event (testing only)</button>
     </div>
    </details>}
-   <p className="operatorPrivacy">These controls are local to this browser. Opening Staff tools is a confirmation, not a password lock. Keep the booth supervised and use iPad Guided Access during events.</p>
+   <p className="operatorPrivacy">The display preference is local to this iPad. Staff Tools is a confirmation, not a password-protected area. Use Apple Guided Access and supervise the booth during events.</p>
   </div>
  </dialog>;
 }
