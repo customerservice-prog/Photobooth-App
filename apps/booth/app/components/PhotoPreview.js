@@ -43,7 +43,7 @@ export default function PhotoPreview({photo,poses=[],sessionShots,cfg,filter,fil
      <legend>How many photo strips?</legend>
      <button type="button" data-testid="strip-arrangement-single" className={stripMode==='single'?'isSelected':''} aria-pressed={stripMode==='single'} onClick={()=>setStripMode('single')}>
       <span className="psArrangementArt psArrangementSingle" aria-hidden="true"><i/></span>
-      <span><strong>One full-size strip</strong><small>Default · fills the whole 4×6 sheet</small></span>{stripMode==='single'&&<b>Selected</b>}
+      <span><strong>One classic strip</strong><small>Default · same narrow strip, centered on 4×6</small></span>{stripMode==='single'&&<b>Selected</b>}
      </button>
      <button type="button" data-testid="strip-arrangement-double" className={stripMode==='double'?'isSelected':''} aria-pressed={stripMode==='double'} onClick={()=>setStripMode('double')}>
       <span className="psArrangementArt psArrangementDouble" aria-hidden="true"><i/><i/></span>
