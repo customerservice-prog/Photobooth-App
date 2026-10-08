@@ -182,3 +182,22 @@ select.input{padding-right:28px}
 }
 @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}.side,.navLink{transition:none}}
 @media print{.side,.adminTopbar,.mobileMenuButton,.saveDock,.buttonRow{display:none!important}.content{margin:0!important;width:100%!important}.page{padding:10px}.card{box-shadow:none}}
+
+
+/* Admin → device handoff: visible next steps, scan-to-load, non-secret QR. */
+.boothHandoff{scroll-margin-top:85px;border-color:#b7d5bc;background:linear-gradient(160deg,#fffefa,#f1f7ed)}
+.handoffLayout{display:grid;grid-template-columns:minmax(0,1fr) minmax(210px,300px);gap:24px;align-items:start}
+.handoffSteps{counter-reset:handoff;display:grid;gap:12px;list-style:none;padding:0;margin:5px 0 18px}
+.handoffSteps li{position:relative;padding:2px 3px 2px 39px;min-height:47px;counter-increment:handoff}
+.handoffSteps li::before{content:counter(handoff);position:absolute;left:0;top:0;width:28px;height:28px;border-radius:50%;display:grid;place-items:center;background:#dcebdd;color:#315b40;font:800 13px/1 system-ui,sans-serif}
+.handoffSteps strong{display:block;font-size:14px;color:#2d5440}
+.handoffSteps span{display:block;font-size:12px;line-height:1.55;color:#647664;margin-top:3px}
+.handoffHow{min-width:0}
+.handoffActions{display:flex;align-items:center;gap:9px;flex-wrap:wrap}
+.handoffActions .btn{min-height:45px}
+.handoffActions [role=status]{flex-basis:100%;min-height:18px}
+.handoffCode{display:flex;flex-direction:column;align-items:center;justify-content:center;max-width:100%;margin:0;padding:14px 12px;border:1px solid #d6e4d6;border-radius:17px;background:white}
+.handoffCode img{width:min(100%,300px);height:auto;aspect-ratio:1;image-rendering:pixelated}
+.handoffCode figcaption{font-size:11px;color:#738374;text-align:center;line-height:1.5;padding:6px 5px 0}
+@media(max-width:880px){.handoffLayout{grid-template-columns:minmax(0,1fr)}.handoffCode{width:min(350px,100%);margin:auto}}
+@media(max-width:560px){.handoffActions .btn{width:100%}.handoffSteps{gap:15px}.handoffCode{width:min(330px,100%)}}
