@@ -63,3 +63,14 @@ test('update is offered only at safe welcome and launcher screens',async()=>{
 test('public metadata has no secrets, no cookies and explicit no-store headers',async()=>{
  const src=await readFile(new URL('../app/api/app-version/route.js',import.meta.url),'utf8');assert.match(src,/force-dynamic/);assert.match(src,/no-store, max-age=0/);assert.doesNotMatch(src,/process\.env|Set-Cookie|DATABASE_URL/);
 });
+
+test('updating an imported event returns to that event without loading unrelated storage',()=>{
+ const id='11111111-aaaa-4444-bbbb-888888888888';
+ const u=new URL(updateDestination('/','?booth_event='+id+'&event=oct10-2026&demo=1&redirect=https://bad.example',BOOTH_RELEASE,123),'https://booth.example');
+ assert.equal(u.searchParams.get('booth_event'),id);
+ assert.equal(u.searchParams.has('event'),false);
+ assert.equal(u.searchParams.has('demo'),false);
+ assert.equal(u.searchParams.get('boothv'),BOOTH_RELEASE);
+ assert.equal(u.searchParams.get('refresh'),'123');
+ assert.equal(u.searchParams.size,3);
+});
