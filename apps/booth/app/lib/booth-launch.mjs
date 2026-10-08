@@ -1,7 +1,7 @@
 // Keep the installed app identity stable. Navigation never clears or migrates
 // photos, settings, counters, or any other browser storage.
-export const BOOTH_RELEASE='2026.10.08.8';
-export const BOOTH_RELEASE_LABEL='4x6 print preview and failed print retry recovery';
+export const BOOTH_RELEASE='2026.10.08.9';
+export const BOOTH_RELEASE_LABEL='Elegant single-strip 4x6 keepsake';
 const ENTRIES=Object.freeze({
   demo:'/?event=oct10-2026&demo=1',
   preparation:'/event-prep',
