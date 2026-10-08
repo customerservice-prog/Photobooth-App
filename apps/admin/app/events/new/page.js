@@ -1,4 +1,35 @@
-import Link from "next/link";
-import { createEvent } from "../actions";
-const Field=({label,children})=><label style={{display:"block",fontSize:12,color:"#b8b3a8",marginBottom:14}}>{label}<div style={{marginTop:7}}>{children}</div></label>;
-export default function NewEventPage(){return <main className="page"><div style={{maxWidth:900}}><Link href="/events" style={{color:"#8e8a82",fontSize:12,textDecoration:"none"}}>← Events</Link><div className="eyebrow" style={{marginTop:24}}>Event setup</div><h1 className="title">Create a beautiful event.</h1><p className="muted">Start with the booking details. After saving, assign the booth, wedding design and print settings.</p><form action={createEvent} style={{marginTop:28}}><section className="card" style={{padding:26,marginBottom:16}}><div className="eyebrow">01 · Client</div><h2 style={{fontFamily:"Georgia,serif",fontWeight:400}}>Customer details</h2><div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(230px,1fr))",gap:"0 16px"}}><Field label="Customer name *"><input className="input" name="customerName" required placeholder="Full name"/></Field><Field label="Email"><input className="input" name="customerEmail" type="email" placeholder="name@email.com"/></Field><Field label="Phone"><input className="input" name="customerPhone" placeholder="(315) 555-0000"/></Field></div></section><section className="card" style={{padding:26}}><div className="eyebrow">02 · Celebration</div><h2 style={{fontFamily:"Georgia,serif",fontWeight:400}}>Event details</h2><div style={{display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(230px,1fr))",gap:"0 16px"}}><Field label="Event name *"><input className="input" name="eventName" required placeholder="Wedding Celebration"/></Field><Field label="Event type"><select className="input" name="eventType" defaultValue="wedding"><option value="wedding">Wedding</option><option value="birthday">Birthday</option><option value="corporate">Corporate</option><option value="graduation">Graduation</option><option value="party">Private Party</option></select></Field><Field label="Date *"><input className="input" name="date" type="date" required/></Field><Field label="Start time *"><input className="input" name="startTime" type="time" required/></Field><Field label="End time *"><input className="input" name="endTime" type="time" required/></Field><Field label="Venue name"><input className="input" name="venueName" placeholder="Venue / ballroom"/></Field></div><Field label="Venue address"><input className="input" name="venueAddress" placeholder="Street, city, state"/></Field><Field label="Internal setup notes"><textarea className="input" name="internalNotes" rows="4" placeholder="Parking, loading door, contact, setup instructions..."/></Field></section><div style={{display:"flex",justifyContent:"flex-end",gap:10,marginTop:18}}><Link className="btn btn2" href="/events">Cancel</Link><button className="btn" type="submit" style={{cursor:"pointer"}}>Save & Continue →</button></div></form></div></main>}
+import Link from 'next/link';
+import {createEvent} from '../actions';
+import {EVENT_TYPES} from '../../../lib/studio-experience.mjs';
+import {PageHeader} from '../../StudioUI';
+const F=({label,hint,children})=><label className="formField">{label}{children}{hint&&<small>{hint}</small>}</label>;
+export default function NewEventPage(){
+ return <main className="page pageCompact">
+  <Link href="/events" className="btnPlain" style={{paddingLeft:0}}>← All events</Link>
+  <PageHeader eyebrow="START HERE" title="Add your next event" subtitle="Just the basics first. After saving, you’ll choose the photo booth, design, guest photo choices, and print allowance."/>
+  <form action={createEvent} className="uiStack">
+   <section className="card formSection">
+    <div className="eyebrow">01 · CUSTOMER</div><h2 className="sectionTitle">Who is booking?</h2>
+    <div className="formGrid">
+     <F label="Customer name *"><input className="input" name="customerName" required autoComplete="name" placeholder="Full name"/></F>
+     <F label="Email"><input className="input" name="customerEmail" type="email" autoComplete="email" placeholder="name@email.com"/></F>
+     <F label="Phone"><input className="input" name="customerPhone" type="tel" autoComplete="tel" placeholder="(315) 555-0000"/></F>
+    </div>
+   </section>
+   <section className="card formSection">
+    <div className="eyebrow">02 · CELEBRATION</div><h2 className="sectionTitle">What and when?</h2>
+    <div className="formGrid">
+     <F label="Event name *"><input className="input" name="eventName" required placeholder="The Johnson Wedding"/></F>
+     <F label="Occasion"><select className="input" name="eventType" defaultValue="Wedding">{EVENT_TYPES.map(type=><option key={type}>{type}</option>)}</select></F>
+     <F label="Event date *"><input className="input" type="date" name="date" required/></F>
+     <F label="Start time *"><input className="input" type="time" name="startTime" required defaultValue="18:00"/></F>
+     <F label="End time *" hint="Use 00:00 for midnight; the next day is handled automatically."><input className="input" type="time" name="endTime" required defaultValue="22:00"/></F>
+     <F label="Venue name"><input className="input" name="venueName" placeholder="Venue or customer's home"/></F>
+    </div>
+    <div style={{marginTop:15}}><F label="Street address (optional for now)"><input className="input" name="venueAddress" placeholder="Street, city, state and ZIP"/></F></div>
+    <div style={{marginTop:15}}><F label="Notes for setup crew"><textarea className="input" name="internalNotes" rows={3} placeholder="Loading door, parking, special instructions…"/></F></div>
+   </section>
+   <div className="saveDock"><p><strong>Next:</strong> Save this event, then you’ll finish the booth and photo settings. This won’t change any existing event.</p><div className="buttonRow"><Link href="/events" className="btn btn2">Cancel</Link><button type="submit" className="btn">Save & continue →</button></div></div>
+  </form>
+ </main>;
+}
