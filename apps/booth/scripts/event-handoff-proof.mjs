@@ -19,7 +19,12 @@ for(const [engine,api] of [['chromium',chromium],['webkit',webkit]]){
  page.on('pageerror',err=>errors.push(err.message));
  try{
   await page.goto(base+'/load-event#'+token,{waitUntil:'networkidle'});
-  await page.getByTestId('handoff-review').waitFor();
+  try{await page.getByTestId('handoff-review').waitFor({timeout:12000});}
+  catch(err){
+   await page.screenshot({path:`${output}/${engine}-import-error.png`,fullPage:true}).catch(()=>{});
+   console.error('Event handoff did not display:',JSON.stringify({url:page.url(),errors,errorText:await page.locator('.loadError').allInnerTexts().catch(()=>[]),screen:await page.locator('body').innerText().catch(()=>'not rendered')}));
+   throw err;
+  }
   assert.equal(await page.locator('.loadReviewHead h2').innerText(),fixture.t);
   assert((await page.locator('.loadFacts').innerText()).includes('Two matching photo strips'));
   assert.equal(new URL(page.url()).hash,'','import code removed from visible URL');
