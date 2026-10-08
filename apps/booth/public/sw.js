@@ -1,6 +1,6 @@
 /* Friendly Booth: only public app-shell assets are cached. Never cache API data,
    handoff URLs, recipients or personal JPEGs. Photos remain in IndexedDB. */
-const CACHE='friendly-booth-shell-20261008-1',SHELL=['/','/launch','/help','/privacy','/icon.svg','/manifest.webmanifest'];
+const CACHE='friendly-booth-shell-20261008-2',SHELL=['/','/launch','/help','/privacy','/icon.svg','/manifest.webmanifest'];
 const safeAsset=url=>url.origin===self.location.origin&&
  (/^\/_next\/static\//.test(url.pathname)||/^\/(audio\/|icon\.svg$|print-test\.svg$|manifest\.webmanifest$)/.test(url.pathname));
 self.addEventListener('install',event=>{
@@ -16,6 +16,9 @@ self.addEventListener('activate',event=>{
  })());
 });
 self.addEventListener('message',event=>{
+ // Only activate an updated worker when the operator explicitly selects Load latest version.
+ // Do not reload pages, delete photos, or trigger an automatic mid-session upgrade.
+ if(event.data?.type==='ACTIVATE_UPDATED_BOOTH'){event.waitUntil(self.skipWaiting());return;}
  if(event.data?.type!=='CACHE_APP_RESOURCES'||!Array.isArray(event.data.urls))return;
  event.waitUntil((async()=>{
   const cache=await caches.open(CACHE);
