@@ -77,3 +77,15 @@ test('a genuinely new admin event receives independent photos and print usage',(
  assert(scope.archive.includes(id));
  assert.notEqual(scope.usage,EVENT_KEYS.liveUsage);
 });
+
+test('native browser Base64 decoder works even when a Buffer global is polyfilled',()=>{
+ const data=Buffer.from(JSON.stringify(raw),'utf8').toString('base64url');
+ const windowBefore=globalThis.window;
+ try{
+  globalThis.window={location:{hash:''}};
+  assert.deepEqual(decodeHandoff(data),raw);
+ }finally{
+  if(windowBefore===undefined)delete globalThis.window;
+  else globalThis.window=windowBefore;
+ }
+});
