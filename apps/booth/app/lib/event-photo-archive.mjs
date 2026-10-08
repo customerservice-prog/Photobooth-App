@@ -60,7 +60,23 @@ export async function exportPhotos(scope){
  const files=[],manifest={scope,createdAt:new Date().toISOString(),sessions:records.length,finishedKeepsakes:records.filter(r=>r.keepsake).length,note:'Photos stored on this device only. Demonstration and live-event archives are separate. Collages are included for interrupted sessions without a finished keepsake.'};
  files.push({name:'manifest.json',blob:new Blob([JSON.stringify(manifest,null,2)],{type:'application/json'})});
  records.forEach((r,n)=>{const folder='session-'+String(n+1).padStart(4,'0')+'/';r.poses.forEach((blob,i)=>files.push({name:folder+'pose-'+(i+1)+'.jpg',blob}));files.push({name:folder+(r.keepsake?'keepsake.jpg':'collage.jpg'),blob:r.keepsake||r.collage});});
- return {blob:await makeZip(files),count:records.length};
+ return {blob:await makeZip(files),count:records.length,finishedKeepsakes:manifest.finishedKeepsakes};
+}
+// Irreversible cleanup for a single, already-exported event only.
+// The count check and deletes share ONE IndexedDB transaction, so a session
+// arriving between ZIP export and cleanup cannot be silently wiped.
+export async function deleteArchivedEvent(scope,expectedCount){
+ if(typeof scope!=='string'||scope.length<3||!Number.isSafeInteger(expectedCount)||expectedCount<0)
+  throw new Error('Choose one valid event and export it before deleting photos.');
+ return transaction('readwrite',(store,done)=>{
+  const request=store.index('scope').getAllKeys(scope);
+  request.onsuccess=()=>{
+   const keys=request.result||[];
+   if(keys.length!==expectedCount){store.transaction.abort();return;}
+   for(const key of keys)store.delete(key);
+   done(keys.length);
+  };
+ });
 }
 export function downloadBlob(blob,name){const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),60000);}
 
