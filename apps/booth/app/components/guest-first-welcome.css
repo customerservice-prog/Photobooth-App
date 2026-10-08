@@ -1,252 +1,36 @@
-/* Guest-first Photo Booth welcome — event title, two primary choices, visible staff entry.
-   Scoped to the welcome route; does not alter captured photos or print layouts. */
-.booth.bwWelcomeMode{background:#f7f5ee}
-.booth.bwWelcomeMode .bwWelcome{
- --bw-ink:#243f35;--bw-muted:#637367;--bw-gold:#ba985c;
- color:var(--bw-ink);
- background:radial-gradient(ellipse at 95% 1%,#e7eee5 0,transparent 37%),
-  radial-gradient(ellipse at 0% 100%,#f2e7d2 0,transparent 35%),#f8f6f0;
-}
-.booth.bwWelcomeMode .bwFrame{width:min(100%,1380px);padding:18px 38px 14px;min-height:100%;height:auto}
-.booth.bwWelcomeMode .bwHeader{gap:16px;padding:0 0 12px;min-height:56px}
-.booth.bwWelcomeMode .bwHeaderActions{gap:10px}
-.booth.bwWelcomeMode .bwHeaderActions .bwHelp{
- border:1px solid #d1d9ce;min-height:48px;
- border-radius:14px;background:#fffefa;padding:0 18px;
- font-weight:700;color:#3f5848;
-}
-.booth.bwWelcomeMode .bwStaffShortcut{
- display:inline-flex;align-items:center;justify-content:center;gap:9px;
- min-height:48px;padding:10px 20px;
- border:1px solid #315846;border-radius:14px;
- background:linear-gradient(135deg,#2b5644,#204235);
- color:#fff8e8;font:750 13px/1.2 system-ui,sans-serif;
- box-shadow:0 5px 14px #183b2d24;cursor:pointer;
-}
-.booth.bwWelcomeMode .bwStaffShortcut:hover{background:#376d52}
-.booth.bwWelcomeMode .bwStaffShortcut:focus-visible{
- outline:3px solid #c79d5c;outline-offset:3px;
-}
-.booth.bwWelcomeMode .bwStage{
- display:grid;flex:1;
- grid-template-columns:minmax(0,1.28fr) minmax(315px,.72fr);
- align-items:center;gap:clamp(18px,3vw,48px);padding:21px 0 15px;
-}
-.booth.bwWelcomeMode .bwInvitation{align-self:center;min-width:0}
-.booth.bwWelcomeMode .bwEyebrow{margin:0 0 11px;font-size:9px;letter-spacing:2px}
-.booth.bwWelcomeMode .bwInvitation h1{
- max-width:720px;margin:0 0 13px;
- font:400 clamp(35px,3.4vw,53px)/1.08 Georgia,serif;
- letter-spacing:-1.5px;
-}
-.booth.bwWelcomeMode .bwInvitation h1.bwLongTitle{font-size:clamp(30px,2.8vw,43px)}
-.booth.bwWelcomeMode .bwEventMeta{font-size:12px;min-height:20px;gap:7px 13px}
-.booth.bwWelcomeMode .bwGuestIntro{margin:17px 0 17px}
-.booth.bwWelcomeMode .bwGuestIntro strong{
- display:block;font:italic 400 clamp(25px,2.7vw,35px)/1.15 Georgia,serif;
- color:#264b3d;letter-spacing:-.4px;
-}
-.booth.bwWelcomeMode .bwGuestIntro p{
- margin:6px 0 0;max-width:630px;
- font-size:13px;line-height:1.48;color:#647165;
-}
-.booth.bwWelcomeMode .bwExperience{max-width:none}
-.booth.bwWelcomeMode .bwSessionChoices{
- display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:13px;
-}
-.booth.bwWelcomeMode .bwSessionCard{
- display:flex;align-items:flex-start;gap:14px;
- min-width:0;min-height:166px;
- padding:20px 17px 16px;
- border-radius:19px;
- box-shadow:0 9px 23px #143e3012;
- cursor:pointer;
- transition:transform .16s ease,box-shadow .16s ease;
-}
-.booth.bwWelcomeMode .bwQuickSession{
- background:linear-gradient(136deg,#fffdfa,#eff3eb);
- border:1.5px solid #aabdae;color:#244838;
-}
-.booth.bwWelcomeMode .bwFourSession{
- background:radial-gradient(circle at 90% 10%,#789b8552,transparent 43%),
-  linear-gradient(139deg,#2e5c47,#174132);
- border:1.5px solid #1f4938;color:#fffbeb;
-}
-.booth.bwWelcomeMode .bwSessionCard.isPreferred{
- box-shadow:0 0 0 3px #cdb07891,0 13px 27px #163a2c23;
-}
-.booth.bwWelcomeMode .bwSessionCard:hover:not(:disabled){
- transform:translateY(-2px);box-shadow:0 12px 30px #254b3233;
-}
-.booth.bwWelcomeMode .bwSessionIcon{
- width:53px;height:53px;border-radius:15px;
- flex:none;display:grid;place-items:center;
-}
-.booth.bwWelcomeMode .bwQuickSession .bwSessionIcon{color:#966f40;background:#f6ecda;border:1px solid #dfc59b}
-.booth.bwWelcomeMode .bwFourSession .bwSessionIcon{color:#ffdf9b;background:#ffffff12;border:1px solid #f7e1ae8a}
-.booth.bwWelcomeMode .bwSessionWords{
- display:flex;flex:1;align-self:stretch;flex-direction:column;
- gap:4px;min-width:0;
-}
-.booth.bwWelcomeMode .bwSessionKicker{font-size:9px;letter-spacing:1.35px;margin:0;font-weight:800}
-.booth.bwWelcomeMode .bwSessionWords strong{
- font:400 clamp(29px,3vw,41px)/1 Georgia,serif;letter-spacing:-.6px;
-}
-.booth.bwWelcomeMode .bwSessionWords small{
- display:block;min-height:30px;max-width:280px;margin:2px 0 0;
- font-size:12px;line-height:1.4;
-}
-.booth.bwWelcomeMode .bwFourSession .bwSessionWords small{color:#e5eddf}
-.booth.bwWelcomeMode .bwCardCTA{
- display:inline-flex;align-items:center;justify-content:space-between;gap:8px;
- width:fit-content;min-height:29px;margin-top:auto;padding-top:8px;
- font:800 11px/1.2 system-ui,sans-serif;letter-spacing:1.1px;
- border-bottom:1px solid currentColor;
-}
-.booth.bwWelcomeMode .bwQuickSession .bwCardCTA{color:#2e6750}
-.booth.bwWelcomeMode .bwFourSession .bwCardCTA{color:#f5d69b}
-.booth.bwWelcomeMode .bwPhotoSteps{
- display:grid;grid-template-columns:repeat(3,minmax(0,1fr));
- gap:12px;margin:15px 0 0;padding:13px 15px;
- border:1px solid #e1e5d9;border-radius:14px;background:#f0f1e9;
-}
-.booth.bwWelcomeMode .bwPhotoSteps li{
- display:grid;grid-template-columns:27px minmax(0,1fr);
- grid-template-rows:auto auto;gap:3px 7px;align-content:center;
- border-right:1px solid #d2dbcf;padding:2px 8px 2px 0;
-}
-.booth.bwWelcomeMode .bwPhotoSteps li:last-child{border:0}
-.booth.bwWelcomeMode .bwStepNumber{
- grid-column:1;grid-row:1/3;margin:0;align-self:center;
- font:italic 22px Georgia,serif;color:#9f804f;
-}
-.booth.bwWelcomeMode .bwPhotoSteps strong{
- grid-column:2;grid-row:1;
- font-size:11px;line-height:1.25;font-weight:750;
-}
-.booth.bwWelcomeMode .bwPhotoSteps small{grid-column:2;grid-row:2;margin:0;font-size:10px;line-height:1.3}
-.booth.bwWelcomeMode .bwGuestTools{
- display:flex;align-items:center;justify-content:space-between;
- gap:12px;padding-top:11px;
-}
-.booth.bwWelcomeMode .bwChoiceNote{
- display:flex;align-items:center;gap:8px;flex:1;max-width:620px;
- margin:0;font-size:11px;line-height:1.45;
-}
-.booth.bwWelcomeMode .bwSoundCheck{
- display:inline-flex;align-items:center;gap:7px;
- margin:0;padding:8px 13px;min-height:44px;
- border:1px solid #d4ba85;border-radius:12px;
- color:#244836;background:#f8ebca;
- font:750 12px/1 system-ui,sans-serif;
-}
-.booth.bwWelcomeMode .bwShowcase{
- justify-self:center;width:100%;max-width:475px;
- min-height:clamp(352px,50vh,450px);height:auto;
- padding:18px 19px 14px;
- border-radius:86px 86px 22px 22px;
- background:radial-gradient(ellipse at 74% 4%,#8eaa8b55,transparent 50%),#244a3b;
- box-shadow:0 20px 42px #183c2c25,inset 0 0 0 6px #325846,inset 0 0 0 7px #d4be9655;
-}
-.booth.bwWelcomeMode .bwShowcase::before{inset:17px;border-radius:72px 72px 14px 14px}
-.booth.bwWelcomeMode .bwShowcaseTop{padding:8px 12px 4px}
-.booth.bwWelcomeMode .bwShowcaseTop em{font-size:clamp(19px,2vw,26px)}
-.booth.bwWelcomeMode .bwPaperStack{width:clamp(145px,15vw,208px);margin:7px auto 18px}
-.booth.bwWelcomeMode .bwProofCaption p{font-size:8px}
-.booth.bwWelcomeMode .bwFooter{min-height:47px;padding:9px 0 0}
-.booth.bwWelcomeMode .bwCredit{font-size:10px}
-.booth.bwWelcomeMode .bwUtilities{gap:13px}
-.booth.bwWelcomeMode .bwUtilities button{font-size:11px}
-@media(min-width:851px) and (max-height:760px){
- .booth.bwWelcomeMode .bwFrame{padding:13px 28px 9px}
- .booth.bwWelcomeMode .bwStage{padding:11px 0;gap:24px}
- .booth.bwWelcomeMode .bwEyebrow{margin-bottom:7px}
- .booth.bwWelcomeMode .bwInvitation h1{font-size:clamp(33px,3.2vw,44px);margin-bottom:9px}
- .booth.bwWelcomeMode .bwGuestIntro{margin:10px 0}
- .booth.bwWelcomeMode .bwGuestIntro strong{font-size:25px}
- .booth.bwWelcomeMode .bwGuestIntro p{font-size:12px;margin-top:3px}
- .booth.bwWelcomeMode .bwSessionCard{min-height:141px;padding:13px;gap:10px}
- .booth.bwWelcomeMode .bwSessionIcon{width:41px;height:41px}
- .booth.bwWelcomeMode .bwSessionWords strong{font-size:30px}
- .booth.bwWelcomeMode .bwSessionWords small{font-size:11px}
- .booth.bwWelcomeMode .bwPhotoSteps{margin-top:10px;padding:9px}
- .booth.bwWelcomeMode .bwGuestTools{padding-top:8px}
- .booth.bwWelcomeMode .bwShowcase{min-height:338px;padding:13px}
- .booth.bwWelcomeMode .bwPaperStack{width:139px;margin:4px auto 14px}
- .booth.bwWelcomeMode .bwShowcaseTop em{font-size:18px}
-}
-@media(min-width:851px) and (max-height:610px){
- .booth.bwWelcomeMode .bwStage{padding:7px 0}
- .booth.bwWelcomeMode .bwShowcase{min-height:300px;max-width:340px}
- .booth.bwWelcomeMode .bwPaperStack{width:120px;margin:4px auto 10px}
- .booth.bwWelcomeMode .bwSessionCard{min-height:120px;padding:11px}
- .booth.bwWelcomeMode .bwGuestIntro{margin:6px 0}
- .booth.bwWelcomeMode .bwGuestIntro p{font-size:11px}
- .booth.bwWelcomeMode .bwPhotoSteps{margin-top:7px;padding:7px}
-}
-@media(max-width:850px){
- .booth.bwWelcomeMode .bwFrame{padding:14px 22px 13px}
- .booth.bwWelcomeMode .bwStage{
-  grid-template-columns:minmax(0,1.3fr) minmax(0,.7fr);
-  gap:20px;padding:19px 0;
- }
- .booth.bwWelcomeMode .bwInvitation h1{font-size:clamp(31px,4.5vw,42px)}
- .booth.bwWelcomeMode .bwGuestIntro strong{font-size:26px}
- .booth.bwWelcomeMode .bwSessionChoices{grid-template-columns:1fr;gap:11px}
- .booth.bwWelcomeMode .bwSessionCard{min-height:116px;padding:14px}
- .booth.bwWelcomeMode .bwSessionWords strong{font-size:30px}
- .booth.bwWelcomeMode .bwSessionWords small{min-height:0}
- .booth.bwWelcomeMode .bwShowcase{min-height:345px;padding:16px 12px;border-radius:64px 64px 17px 17px}
- .booth.bwWelcomeMode .bwShowcase::before{border-radius:54px 54px 12px 12px}
- .booth.bwWelcomeMode .bwPaperStack{width:min(140px,62%);margin:8px auto 13px}
- .booth.bwWelcomeMode .bwShowcaseTop em{font-size:19px}
- .booth.bwWelcomeMode .bwPhotoSteps{gap:6px;padding:8px}
- .booth.bwWelcomeMode .bwPhotoSteps strong{font-size:10px}
- .booth.bwWelcomeMode .bwPhotoSteps small{font-size:9px}
- .booth.bwWelcomeMode .bwGuestTools{flex-wrap:wrap}
-}
-@media(max-width:680px){
- .booth.bwWelcomeMode .bwFrame{padding:14px 18px max(16px,env(safe-area-inset-bottom))}
- .booth.bwWelcomeMode .bwHeaderActions{gap:7px}
- .booth.bwWelcomeMode .bwHeaderActions .bwHelp{
-  min-height:44px;padding:0 11px;font-size:12px;
- }
- .booth.bwWelcomeMode .bwStaffShortcut{
-  min-height:44px;padding:8px 11px;font-size:12px;gap:6px;
- }
- .booth.bwWelcomeMode .bwStage{display:flex;flex-direction:column;align-items:stretch;gap:22px;padding:19px 0}
- .booth.bwWelcomeMode .bwInvitation h1{font-size:clamp(32px,7.5vw,42px)}
- .booth.bwWelcomeMode .bwGuestIntro{margin:12px 0}
- .booth.bwWelcomeMode .bwGuestIntro strong{font-size:25px}
- .booth.bwWelcomeMode .bwSessionChoices{grid-template-columns:1fr}
- .booth.bwWelcomeMode .bwSessionCard{min-height:111px}
- .booth.bwWelcomeMode .bwSessionIcon{width:42px;height:42px}
- .booth.bwWelcomeMode .bwSessionWords strong{font-size:31px}
- .booth.bwWelcomeMode .bwSessionWords small{font-size:11px}
- .booth.bwWelcomeMode .bwGuestTools{flex-wrap:wrap}
- .booth.bwWelcomeMode .bwShowcase{width:min(100%,390px);min-height:355px;align-self:center}
- .booth.bwWelcomeMode .bwPaperStack{width:145px}
- .booth.bwWelcomeMode .bwFooter{flex-wrap:wrap;gap:8px;font-size:10px}
- .booth.bwWelcomeMode .bwCredit{display:none}
-}
-@media(max-width:390px){
- .booth.bwWelcomeMode .bwBrand{gap:7px}
- .booth.bwWelcomeMode .bwBrand b{letter-spacing:1.2px;font-size:12px}
- .booth.bwWelcomeMode .bwBrand small{font-size:7px;letter-spacing:0}
- .booth.bwWelcomeMode .bwStaffShortcut{padding:8px 9px;font-size:11px}
- .booth.bwWelcomeMode .bwHeaderActions .bwHelp{padding:0!important;width:44px;flex:none}
- .booth.bwWelcomeMode .bwHeaderActions .bwHelp>span{display:none}
- .booth.bwWelcomeMode .bwSessionCard{padding:12px;gap:10px}
- .booth.bwWelcomeMode .bwSessionWords strong{font-size:27px}
- .booth.bwWelcomeMode .bwPhotoSteps{
-  grid-template-columns:repeat(3,minmax(0,1fr));gap:5px;
- }
- .booth.bwWelcomeMode .bwPhotoSteps li{display:block;padding-right:5px}
- .booth.bwWelcomeMode .bwStepNumber{display:block;margin:0 0 4px}
- .booth.bwWelcomeMode .bwPhotoSteps strong{display:block;font-size:10px}
- .booth.bwWelcomeMode .bwPhotoSteps small{display:block;font-size:9px}
-}
-/* Staff confirmation, intentionally explicit without implying password security. */
+/* Guest welcome. The previews use the production print renderer. */
+.booth.bwWelcomeMode{display:block;place-items:initial;background:#f8f6ef;isolation:isolate}
+.bwWelcome{--bw-ink:#203d32;--bw-muted:#6a7569;--bw-gold:#b58b46;width:100%;height:100%;overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;color:var(--bw-ink);text-align:left;background:radial-gradient(ellipse at 8% 0,#fffdfa 0,transparent 44%),radial-gradient(ellipse at 94% 88%,#e6ecdf 0,transparent 40%),#f8f6ef}
+.bwWelcome .bwFrame{width:min(100%,1240px);min-height:100%;display:flex;flex-direction:column;margin:auto;padding:22px 38px 18px}
+.bwHeader{display:flex;align-items:center;justify-content:space-between;gap:14px;flex:none;min-height:55px;padding-bottom:16px;border-bottom:1px solid #dce1d4}
+.bwBrand{display:flex;align-items:center;gap:11px;min-width:0}.bwBrandMark{display:grid;place-items:center;width:43px;height:43px;flex:none;border-radius:14px;background:#254d3d;color:#e6ca96;box-shadow:inset 0 0 0 1px #58735a,inset 0 0 0 5px #345847}
+.bwBrand b{display:block;font:750 15px/1.4 system-ui,sans-serif;letter-spacing:3px}.bwBrand small{display:block;margin-top:2px;font:550 9px/1.4 system-ui,sans-serif;letter-spacing:2px;color:#73816e}
+.bwHeaderActions{display:flex;flex:none}.bwStaffShortcut{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:44px;padding:10px 15px;border:1px solid #cad4c3;border-radius:13px;background:#ffffff87;color:#3b5846;font:700 12px/1.2 system-ui,sans-serif;cursor:pointer}
+.bwStage{display:flex;flex:1;flex-direction:column;justify-content:center;gap:22px;padding:25px 0 22px;min-width:0}
+.bwInvitation{text-align:center;min-width:0}.bwEyebrow{display:flex;align-items:center;justify-content:center;gap:8px;font:650 10px/1.5 system-ui,sans-serif;letter-spacing:1.7px;text-transform:uppercase;color:#9a7742;margin-bottom:9px}
+.bwInvitation h1{margin:0 auto 10px;max-width:950px;color:var(--bw-ink);font:400 clamp(30px,3.6vw,47px)/1.1 Georgia,serif;letter-spacing:-1px;overflow-wrap:anywhere;text-wrap:balance}.bwInvitation h1.bwLongTitle{font-size:clamp(26px,3vw,38px)}
+.bwEventMeta{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:7px 13px;color:var(--bw-muted);font:12px/1.5 system-ui,sans-serif}.bwEventMeta>span{display:inline-flex;align-items:center;gap:7px}.bwEventMeta svg{color:#a17c44;flex:none}.bwTime{border-left:1px solid #c9d2c2;padding-left:13px}
+.bwGuestIntro{margin:12px 0 0;font:500 14px/1.45 system-ui,sans-serif;color:#53674f}
+.bwExperience{width:min(100%,880px);align-self:center;min-width:0}.bwSessionChoices{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:22px}
+.bwSessionCard{display:flex;flex-direction:column;align-items:center;min-width:0;padding:23px 26px 21px;border:1px solid #d9dfd1;border-radius:25px;text-align:left;cursor:pointer;background:#fffefa;color:var(--bw-ink);box-shadow:0 14px 32px #173c2b0a;transition:transform .16s ease,box-shadow .16s ease,border-color .16s ease}
+.bwQuickSession{background:linear-gradient(145deg,#fffefa,#f2f2e8)}.bwFourSession{background:radial-gradient(ellipse at 90% 0,#72937960 0,transparent 65%),linear-gradient(135deg,#315b46,#1f4134);color:#fff9e9;border-color:#33533c;box-shadow:0 15px 32px #183e3024}
+.bwSessionCard.isPreferred{border-color:#b29c67}.bwSessionCard:hover:not(:disabled){transform:translateY(-3px);border-color:#b49353;box-shadow:0 19px 40px #163f301e}.bwSessionCard:active:not(:disabled){transform:translateY(1px)}.bwWelcome button:disabled{opacity:.65;cursor:wait}
+.bwSessionHeading{display:flex;align-items:center;justify-content:space-between;gap:12px;width:100%;margin-bottom:17px}.bwSessionHeading>span{min-width:0}.bwSessionHeading small{display:block;font:750 9px/1.4 system-ui,sans-serif;letter-spacing:1.3px;color:#99804c;margin-bottom:4px}.bwSessionHeading strong{display:block;font:400 38px/1.1 Georgia,serif;letter-spacing:-.6px}.bwSessionHeading>svg{flex:none;color:#b89956}.bwFourSession .bwSessionHeading small{color:#dfc18b}.bwFourSession .bwSessionHeading>svg{color:#f2d8a0}
+.bwLayoutPreview{display:block;width:172px;max-width:85%;aspect-ratio:2/3;position:relative;pointer-events:none;line-height:0;border:1px solid #dfd0b8;background:#fff9ed;box-shadow:0 9px 18px #162d2926}
+.bwWelcome .bwLayoutPreview .designPrint{width:100%!important;height:auto!important;max-width:none!important;min-height:0!important;max-height:none!important;aspect-ratio:2/3!important;margin:0!important;padding:0!important;box-shadow:none!important;pointer-events:none}
+.bwWelcome .bwLayoutPreview svg{display:block;width:100%;height:auto}.bwPreviewCaption{display:block;margin:12px 0 15px;font:11px/1.4 system-ui,sans-serif;color:#7d8575}.bwFourSession .bwPreviewCaption{color:#cfddc5}
+.bwSessionWords{display:flex;flex-direction:column;gap:12px;width:100%;margin-top:auto}.bwSessionWords>small{display:block;font:12px/1.4 system-ui,sans-serif;text-align:center;color:#637260}.bwFourSession .bwSessionWords>small{color:#d4e0cc}
+.bwCardCTA{display:flex;align-items:center;justify-content:center;gap:12px;min-height:50px;padding:12px 16px;border-radius:13px;background:#254e3a;color:#fff9ed;font:750 15px/1.3 system-ui,sans-serif}.bwFourSession .bwCardCTA{background:#f1dbad;color:#294632;box-shadow:inset 0 0 0 1px #f7e9c8}.bwCardCTA svg{flex:none}
+.bwChoiceNote{display:flex;align-items:center;justify-content:center;gap:8px;margin:17px 0 0;padding:0 10px;color:#6e7967;font:11px/1.5 system-ui,sans-serif;text-align:center}.bwChoiceNote svg{flex:none;color:#a17e46}
+.bwFooter{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px 16px;min-height:45px;padding-top:13px;border-top:1px solid #dce1d4;color:#7b8572;font:10px/1.5 system-ui,sans-serif}.bwConnection{display:inline-flex;align-items:center;gap:7px;flex:none}.bwConnection i{display:block;width:6px;height:6px;border-radius:50%;background:#618b5e;box-shadow:0 0 0 4px #638c6010}.bwOffline i{background:#b88a3f}.bwCredit{font-size:10px}.bwUtilities{display:flex;align-items:center;justify-content:flex-end;flex-wrap:wrap;gap:7px 13px}.bwUtilities:empty{display:none}.bwUtilities button,.bwUtilities a{font:11px/1.3 system-ui,sans-serif;color:#65785b;min-height:40px;display:inline-flex;align-items:center;background:transparent;border:0;cursor:pointer;text-decoration:underline;text-underline-offset:4px;padding:5px 0}.bwUtilities .buTrigger{border:1px solid #c1ceba;background:#f6f8f0;border-radius:11px;padding:8px 12px;text-decoration:none}
+.bwWelcome button:focus-visible,.bwWelcome a:focus-visible{outline:3px solid #b3843c;outline-offset:4px}
+@media(min-width:681px) and (max-height:710px){.bwWelcome .bwFrame{padding:13px 28px 10px}.bwHeader{min-height:48px;padding-bottom:10px}.bwStage{gap:15px;padding:15px 0}.bwEyebrow{font-size:9px;margin-bottom:6px}.bwInvitation h1{font-size:34px;margin-bottom:7px}.bwGuestIntro{margin-top:8px;font-size:12px}.bwSessionCard{padding:15px 22px 14px;border-radius:21px}.bwSessionHeading{margin-bottom:10px}.bwSessionHeading strong{font-size:30px}.bwLayoutPreview{width:119px}.bwPreviewCaption{margin:8px 0 9px;font-size:10px}.bwSessionWords{gap:8px}.bwSessionWords>small{font-size:11px}.bwCardCTA{min-height:44px;padding:9px 12px;font-size:13px}.bwChoiceNote{margin-top:10px}.bwFooter{padding-top:8px;min-height:40px}}
+@media(max-width:850px){.bwWelcome .bwFrame{padding:20px 26px 17px}.bwStage{gap:22px}.bwSessionChoices{gap:17px}.bwSessionCard{padding:21px 22px 18px}.bwLayoutPreview{width:164px}.bwSessionHeading strong{font-size:34px}.bwCredit{display:none}}
+@media(max-width:680px){.bwWelcome .bwFrame{padding:15px 16px max(16px,env(safe-area-inset-bottom))}.bwHeader{padding-bottom:12px}.bwBrandMark{width:38px;height:38px;border-radius:12px}.bwBrand{gap:8px}.bwBrand b{font-size:13px;letter-spacing:2px}.bwBrand small{font-size:8px;letter-spacing:1.3px}.bwStaffShortcut{padding:9px 11px;font-size:11px}.bwStage{justify-content:flex-start;padding:22px 0;gap:22px}.bwEyebrow{font-size:8px;letter-spacing:1px}.bwInvitation h1{font-size:clamp(28px,6vw,35px);letter-spacing:-.6px}.bwInvitation h1.bwLongTitle{font-size:26px}.bwEventMeta{font-size:10px;gap:6px 9px}.bwTime{padding-left:9px}.bwGuestIntro{font-size:12px;margin-top:10px}.bwSessionChoices{gap:11px}.bwSessionCard{padding:14px 12px 12px;border-radius:19px}.bwSessionHeading{margin-bottom:12px;gap:5px}.bwSessionHeading small{font-size:7px;letter-spacing:.6px;min-height:18px}.bwSessionHeading strong{font-size:27px;white-space:nowrap}.bwSessionHeading>svg{display:none}.bwLayoutPreview{width:100px;max-width:100%}.bwPreviewCaption{font-size:9px;margin:9px 0 12px}.bwSessionWords{gap:10px}.bwSessionWords>small{font-size:10px;min-height:28px}.bwCardCTA{min-height:46px;padding:9px 7px;gap:6px;font-size:12px}.bwCardCTA svg{width:15px}.bwChoiceNote{font-size:10px;align-items:flex-start;padding:0 3px;margin-top:14px}.bwChoiceNote svg{margin-top:1px}.bwFooter{font-size:9px;gap:8px}.bwUtilities{justify-content:flex-start;gap:6px 12px}.bwUtilities button,.bwUtilities a{font-size:10px}.bwFooter .bwConnection{min-height:22px}}
+@media(max-width:350px){.bwWelcome .bwFrame{padding-left:12px;padding-right:12px}.bwSessionChoices{gap:9px}.bwSessionCard{padding:12px 9px}.bwLayoutPreview{width:87px}.bwSessionHeading strong{font-size:25px}.bwCardCTA{font-size:11px}.bwInvitation h1{font-size:28px}.bwEyebrow{letter-spacing:.7px}.bwBrand b{letter-spacing:1.5px}.bwStaffShortcut{padding:9px;font-size:10px}}
+@media(prefers-reduced-motion:reduce){.bwSessionCard{transition:none;transform:none!important}}
+
+/* PIN-protected staff dialog. */
 .bwStaffGate{
  position:fixed;inset:0;margin:auto;
  width:min(480px,calc(100vw - 26px));max-height:calc(100dvh - 30px);
@@ -271,31 +55,5 @@
 .bwStaffGateCancel{background:#f4f3e9;color:#305241;border:1px solid #becdbb}
 .bwStaffGateInner small{font-size:11px;line-height:1.5;color:#7d867d;max-width:380px}
 .bwStaffGate button:focus-visible{outline:3px solid #d5a65e;outline-offset:3px}
-@media(prefers-reduced-motion:reduce){
- .booth.bwWelcomeMode .bwSessionCard{transition:none;transform:none!important}
-}
 
-
-/* Rotated sample sheets protrude beyond their layout box.
-   Reserve true clearance so the bottom caption can never overlap either sheet. */
-.booth.bwWelcomeMode .bwPaperStack{margin-bottom:44px}
-@media(min-width:851px) and (max-height:760px){
- .booth.bwWelcomeMode .bwPaperStack{margin-bottom:29px}
-}
-@media(min-width:851px) and (max-height:610px){
- .booth.bwWelcomeMode .bwPaperStack{margin-bottom:24px}
-}
-@media(max-width:850px){
- .booth.bwWelcomeMode .bwPaperStack{margin-bottom:32px}
-}
-@media(max-width:680px){
- .booth.bwWelcomeMode .bwPaperStack{margin-bottom:33px}
-}
-
-/* Staff access PIN: readable in landscape and on smaller iPads. */
 .bwStaffPinForm{display:grid;gap:12px;margin:16px 0}.bwStaffPinForm label{font:700 13px system-ui,sans-serif;color:#315944}.bwStaffPinForm input{width:100%;min-height:58px;border:1px solid #b2c6b5;border-radius:12px;background:#fff;color:#294b3b;padding:12px 16px;font:700 24px system-ui,sans-serif;letter-spacing:9px;text-align:center}.bwStaffPinForm button{width:100%;min-height:48px}.bwStaffPinForm p[role=alert]{font:13px/1.5 system-ui,sans-serif;background:#fff0e7;color:#893d29;padding:12px;border-radius:10px;margin:0}.bwStaffPinForm button:disabled{opacity:.58;cursor:wait}
-
-/* Visible only for the unassigned owner preview, never a paying guest event. */
-.booth.bwWelcomeMode .bwGradPreviewLink{display:inline-flex;align-items:center;justify-content:center;min-height:48px;padding:9px 15px;border:2px solid #c38a34;border-radius:14px;background:linear-gradient(120deg,#08234a,#143965);color:#ffe5a9;text-decoration:none;font:800 12px/1.3 system-ui,sans-serif;letter-spacing:.25px;white-space:nowrap;box-shadow:0 3px 11px #1025402b}
-.booth.bwWelcomeMode .bwGradPreviewLink:focus-visible{outline:3px solid #e8a532;outline-offset:3px}
-@media(max-width:850px){.booth.bwWelcomeMode .bwGradPreviewLink{display:none}}

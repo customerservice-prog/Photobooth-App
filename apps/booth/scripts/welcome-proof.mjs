@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import {mkdir,writeFile} from 'node:fs/promises';
 import {chromium,webkit} from 'playwright';
+import {octoberPreset,EVENT_KEYS,PREP_CHECKS} from '../app/lib/event-workspace.mjs';
 const base=process.env.WELCOME_BASE_URL||'http://127.0.0.1:3000';
 const out='welcome-proof';await mkdir(out,{recursive:true});
 const cfg={title:'October 10 Photo Booth Party',subtitle:'Your Photo Booth Preview',date:'October 10, 2026',type:'other',setupComplete:true,defaultTemplate:'champagne',photoFit:'fit',details:{eventName:'October 10 Photo Booth Party',subtitle:'4–8 PM',primaryColor:'#24352f',secondaryColor:'#d8c49b'},printPackage:{includedPrints:108,addOnPrints:108,shotsPerSession:4,copiesPerSession:1,digitalEnabled:true,printingEnabled:true}};
@@ -13,17 +14,44 @@ async function setup(context){await context.addInitScript(config=>{
  window.__proofRecordingCalls=0;window.MediaRecorder=class{constructor(){window.__proofRecordingCalls++;throw new Error('Motion recording must never be called in a photo-only booth');}};
 },cfg);}
 async function open(page){await page.goto(base,{waitUntil:'networkidle'});await page.waitForSelector('.bwWelcome[data-capture-mode="photo"]');await page.waitForFunction(()=>document.querySelector('#bwEventTitle')?.textContent==='October 10 Photo Booth Party');await page.waitForTimeout(400);}
-async function assertPhotoOnly(page){assert.equal(await page.locator('.bwSessionChoices button').count(),2);assert.equal(await page.getByTestId('welcome-quick-photo').count(),1);assert.equal(await page.getByTestId('welcome-four-photo').count(),1);assert.equal(await page.getByTestId('welcome-video').count(),0);assert.equal(await page.getByTestId('booth-sound-test').count(),0,'Speaker testing belongs only in Staff Tools, not the guest welcome screen');assert.equal(await page.getByText('Test speaker',{exact:true}).count(),0);assert.equal(await page.getByTestId('welcome-gif').count(),0);assert.equal(await page.locator('.bwPhotoSteps li').count(),3);assert(!/\b(video|gif|boomerang)\b/i.test(await page.locator('.bwWelcome').innerText()));}
+async function assertPhotoOnly(page){assert.equal(await page.locator('.bwSessionChoices button').count(),2);assert.equal(await page.getByTestId('welcome-quick-photo').count(),1);assert.equal(await page.getByTestId('welcome-four-photo').count(),1);assert.equal(await page.getByTestId('welcome-video').count(),0);assert.equal(await page.getByTestId('booth-sound-test').count(),0,'Speaker testing belongs only in Staff Tools, not the guest welcome screen');assert.equal(await page.getByText('Test speaker',{exact:true}).count(),0);assert.equal(await page.getByTestId('welcome-gif').count(),0);assert.equal(await page.locator('.bwSessionCard .bwLayoutPreview svg').count(),2,'both choices show their real print layout');assert.equal(await page.locator('.bwShowcase,.bwPaperStack,.bwPhotoSteps').count(),0,'guest choices replace the old showcase and prose');assert.equal(await page.locator('.bwSessionCard .bwPreviewCaption').count(),2);assert(!/\b(video|gif|boomerang)\b/i.test(await page.locator('.bwWelcome').innerText()));}
 async function layout(page,name,w,h){
  await page.setViewportSize({width:w,height:h});await open(page);await assertPhotoOnly(page);assert.equal(await page.locator('h1').count(),1);
  const staffButton=page.getByTestId('welcome-staff-tools'),staffRect=await staffButton.boundingBox();
  assert(await staffButton.isVisible(),name+' staff tools button visible');
  assert(staffRect&&staffRect.height>=44&&staffRect.width>=80&&staffRect.y>=0&&staffRect.y+staffRect.height<=h+1,name+' staff tools reachable without scrolling');
- const data=await page.evaluate(()=>{const root=document.querySelector('.bwWelcome'),footer=document.querySelector('.bwFooter').getBoundingClientRect(),proof=document.querySelector('.bwRealProof').getBoundingClientRect(),back=document.querySelector('.bwPaperBack').getBoundingClientRect(),caption=document.querySelector('.bwProofCaption').getBoundingClientRect(),showcase=document.querySelector('.bwShowcase').getBoundingClientRect();return {clientWidth:root.clientWidth,scrollWidth:root.scrollWidth,innerHeight:innerHeight,clientHeight:root.clientHeight,scrollHeight:root.scrollHeight,footerTop:footer.top,proofBottom:Math.max(proof.bottom,back.bottom),captionTop:caption.top,captionBottom:caption.bottom,showcaseBottom:showcase.bottom,buttons:[...document.querySelectorAll('.bwSessionCard')].map(b=>{const r=b.getBoundingClientRect(),top=document.elementFromPoint(r.left+r.width/2,Math.min(r.top+r.height/2,innerHeight-1));return {left:r.left,right:r.right,top:r.top,bottom:r.bottom,width:r.width,height:r.height,covered:r.bottom<=innerHeight&&!b.contains(top)};})};});
- assert(data.scrollWidth<=data.clientWidth+1,name+' no horizontal overflow');assert(data.proofBottom+3<=data.captionTop,name+' proof clear of caption');assert(data.captionBottom<=data.showcaseBottom-8,name+' caption inside panel');
- for(const b of data.buttons){assert(b.left>=-1&&b.right<=w+1);assert(b.height>=44);assert(!b.covered);assert(data.footerTop>=b.bottom-1);if(w>=768&&h>=600)assert(b.top>=0&&b.bottom<=h,name+' primary controls above fold');}
+ const data=await page.evaluate(()=>{const root=document.querySelector('.bwWelcome'),footer=document.querySelector('.bwFooter').getBoundingClientRect();return {clientWidth:root.clientWidth,scrollWidth:root.scrollWidth,innerHeight:innerHeight,clientHeight:root.clientHeight,scrollHeight:root.scrollHeight,footerTop:footer.top,buttons:[...document.querySelectorAll('.bwSessionCard')].map(b=>{const r=b.getBoundingClientRect(),proof=b.querySelector('.bwLayoutPreview svg').getBoundingClientRect(),caption=b.querySelector('.bwPreviewCaption').getBoundingClientRect(),cta=b.querySelector('.bwCardCTA').getBoundingClientRect(),top=document.elementFromPoint(cta.left+cta.width/2,Math.min(cta.top+cta.height/2,innerHeight-1));return {left:r.left,right:r.right,top:r.top,bottom:r.bottom,width:r.width,height:r.height,proof:{left:proof.left,right:proof.right,top:proof.top,bottom:proof.bottom,width:proof.width,height:proof.height},caption:{top:caption.top,bottom:caption.bottom},cta:{left:cta.left,right:cta.right,top:cta.top,bottom:cta.bottom,width:cta.width,height:cta.height},covered:cta.bottom<=innerHeight&&!b.contains(top)};})};});
+ assert(data.scrollWidth<=data.clientWidth+1,name+' no horizontal overflow');
+ for(const b of data.buttons){assert(b.left>=-1&&b.right<=w+1);assert(b.height>=44);assert(!b.covered,name+' photo CTA is not covered');assert(data.footerTop>=b.bottom-1);assert(b.proof.width>40&&b.proof.height>60,name+' actual layout preview is visible');assert(b.proof.left>=b.left-1&&b.proof.right<=b.right+1,name+' preview stays inside its choice');assert(b.proof.bottom<=b.caption.top+1,name+' photo preview is clear of caption');assert(b.caption.bottom<=b.cta.top+1,name+' caption is clear of the start action');assert(b.cta.width>60&&b.cta.height>18,name+' visible start action');assert(b.cta.left>=b.left-1&&b.cta.right<=b.right+1&&b.cta.bottom<=b.bottom+1,name+' start action stays in its clickable choice');if(w>=768&&h>=600)assert(b.top>=0&&b.bottom<=h,name+' primary controls above fold');}
  assert(await page.getByTestId('welcome-staff-tools').isVisible());assert.equal(await page.evaluate(()=>localStorage.getItem('friendly-booth-print-usage-v1')),'7');assert.equal(await page.evaluate(()=>JSON.parse(localStorage.getItem('friendly-booth-event-v1')).printPackage.addOnPrints),108);
- await page.screenshot({path:`${out}/${name}.png`,fullPage:true});if(w<621)await page.locator('.bwShowcase').screenshot({path:`${out}/${name}-keepsake.png`});results.push({test:name,passed:true,viewport:[w,h],layout:data});
+ await page.screenshot({path:`${out}/${name}.png`,fullPage:true});if(w<621)await page.locator('.bwSessionChoices').screenshot({path:`${out}/${name}-keepsakes.png`});results.push({test:name,passed:true,viewport:[w,h],layout:data});
+}
+async function approvedWelcome(browser,engine){
+ const context=await browser.newContext({viewport:{width:1024,height:768},reducedMotion:'reduce'});
+ const config={...octoberPreset(),guestMode:'approved',preparation:{colorsConfirmed:true,checks:Object.fromEntries(Object.keys(PREP_CHECKS).map(key=>[key,true]))}};
+ await context.addInitScript(({config,keys})=>{if(!localStorage.getItem(keys.config))localStorage.setItem(keys.config,JSON.stringify(config));if(!localStorage.getItem(keys.liveUsage))localStorage.setItem(keys.liveUsage,'19');window.print=()=>{throw new Error('Welcome preview must not print');};},{config,keys:EVENT_KEYS});
+ const page=await context.newPage(),errors=[];page.on('pageerror',error=>errors.push(error.message));
+ try{
+  for(const [type,template]of [['other','champagne'],['graduation','grad-gala']]){
+   await page.goto(base+'/?event=oct10-2026',{waitUntil:'networkidle'});
+   await page.evaluate(({keys,type,template})=>{const saved=JSON.parse(localStorage.getItem(keys.config));saved.type=type;saved.defaultTemplate=template;saved.details={...saved.details,graduate:'Taylor',classYear:'2027'};localStorage.setItem(keys.config,JSON.stringify(saved));},{keys:EVENT_KEYS,type,template});
+   await page.reload({waitUntil:'networkidle'});await page.getByTestId('welcome-four-photo').waitFor();await page.waitForFunction(()=>!document.querySelector('[data-testid="welcome-four-photo"]')?.disabled);await assertPhotoOnly(page);
+   for(const id of ['welcome-quick-photo','welcome-four-photo']){
+    const button=page.getByTestId(id);assert(await button.isEnabled());
+    const svg=button.locator('.bwLayoutPreview svg');assert.equal(await svg.getAttribute('data-design'),type+'-'+template);
+    assert.equal(await svg.locator('[data-guest-photo="true"]').count(),0,'welcome never reveals saved guest photos');
+    assert((await button.locator('.bwPreviewCaption').innerText()).includes('Your photos go here'));
+   }
+   if(type==='other')assert.equal(await page.getByTestId('welcome-four-photo').locator('[data-approved-photo-region="true"]').count(),1,'four-photo choice uses coordinated approved layout');
+   assert.equal(await page.locator('.bwWelcome a').count(),0,'approved guests have no setup, designs or external navigation');
+   assert.equal(await page.locator('.workspaceBanner').count(),0);assert.equal(await page.getByTestId('app-update').count(),0);
+   assert(await page.getByTestId('welcome-staff-tools').isVisible());
+   assert.equal(await page.evaluate(key=>localStorage.getItem(key),EVENT_KEYS.liveUsage),'19');
+   await page.screenshot({path:`${out}/${engine}-approved-${type}-choices.png`});
+   results.push({test:engine+'-approved-'+type+'-actual-matching-layout-choices',passed:true});
+  }
+  assert.deepEqual(errors,[]);
+ }finally{await context.close();}
 }
 let browser;
 try{
@@ -32,6 +60,7 @@ try{
   const context=await browser.newContext({viewport:{width:1440,height:900},reducedMotion:'reduce',...(engine==='chromium'?{permissions:['camera']}: {})});await setup(context);
   const page=await context.newPage(),errors=[];page.on('pageerror',e=>errors.push(e.message));
   for(const [label,w,h] of [['desktop',1440,900],['laptop',1366,650],['ipad-landscape',1024,768],['ipad-portrait',768,1024],['phone',390,844],['small-phone',320,640],['short-screen',1024,600],['zoom-reflow',640,720]])await layout(page,`${engine}-${label}`,w,h);
+  await approvedWelcome(browser,engine);
   await page.setViewportSize({width:1366,height:768});await open(page);
   await page.evaluate(()=>{Object.defineProperty(navigator,'onLine',{configurable:true,get:()=>false});window.dispatchEvent(new Event('offline'));});assert((await page.locator('.bwConnection').textContent()).includes('Offline'));results.push({test:engine+'-offline-indicator',passed:true});
   await open(page);await page.getByRole('button',{name:'Add to iPad',exact:true}).click();await page.getByRole('dialog',{name:'Install on iPad'}).waitFor();await page.getByRole('button',{name:'Close instructions'}).click();results.push({test:engine+'-install-dialog',passed:true});
