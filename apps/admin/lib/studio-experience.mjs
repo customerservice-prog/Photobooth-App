@@ -87,8 +87,9 @@ export function mergeExperience(theme,form){
  const photoFit=get(form,'photoFit')==='fit'?'fit':'fill';
  const validColor=v=>/^#[\da-f]{6}$/i.test(v)?v.toLowerCase():null;
  const choose=(key,base)=>validColor(get(form,key))||base;
+ const original=current.boothExperience&&typeof current.boothExperience==='object'&&!Array.isArray(current.boothExperience)?current.boothExperience:{};
  const e={
-  ...existing,featured,pauseSeconds:PHOTO_PAUSES.includes(pause)?pause:6,
+  ...original,...existing,featured,pauseSeconds:PHOTO_PAUSES.includes(pause)?pause:6,
   format,strips,photoFit,
   paletteId:palette.id,
   primary:choose('primaryColor',palette.primary),accent:choose('accentColor',palette.accent)
