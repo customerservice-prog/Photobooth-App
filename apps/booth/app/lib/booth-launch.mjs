@@ -1,7 +1,7 @@
 // Keep the installed app identity stable. Navigation never clears or migrates
 // photos, settings, counters, or any other browser storage.
-export const BOOTH_RELEASE='2026.10.08.18';
-export const BOOTH_RELEASE_LABEL='LaMarr guided photos with voice fallback';
+export const BOOTH_RELEASE='2026.10.08.19';
+export const BOOTH_RELEASE_LABEL='Selectable navy and gold graduation card and four-photo keepsake';
 const ENTRIES=Object.freeze({
   demo:'/?event=oct10-2026&demo=1',
   preparation:'/event-prep',

@@ -1,23 +1,98 @@
-// Event-specific physical 4×6 artwork used identically by iPad preview, export and print.
+// Print-ready navy, orange and gold graduation layouts. No sample or visitor
+// faces are bundled: the actual captured JPEGs are inserted into these SVGs.
+// The SAME SVG is used by preview, export and the physical 4x6 print.
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&apos;'}[c]));
+const bound=(v,n=65)=>String(v??'').replace(/[\u0000-\u001f]/g,' ').trim().slice(0,n);
+const imageAllowed=v=>typeof v==='string'&&/^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+$/.test(v);
 export const isLamarrGraduation=cfg=>/lamar{1,2}/i.test(String(cfg?.details?.graduate||'')+' '+String(cfg?.title||''));
-const rect=(x,y,w,h,color,rx=0)=>'<rect x="'+x+'" y="'+y+'" width="'+w+'" height="'+h+'" rx="'+rx+'" fill="'+color+'"/>';
-function defs(){return '<defs><linearGradient id="lmBg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#031126"/><stop offset=".55" stop-color="#0d3264"/><stop offset="1" stop-color="#040d23"/></linearGradient><linearGradient id="lmGold" x1="0" y1="0" x2="1" y2="0"><stop stop-color="#c7832b"/><stop offset=".25" stop-color="#fff0b9"/><stop offset=".58" stop-color="#e9b867"/><stop offset="1" stop-color="#9b641e"/></linearGradient><linearGradient id="lmOrange"><stop stop-color="#ffb24c"/><stop offset=".6" stop-color="#fa7d17"/><stop offset="1" stop-color="#c9560e"/></linearGradient><radialGradient id="lmBall"><stop stop-color="#ffe3a4"/><stop offset=".35" stop-color="#ffa42c"/><stop offset="1" stop-color="#c7570a"/></radialGradient></defs>';}
-function star(x,y,size,fill){return '<path d="M0 -1L.24 -.25 1 0 .24 .25 0 1 -.24 .25 -1 0 -.24 -.25Z" transform="translate('+x+' '+y+') scale('+size+')" fill="'+fill+'"/>';}
-function confetti(){return Array.from({length:110},(_,i)=>{const x=(31+i*373)%1200,y=(79+i*761)%1800;return i%4===0?star(x,y,3+i%11,'#ffe7a5'):'<rect x="'+x+'" y="'+y+'" width="'+(2+i%5)+'" height="'+(3+i%9)+'" transform="rotate('+(i*37%180)+' '+x+' '+y+')" fill="'+(i%2?'#fe871b':'#ffca6e')+'" opacity=".8"/>';}).join('');}
-function balloon(x,y,s,navy=false){return '<g transform="translate('+x+' '+y+') scale('+s+')"><ellipse cx="0" cy="0" rx="64" ry="90" fill="'+(navy?'#163d7c':'url(#lmBall)')+'" stroke="'+(navy?'#7596c8':'#ffc16e')+'" stroke-width="4"/><ellipse cx="-19" cy="-26" rx="12" ry="30" fill="#fff" opacity=".26" transform="rotate(26 -19 -26)"/><path d="M-8 88L0 101 8 88M0 102Q22 140 -5 186" fill="none" stroke="#d6a650" stroke-width="4"/></g>';}
-function cap(x,y,s){return '<g transform="translate('+x+' '+y+') scale('+s+')" fill="#061732" stroke="#ef9b34" stroke-width="6"><path d="M-90 0L0 -36 90 0 0 34Z"/><path d="M-58 13V60Q0 92 58 60V13" fill="none"/><path d="M90 0V70" fill="none"/><circle cx="90" cy="74" r="7" fill="#ff8a1e"/></g>';}
-function base(){return defs()+rect(0,0,1200,1800,'url(#lmBg)')+confetti()+'<rect x="12" y="12" width="1176" height="1776" fill="none" stroke="url(#lmGold)" stroke-width="7"/><rect x="24" y="24" width="1152" height="1752" fill="none" stroke="#f88e28" stroke-width="2"/>';}
-function photo(src,i,x,y,w,h,fit){const frame=rect(x-10,y-10,w+20,h+20,'url(#lmGold)',6)+rect(x-4,y-4,w+8,h+8,'#fa8c23',4);return frame+(src?'<image data-guest-photo="true" data-pose="'+(i+1)+'" href="'+esc(src)+'" x="'+x+'" y="'+y+'" width="'+w+'" height="'+h+'" preserveAspectRatio="'+(fit==='fit'?'xMidYMid meet':'xMidYMid slice')+'"/>':rect(x,y,w,h,'#b9c6ce')+'<text x="'+(x+w/2)+'" y="'+(y+h/2)+'" fill="#243957" font-family="Arial,sans-serif" font-weight="bold" text-anchor="middle" font-size="44">PHOTO '+(i+1)+'</text>');}
-function bigName(y){return '<path d="M190 '+(y+29)+'Q600 '+(y+48)+' 1010 '+(y+29)+'" fill="none" stroke="#fa8d21" stroke-width="14"/><text x="600" y="'+y+'" text-anchor="middle" font-size="145" font-family="Georgia,serif" font-style="italic" font-weight="bold" fill="#fff5d4" stroke="#f08c29" stroke-width="6" paint-order="stroke">LaMarr</text>';}
-function date(y){return '<text x="600" y="'+y+'" font-family="Georgia,serif" font-size="53" font-weight="bold" fill="url(#lmGold)" text-anchor="middle">OCTOBER 10TH 2026</text>';}
-function bottom(y){return date(y)+cap(600,y+60,.48)+'<text x="600" y="'+(y+130)+'" text-anchor="middle" font-family="Arial,sans-serif" letter-spacing="7" font-weight="bold" font-size="28" fill="#ffffff">CONGRATS GRAD!</text>';}
-function svg(parts,layout){return '<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="1800" viewBox="0 0 1200 1800" role="img" data-design="lamarr-graduation" data-layout="'+layout+'" aria-label="LaMarr graduation four by six photo keepsake"><desc>October 10th, 2026 graduation print</desc>'+base()+parts+'</svg>';}
-export function renderLamarrFour(poses=[],cfg={}){
- const shots=Array.isArray(poses)?poses:[],cells=Array.from({length:4},(_,i)=>photo(shots[i],i,105,142+i*314,990,294,cfg.photoFit)).join('');
- return svg(cap(112,80,.7)+'<text x="760" y="83" text-anchor="middle" fill="#ff9d36" font-family="Georgia,serif" font-style="italic" font-size="70">Class of</text><text x="1070" y="88" text-anchor="end" fill="#ffffff" font-size="72" font-family="Georgia,serif" font-weight="bold">2026</text>'+cells+balloon(105,1390,.66)+balloon(1090,1400,.64,true)+bigName(1542)+bottom(1648),'photo_strip');
+export const isGraduationGala=cfg=>cfg?.type==='graduation'&&cfg?.defaultTemplate==='grad-gala';
+const rect=(x,y,w,h,fill,other='')=>`<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="${fill}" ${other}/>`;
+const path=(d,fill='none',stroke='none',sw=1)=>`<path d="${d}" fill="${fill}" stroke="${stroke}" stroke-width="${sw}"/>`;
+function labels(cfg={}){
+ const name=bound(cfg.details?.graduate||cfg.details?.honoree||cfg.title||'The Graduate',30)||'The Graduate';
+ const year=/^\d{4}$/.test(cfg.details?.classYear||'')?cfg.details.classYear:(bound(cfg.date).match(/\b20\d{2}\b/)||['2026'])[0];
+ const raw=bound(cfg.date||'October 10, 2026',45);
+ const date=raw.replace(/\b(\d{1,2})(?!ST|ND|RD|TH)\b(?=\s*,?\s*20\d{2})/i,(whole,num)=>{
+  const n=Number(num),suffix=n%100>=11&&n%100<=13?'TH':n%10===1?'ST':n%10===2?'ND':n%10===3?'RD':'TH';
+  return num+suffix;
+ }).replace(',','').toUpperCase();
+ return {name,year,date};
 }
+function defs(){return `<defs>
+ <linearGradient id="lmBg" x1="0" y1="0" x2=".87" y2="1"><stop stop-color="#020c20"/><stop offset=".42" stop-color="#061f46"/><stop offset=".75" stop-color="#05152e"/><stop offset="1" stop-color="#010915"/></linearGradient>
+ <radialGradient id="lmBlueGlow" cx=".6" cy=".34" r=".75"><stop stop-color="#154785" stop-opacity=".54"/><stop offset="1" stop-color="#010b1e" stop-opacity="0"/></radialGradient>
+ <linearGradient id="lmGold" x1="0" y1="0" x2="1" y2=".37"><stop stop-color="#a95c18"/><stop offset=".10" stop-color="#ffcc5e"/><stop offset=".27" stop-color="#fff4c1"/><stop offset=".43" stop-color="#e79e37"/><stop offset=".68" stop-color="#ffdfa0"/><stop offset=".9" stop-color="#c5791b"/><stop offset="1" stop-color="#fff1a7"/></linearGradient>
+ <linearGradient id="lmGoldFrame" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#fff8bd"/><stop offset=".28" stop-color="#c37b23"/><stop offset=".55" stop-color="#ffda75"/><stop offset=".82" stop-color="#a75b1b"/><stop offset="1" stop-color="#ffe79b"/></linearGradient>
+ <radialGradient id="lmOrange" cx=".33" cy=".18" r=".86"><stop stop-color="#fff0b6"/><stop offset=".16" stop-color="#ffc16a"/><stop offset=".52" stop-color="#fe891c"/><stop offset="1" stop-color="#a5410c"/></radialGradient>
+ <radialGradient id="lmNavy" cx=".32" cy=".21" r=".95"><stop stop-color="#7b9ed2"/><stop offset=".22" stop-color="#345a99"/><stop offset=".65" stop-color="#081936"/><stop offset="1" stop-color="#020710"/></radialGradient>
+ <pattern id="lmGlitter" width="22" height="22" patternUnits="userSpaceOnUse"><rect width="22" height="22" fill="url(#lmGoldFrame)"/><circle cx="5" cy="3" r="2" fill="#fff4cd" opacity=".95"/><circle cx="16" cy="12" r="2.2" fill="#fff5e0"/><circle cx="11" cy="20" r="1.5" fill="#9b5011" opacity=".7"/><path d="M4 16l4 -5 3 3 -4 5Z" fill="#c98416"/></pattern>
+ </defs>`;}
+function glint(x,y,r,fill='url(#lmGold)'){return `<path d="M0 -${r} Q${r*.11} -${r*.11} ${r} 0 Q${r*.11} ${r*.11} 0 ${r} Q-${r*.11} ${r*.11} -${r} 0 Q-${r*.11} -${r*.11} 0 -${r}Z" transform="translate(${x} ${y})" fill="${fill}"/>`;}
+function confetti(){let a='';let seed=6312;const rand=()=>{seed=(Math.imul(seed,1664525)+1013904223)>>>0;return seed/4294967296;};for(let i=0;i<190;i++){
+ const r=rand(),x=i%3===0?rand()*180:i%3===1?1020+rand()*180:rand()*1200;
+ const y=rand()*1800,size=3+rand()*12,color=i%4===0?'#ff9d32':i%5===0?'#e6c26b':'url(#lmGold)';
+ a+=i%4===0?glint(x.toFixed(1),y.toFixed(1),size.toFixed(1),color):`<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${(size*.45).toFixed(1)}" height="${(size*1.3).toFixed(1)}" transform="rotate(${Math.round(rand()*180)} ${x.toFixed(1)} ${y.toFixed(1)})" fill="${color}" opacity=".9"/>`;
+ }return a;}
+function balloon(x,y,scale,navy=false,angle=0){
+ return `<g transform="translate(${x} ${y}) rotate(${angle}) scale(${scale})"><path d="M0 105Q42 167 0 237Q-40 304 0 364" fill="none" stroke="#dba950" stroke-width="3"/><ellipse ry="112" rx="85" fill="${navy?'url(#lmNavy)':'url(#lmOrange)'}" stroke="${navy?'#0a2449':'#ffcb72'}" stroke-width="3"/><path d="M-9 110L0 127 9 110Z" fill="#d48b25"/><ellipse cx="-31" cy="-43" rx="17" ry="42" transform="rotate(24 -31 -43)" fill="#ffffff" opacity=".35"/></g>`;
+}
+function balloons(){return balloon(67,153,.9,true,-16)+balloon(246,152,.93,false,12)+balloon(1153,1662,.9,true,17)+balloon(995,1751,.85,false,-14);}
+function cap(x,y,scale){return `<g transform="translate(${x} ${y}) scale(${scale})"><path d="M-110 -4L0 -50 110 -4 0 40Z" fill="#031126" stroke="url(#lmGold)" stroke-width="7"/><path d="M-74 20V60Q0 103 74 60V20" fill="#051d41" stroke="url(#lmGold)" stroke-width="6"/><path d="M108 1V80" stroke="url(#lmGold)" stroke-width="6"/><path d="M102 83l-14 44h40l-14 -44Z" fill="url(#lmGold)"/></g>`;}
+function text(v,x,y,size,fill,options=''){return `<text x="${x}" y="${y}" text-anchor="middle" fill="${fill}" font-size="${size}" ${options}>${esc(v)}</text>`;}
+function name(v,y){
+ const sz=v.length>22?78:v.length>14?105:v.length>8?147:183;
+ const width=v.length>18?990:v.length>12?960:v.length>8?920:870;
+ return `<g data-text-role="name">${text(v,600,y,sz,'url(#lmGold)','font-family="Georgia, serif" font-style="italic" font-weight="bold" paint-order="stroke" stroke="#703108" stroke-width="2"'+' textLength="'+width+'" lengthAdjust="spacingAndGlyphs"')}</g>`+
+ path(`M196 ${y+27}Q600 ${y+51} 1004 ${y+27}`,'none','#fa8723',10);
+}
+function sampleGradPhoto(i,x,y,w,h){
+ // Only for the unfilled preview, never an invented guest capture.
+ // An illustrated graduation silhouette over silver sequin-style bokeh.
+ const scale=Math.min(w/480,h/470),cx=x+w/2,cy=y+h/2;
+ const sparkle=Array.from({length:90},(_,n)=>{
+  const px=x+((n*179+41*i)%997)/997*w;
+  const py=y+((n*317+67*i)%991)/991*h;
+  const r=2+(n*7%11);
+  return `<circle cx="${px.toFixed(1)}" cy="${py.toFixed(1)}" r="${r}" fill="${n%3?'#fbfbfd':'#b8cadb'}" opacity="${n%4===0?'.92':'.40'}"/>`;
+ }).join('');
+ const costume=`<g transform="translate(${cx} ${cy}) scale(${scale})">
+  <path d="M-230 226Q-212 80-98 42L98 42Q212 80 230 226Z" fill="#0d2952" stroke="#6785ac" stroke-width="5"/>
+  <path d="M-88 45L-9 235L-39 235L-126 67Z" fill="#f18b23"/>
+  <path d="M88 45L9 235L39 235L126 67Z" fill="#ffaf51"/>
+  <rect x="-71" y="-97" width="142" height="170" rx="69" fill="#b98e75"/>
+  <path d="M-110-116L0-161L110-116L0-70Z" fill="#091c3e" stroke="#d39a41" stroke-width="6"/>
+  <path d="M-74-90V-65Q0-28 74-65V-90" fill="#0a1e40" stroke="#162e52" stroke-width="3"/>
+  <path d="M102-115V20" stroke="#f59e27" stroke-width="6"/>
+  <path d="M93 23L110 60L125 23Z" fill="#ffa73c"/>
+ </g>`;
+ return rect(x,y,w,h,'#9ba7b1')+rect(x,y,w,h,'url(#lmBlueGlow)')+sparkle+costume+
+ `<rect x="${x+10}" y="${y+h-45}" width="${w-20}" height="36" fill="#061d3b" opacity=".8"/>`+
+ text('YOUR PHOTO '+(i+1),x+w/2,y+h-19,20,'#fff8e6','font-family="Arial,sans-serif" font-weight="bold" letter-spacing="3"');
+}
+function photo(src,i,x,y,w,h,fit='fill'){
+ const safe=imageAllowed(src)?src:null;
+ const frame=rect(x-16,y-16,w+32,h+32,'url(#lmGlitter)')+rect(x-5,y-5,w+10,h+10,'#fb9b30');
+ const inside=safe?`<image data-guest-photo="true" data-pose="${i+1}" href="${esc(safe)}" x="${x}" y="${y}" width="${w}" height="${h}" preserveAspectRatio="${fit==='fit'?'xMidYMid meet':'xMidYMid slice'}"/>`:sampleGradPhoto(i,x,y,w,h);
+ return frame+inside;
+}
+function base(){return defs()+rect(0,0,1200,1800,'url(#lmBg)')+rect(0,0,1200,1800,'url(#lmBlueGlow)')+confetti()+
+ rect(15,15,1170,1770,'none','stroke="url(#lmGold)" stroke-width="5"')+
+ rect(25,25,1150,1750,'none','stroke="#fc8c23" stroke-width="2"');}
+function svg(body,layout,cfg){const t=labels(cfg);return `<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="1800" viewBox="0 0 1200 1800" role="img" data-design="graduation-grad-gala" data-template-key="graduation/grad-gala" data-layout="${layout}" aria-label="${esc(t.name+' graduation print')}"><title>${esc(t.name+' graduation keepsake')}</title>${base()}${body}</svg>`;}
 export function renderLamarrOne(photoSrc,cfg={}){
- const pic=photo(photoSrc,0,94,204,1012,1000,cfg.photoFit);
- return svg(balloon(92,83,.7,true)+balloon(210,103,.65)+'<text x="772" y="91" text-anchor="middle" font-family="Georgia,serif" font-size="90" font-style="italic" fill="url(#lmGold)">Congrats Grad!</text>'+pic+cap(600,1244,.85)+bigName(1439)+'<text x="600" y="1514" text-anchor="middle" font-family="Georgia,serif" font-style="italic" font-size="72" fill="#ffffff">Grad Party!</text>'+balloon(85,1620,.58)+balloon(1110,1615,.58,true)+date(1680),'card');
+ const t=labels(cfg),image=photo(photoSrc,0,67,240,1066,1012,cfg.photoFit);
+ const hero=balloons()+text('Congrats Grad!',774,147,104,'url(#lmGold)','font-family="Georgia, serif" font-style="italic" font-weight="bold" paint-order="stroke" stroke="#783709" stroke-width="2"');
+ const lower=cap(600,1301,.70)+name(t.name,1504)+text('Grad Party!',600,1606,93,'#fff7e9','font-family="Georgia, serif" font-style="italic"')+
+ text(t.date,600,1718,49,'#fff0d1','font-family="Georgia, serif" font-weight="bold" letter-spacing="3"');
+ return svg(hero+image+lower,'card',cfg);
+}
+export function renderLamarrFour(poses=[],cfg={}){
+ const t=labels(cfg),shots=Array.isArray(poses)?poses:[],
+ cells=Array.from({length:4},(_,i)=>photo(shots[i],i,87,222+i*309,1026,284,cfg.photoFit)).join('');
+ const head=cap(163,112,.62)+text('Class of',786,98,70,'url(#lmGold)','font-family="Georgia, serif" font-style="italic"')+
+ text(t.year,1034,165,100,'#fff7e9','font-family="Georgia, serif" font-weight="bold"');
+ const foot=balloon(94,1545,.52,false,-15)+balloon(1100,1580,.52,true,17)+name(t.name,1588)+
+ text(t.date,600,1687,51,'#ffd080','font-family="Georgia, serif" font-weight="bold" letter-spacing="2"')+
+ glint(600,1734,17)+text('CONGRATS GRAD!',600,1771,25,'#fff8ef','font-family="Arial,sans-serif" font-weight="bold" letter-spacing="7"');
+ return svg(head+cells+foot,'photo_strip',cfg);
 }

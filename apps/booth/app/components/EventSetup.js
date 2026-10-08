@@ -6,7 +6,7 @@ import PrintCard from './PrintCard';
 import PrintLayoutSettings from './PrintLayoutSettings';
 import {normalizePrintLayouts,STRIP_DESIGNS} from '../lib/print-layouts.mjs';
 import {normalizeGuestPause,normalizePhotoPreference,GUEST_PAUSE_OPTIONS} from '../lib/guest-pause.mjs';
-import {EVENT_LABELS,getDesigns} from '../lib/keepsake-designs.mjs';
+import {EVENT_LABELS,getDesigns,getDesign} from '../lib/keepsake-designs.mjs';
 import {composeEventConfig,switchEventDraft,eventMonogram,finalizeEventSetup} from '../lib/event-config.mjs';
 import {SETUP_COLOR_STORIES,paletteSelected} from '../lib/setup-lookbook.mjs';
 import {createIllustrativePreviewPhotos} from '../lib/setup-preview-art.mjs';
@@ -39,7 +39,7 @@ export default function EventSetup({cfg,photo='',poses=[],onSave,onClose}){
  const previewPhoto=hasCapture?photo:illustrations[0]||'';
  const previewPoses=hasCapture?poses:illustrations.slice(0,requiredPoses);
  const usePlaceholder=!hasCapture&&previewPoses.length===0;
- const designs=format==='photo_strip'?STRIP_DESIGNS:getDesigns(type);
+ const designs=format==='photo_strip'?(type==='graduation'?[...STRIP_DESIGNS,getDesign('graduation','grad-gala')]:STRIP_DESIGNS):getDesigns(type);
  const activeTemplate=designs.find(d=>d.id===(draft.defaultTemplate||'ivory'))||designs[0];
  const palettes=SETUP_COLOR_STORIES;
  let preview=draft;
@@ -123,6 +123,7 @@ export default function EventSetup({cfg,photo='',poses=[],onSave,onClose}){
      </div>
      <section className="ksLookbook" aria-label="Choose a real keepsake design">
       <div className="ksLookbookHeading"><strong>01 · Choose your design</strong><small>Every design includes your event details</small></div>
+      {type==='graduation'&&<p className="ksNotice" style={{background:'#0d2851',color:'#fff2d1',border:'2px solid #f8a03a',padding:'14px 18px',borderRadius:12,margin:'9px 0'}}>For the navy, orange and gold graduation look, select <strong>Navy &amp; Gold Grad Party</strong> below. It uses your graduate's name and four real poses.</p>}
       <div className="ksLookbookGrid" role="group" aria-label="Design styles">
        {designs.map(d=><button type="button" key={d.id} className={'ksLookCard'+(activeTemplate.id===d.id?' isSelected':'')} data-testid={'setup-look-'+d.id} aria-label={'Use design '+d.name} aria-pressed={activeTemplate.id===d.id} onClick={()=>chooseTemplate(d.id)}>
         <span className="ksLookArt"><PrintCard mini sample={usePlaceholder} photo={previewPhoto} poses={previewPoses} cfg={designCfg} monogram={monogram} template={d.id} layout={format} stripMode={settings.stripMode}/></span>

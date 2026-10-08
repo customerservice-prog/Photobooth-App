@@ -67,7 +67,7 @@ export default function Booth(){
       const used=usage(localStorage,target);setPrintsUsed(used);
       if(c&&typeof c==='object'){
         setCfg(normalizeEventConfig({...defaultCfg,...c,printPackage:normalizePrintPackage(c.printPackage),runtime:(target.managed||target.imported)?{demo:target.demo,setup:target.setup}:undefined,type:Object.hasOwn(eventTypes,c.type)?c.type:(c.title==='Bryan Wedding'?'wedding':'other')}));
-        if(['ivory','blush','champagne'].includes(c.defaultTemplate))setTemplate(c.defaultTemplate);
+        if(['ivory','blush','champagne'].includes(c.defaultTemplate)||(c.type==='graduation'&&c.defaultTemplate==='grad-gala'))setTemplate(c.defaultTemplate);
       }
       if(target.managed||target.imported){
         // A demo, a transferred event and a real October event never share data.
@@ -201,7 +201,7 @@ export default function Booth(){
   async function recover(p){const token=++run.current;setError('');let originals=[];try{if(scope.managed||scope.imported)originals=await capturePoses(scope.archive,p.id);}catch{setError('The original poses could not be opened. The saved card is still available; retake to create a photo strip.');}if(token!==run.current)return;captureId.current=p.id;setSessionShots(originals.length===1?1:originals.length===3?3:4);setPoses(originals);setPhoto(p.data);setOperator(false);setEditing(false);setStep('preview')}
   const eventMeta=eventTypes[cfg.type]||eventTypes.other;
   const isPreview=step==='preview',isCapturing=['camera','photoSeries'].includes(step);
-  return <>{(scope.managed||scope.imported)&&<div className="workspaceBanner"><span>{scope.imported?'EVENT FROM STAFF · settings and photos saved on this iPad':scope.demo?'OFFICE DEMO · no physical prints · event allowance unchanged':'ACTUAL EVENT · photos saved on this device'}</span><a href={scope.imported?scope.setup:'/event-prep'}>{scope.imported?'Edit this booth setup →':'Event preparation →'}</a>{scope.linkedOctober&&<a href="/event-prep">Earlier October photos & backups →</a>}</div>}
+  return <>{(scope.managed||scope.imported)&&<div className="workspaceBanner"><span>{scope.demo?'SHOWCASE DEMO · test printing only · paid event unchanged':scope.imported?'EVENT FROM STAFF · settings and photos saved on this iPad':'ACTUAL EVENT · photos saved on this device'}</span><a href={scope.imported?scope.setup:'/event-prep'}>{scope.imported?'Edit this booth setup →':'Event preparation →'}</a>{scope.linkedOctober&&<a href="/event-prep">Earlier October photos & backups →</a>}</div>}
   <main className={`booth theme-${cfg.type||'other'}${step==='welcome'?' bwWelcomeMode':''}`} data-build="smile-sequence-v1" data-capture-mode="photo" data-managed-event={scope.managed?'true':undefined}>
     {!isPreview&&!isCapturing&&step!=='welcome'&&<a className="floatingHelp" href="/help" aria-label="Photo booth help">Help</a>}
     {step==='welcome'&&<WelcomeScreen cfg={cfg} eventName={eventMeta.name} online={online} starting={starting||!initialized} installed={installed} printsUsed={printsUsed} onStartQuick={()=>begin(1)} onStartFour={()=>begin(4)} onInstall={()=>setInstallOpen(true)} onOperator={()=>setOperator(true)} voiceStatus={voiceStatus}/>}

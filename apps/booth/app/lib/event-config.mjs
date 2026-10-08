@@ -43,5 +43,5 @@ export function finalizeEventSetup(draft){
   next.type==='corporate'?!!(d.company||d.eventName):!!d.eventName;
  if(!complete)throw new Error(next.type==='wedding'?'Enter both names so every keepsake has the right couple.':'Enter the event name or person’s name above.');
  if(!next.date)throw new Error('Add the event date.');
- return {...next,photoFit:draft.photoFit==='fit'?'fit':'fill',photoPauseSeconds:normalizeGuestPause(draft.photoPauseSeconds),defaultPhotoExperience:normalizePhotoPreference(draft.defaultPhotoExperience),printLayouts:validatePrintLayouts(draft.printLayouts),setupComplete:true,defaultTemplate:['ivory','blush','champagne'].includes(draft.defaultTemplate)?draft.defaultTemplate:'ivory'};
+ return {...next,photoFit:draft.photoFit==='fit'?'fit':'fill',photoPauseSeconds:normalizeGuestPause(draft.photoPauseSeconds),defaultPhotoExperience:normalizePhotoPreference(draft.defaultPhotoExperience),printLayouts:validatePrintLayouts(draft.printLayouts),setupComplete:true,defaultTemplate:(['ivory','blush','champagne'].includes(draft.defaultTemplate)||(next.type==='graduation'&&draft.defaultTemplate==='grad-gala'))?draft.defaultTemplate:'ivory'};
 }

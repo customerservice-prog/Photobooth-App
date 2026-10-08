@@ -14,12 +14,13 @@ test('premium setup shows six unique, printable color stories',()=>{
  }
 });
 
-test('three choices represent distinct real templates for each occasion',()=>{
+test('every occasion has distinct real templates, including graduation gala',()=>{
  for(const occasion of ['wedding','birthday','mitzvah','graduation','corporate','other']){
   const looks=getDesigns(occasion);
-  assert.equal(looks.length,3);
-  assert.equal(new Set(looks.map(x=>x.key)).size,3);
-  assert.deepEqual(looks.map(x=>x.id),['ivory','blush','champagne']);
+  const expected=occasion==='graduation'?['ivory','blush','champagne','grad-gala']:['ivory','blush','champagne'];
+  assert.equal(looks.length,expected.length);
+  assert.equal(new Set(looks.map(x=>x.key)).size,expected.length);
+  assert.deepEqual(looks.map(x=>x.id),expected);
  }
 });
 

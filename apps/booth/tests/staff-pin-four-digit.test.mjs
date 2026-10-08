@@ -39,7 +39,8 @@ test('offline verifier is created only after online staff authorization and is n
  assert.equal(await verifyOfflineStaffPin(storage,'00004826'),false);
  const stored=JSON.parse(storage.getItem('friendly-booth-offline-staff-v1'));
  assert.equal(stored.version,2);
- assert(!JSON.stringify(stored).includes(SAMPLE_PIN));
+ assert.deepEqual(Object.keys(stored).sort(),['digest','salt','version']);
+ assert(!Object.values(stored).includes(SAMPLE_PIN),'the raw PIN is never stored as a value');
  stored.version=1;
  storage.setItem('friendly-booth-offline-staff-v1',JSON.stringify(stored));
  assert.equal(await verifyOfflineStaffPin(storage,SAMPLE_PIN),false,'legacy eight-digit verifier must not authorize the new PIN');

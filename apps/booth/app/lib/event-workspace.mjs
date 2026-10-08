@@ -35,7 +35,10 @@ export function workspace(search=''){
    // Keep the already-created transfer photo archive intact; the earlier
    // October archive remains accessible from its original event-prep page.
    const linkedOctober=id===OCTOBER_ADMIN_EVENT_ID;
-   return {id,imported:true,managed:false,demo:false,linkedOctober,config:root+'-config',
+   // A separate, intentionally labeled sample session, never an admin booking.
+   // Paid event settings, photos and print allowances remain untouched.
+   const demo=id==='graduation-showcase';
+   return {id,imported:true,managed:false,demo,linkedOctober,config:root+'-config',
     usage:root+'-usage',photos:root+'-recent',previous:root+'-previous',
     archive:'transfer:'+id,home:'/'+q,setup:'/setup'+q};
   }
@@ -98,7 +101,7 @@ export function validatePreparation(draft){
   if(![0,54,108].includes(pp.addOnPrints))throw new Error('Choose one of the listed print packages.');
   const date=new Date(s.date+'T12:00:00Z').toLocaleDateString('en-US',{timeZone:'UTC',month:'long',day:'numeric',year:'numeric'});
   const checks={};for(const k of Object.keys(PREP_CHECKS))checks[k]=draft.preparation?.checks?.[k]===true;
-  return {eventId:EVENT_ID,type:'other',title:text(draft.title),subtitle:text(draft.subtitle),date,setupComplete:true,photoFit:'fill',photoPauseSeconds:normalizeGuestPause(draft.photoPauseSeconds),defaultPhotoExperience:normalizePhotoPreference(draft.defaultPhotoExperience),defaultTemplate:['ivory','blush','champagne'].includes(draft.defaultTemplate)?draft.defaultTemplate:'champagne',
+  return {eventId:EVENT_ID,type:'other',title:text(draft.title),subtitle:text(draft.subtitle),date,setupComplete:true,photoFit:'fill',photoPauseSeconds:normalizeGuestPause(draft.photoPauseSeconds),defaultPhotoExperience:normalizePhotoPreference(draft.defaultPhotoExperience),defaultTemplate:(['ivory','blush','champagne'].includes(draft.defaultTemplate)||(draft.type==='graduation'&&draft.defaultTemplate==='grad-gala'))?draft.defaultTemplate:'champagne',
     details:{eventName:text(draft.title),honoree:text(draft.details?.honoree,80),subtitle:text(draft.details?.subtitle,80),primaryColor:color(draft.details?.primaryColor)||base.details.primaryColor,secondaryColor:color(draft.details?.secondaryColor)||base.details.secondaryColor},
     printLayouts:validatePrintLayouts(draft.printLayouts),schedule:{date:s.date,start:s.start,end:s.end,timeZone:'America/New_York'},preparation:{colorsConfirmed:draft.preparation?.colorsConfirmed===true,checks},printPackage:{...pp,includedPrints:108,copiesPerSession:1,printingEnabled:true,digitalEnabled:true}};
 }

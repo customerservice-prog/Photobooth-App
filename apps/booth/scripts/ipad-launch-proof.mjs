@@ -36,6 +36,22 @@ for(const [engine,api] of [['chromium',chromium],['webkit',webkit]]){
   await page.setViewportSize({width:1024,height:768});await page.getByTestId('launch-demo').click();await page.getByTestId('welcome-four-photo').waitFor();await page.waitForFunction(()=>!document.querySelector('[data-testid="welcome-four-photo"]')?.disabled);
   assert(new URL(page.url()).searchParams.get('demo')==='1');assert.equal(await page.locator('.workspaceBanner').count(),1);assert((await page.locator('.workspaceBanner').innerText()).includes('OFFICE DEMO'));assert((await page.locator('#bwEventTitle').innerText()).includes('Saved Customer Preview'));assert.deepEqual(await snapshot(),before);assert.deepEqual(await archiveSnapshot(),photos);pass('launch-opens-correct-saved-demo-without-changing-allowance');
   await page.goto(base+'/ipad',{waitUntil:'networkidle'});
+  // Graduation artwork must be discoverable and launchable without touching
+  // existing paid events, photographs or their print counter.
+  await page.getByTestId('launch-graduation').click();
+  await page.getByTestId('graduation-design-preview').waitFor();
+  await page.screenshot({path:out+'/graduation-showcase-'+engine+'.png',fullPage:true});
+  assert.match(await page.getByTestId('graduation-one-proof').getAttribute('data-testid'),/graduation-one-proof/);
+  assert.equal(await page.getByTestId('graduation-four-proof').locator('[data-guest-photo]').count(),0,'sample placeholders cannot impersonate captured guests');
+  await page.getByRole('button',{name:/Use this design — open the Photo Booth/}).click();
+  await page.getByTestId('welcome-four-photo').waitFor({timeout:25000});
+  assert.equal(new URL(page.url()).searchParams.get('booth_event'),'graduation-showcase');
+  assert((await page.locator('.workspaceBanner').innerText()).includes('SHOWCASE DEMO'));
+  assert.equal(await page.evaluate(k=>localStorage.getItem(k),EVENT_KEYS.liveUsage),'17');
+  assert.equal(await page.evaluate(k=>localStorage.getItem(k),EVENT_KEYS.demoUsage),'3');
+  assert.equal(await page.evaluate(k=>JSON.parse(localStorage.getItem(k)).title,EVENT_KEYS.config),'Saved Customer Preview');
+  pass('graduation-preview-one-click-isolated-from-paid-event');
+  await page.goto(base+'/ipad',{waitUntil:'networkidle'});
   const cornerProof=await page.evaluate(async source=>{
    const a=new Function(source.replace(/\bexport /g,'')+';return {composePhotoStrip,fitPose,photoStripCells};')();const dimensions=[[800,200],[200,800],[640,480],[480,640]],colors=['rgb(240,30,30)','rgb(30,220,40)','rgb(30,50,240)','rgb(240,220,30)'];
    const shots=dimensions.map(([w,h],i)=>{const c=document.createElement('canvas');c.width=w;c.height=h;const x=c.getContext('2d');x.fillStyle='#555555';x.fillRect(0,0,w,h);[[0,0],[w*.85,0],[0,h*.85],[w*.85,h*.85]].forEach(([left,top],j)=>{x.fillStyle=colors[j];x.fillRect(left,top,w*.15,h*.15);});x.fillStyle='#ffffff';x.font=Math.floor(Math.min(w,h)/3)+'px sans-serif';x.fillText('POSE '+(i+1),w*.24,h*.6);return c.toDataURL('image/jpeg',.97);});

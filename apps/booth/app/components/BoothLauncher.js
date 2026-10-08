@@ -16,6 +16,7 @@ export default function BoothLauncher(){
         <h1 id="blTitle">A fresh start.<br/><em>Nothing lost.</em></h1>
         <p className="blIntro">Open the customer’s office demo with the Smile countdown and separate poses. This page does not reset saved event details, photos, or print counts.</p>
         <a className="blPrimary" data-testid="launch-demo" href={freshBoothEntry('demo',stamp)}><span>Open October 10 office demo<small>Photos only · no physical prints in demo mode</small></span><span aria-hidden="true">→</span></a>
+        <a className="blGraduation" data-testid="launch-graduation" href="/lamarr-preview"><span><strong>SEE THE NAVY &amp; GOLD GRADUATION DESIGN</strong><small>Preview the one-photo card and four-photo keepsake · enter the graduate’s name · take photos</small></span><span aria-hidden="true">→</span></a>
         <div className="blFlow" aria-label="What happens after Take a Photo"><span>3–2–1 &amp; Smile!</span><span>Each pose captured</span><span>Then print choices</span></div>
         <p className="blDetail">Tap <strong>Take a Photo</strong> on the next screen. The countdown appears after camera access is allowed. A four-pose session takes four separate photos automatically before showing the design page.</p>
         <div className="blOther"><a data-testid="launch-preparation" href={freshBoothEntry('preparation',stamp)}>Edit the customer’s event →</a><a data-testid="launch-saved" href={freshBoothEntry('saved',stamp)}>Open the general saved booth →</a></div>

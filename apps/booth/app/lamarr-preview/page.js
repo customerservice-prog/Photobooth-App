@@ -1,30 +1,44 @@
 'use client';
-import {useMemo} from 'react';
-import {renderLamarrFour,renderLamarrOne} from '../lib/lamarr-graduation.mjs';
-const cfg={type:'graduation',title:'LaMarr',date:'October 10th, 2026',details:{graduate:'LaMarr',classYear:'2026',primaryColor:'#061b3b',secondaryColor:'#f77b13'}};
-function Preview({title,art,caption}){
- return <article style={{flex:'1 1 310px',minWidth:0,background:'#122c4b',padding:16,border:'1px solid #48678e',borderRadius:18}}>
-  <h2 style={{fontSize:21,margin:'0 0 6px'}}>{title}</h2><p style={{fontSize:13,color:'#d5deed',margin:'0 0 12px'}}>{caption}</p>
-  <div style={{width:'100%',maxWidth:460,margin:'auto',aspectRatio:'2 / 3',background:'#061b3b',boxShadow:'0 12px 30px #0008'}} dangerouslySetInnerHTML={{__html:art.replace('<svg ','<svg style="width:100%;height:100%;display:block" ')}}/>
- </article>;
+import {useMemo,useState} from 'react';
+import {renderKeepsake} from '../lib/keepsake-designs.mjs';
+import {readPreviewPhoto} from '../lib/event-studio.mjs';
+import {graduationShowcaseConfig,startGraduationShowcase} from '../lib/graduation-showcase.mjs';
+import './grad-preview.css';
+
+function Artwork({title,caption,html,testId}){
+ return <article className="gpProof"><div className="gpArtBox" data-testid={testId} dangerouslySetInnerHTML={{__html:html}}/><div className="gpProofCopy"><strong>{title}</strong><span>{caption}</span></div></article>;
 }
-export default function LamarrPreview(){
- const four=useMemo(()=>renderLamarrFour([],cfg),[]),one=useMemo(()=>renderLamarrOne(null,cfg),[]);
- return <main style={{minHeight:'100dvh',overflowY:'auto',background:'#071225',padding:'clamp(12px,3vw,32px)',color:'white',fontFamily:'system-ui,sans-serif'}}>
-  <section style={{maxWidth:1050,margin:'auto'}}>
-   <header style={{display:'flex',justifyContent:'space-between',gap:16,flexWrap:'wrap',alignItems:'center',marginBottom:20}}>
-    <div><p style={{color:'#ffad56',letterSpacing:2,fontSize:12,margin:0}}>FRIENDLY PHOTO BOOTH · CUSTOMER PREVIEW</p><h1 style={{fontSize:'clamp(26px,4vw,40px)',margin:'8px 0'}}>LaMarr's Graduation</h1><p style={{color:'#e8d2a9',margin:0}}>Saturday, October 10, 2026 · navy blue, orange and gold</p></div>
-    <a href="/" style={{background:'#fff',color:'#092347',padding:'13px 17px',borderRadius:10,textDecoration:'none',fontWeight:700}}>Back to booth</a>
-   </header>
-   <div style={{display:'flex',gap:18,alignItems:'stretch',flexWrap:'wrap'}}>
-    <Preview title="Four separate photos" art={four} caption="Four actual guest poses will replace these numbered sample boxes."/>
-    <Preview title="One large photo" art={one} caption="One guest photo fills the gold-bordered portrait frame."/>
-   </div>
-   <aside style={{marginTop:20,padding:18,background:'#142b4b',borderRadius:14,border:'1px solid #415b7e'}}>
-    <strong>Event rehearsal • Fictional address: 100 Celebration Lane, Syracuse, NY 13202 • Sample contact: lamarr-demo@example.com</strong>
-    <p style={{lineHeight:1.6}}>This is the real app's artwork output, shown side by side on your iPad. It does not use a customer's email or photographs. It is a live design preview, not a confirmation of AirPrint or borderless printing.</p>
-    <a href="/print-test" style={{display:'inline-block',background:'#ff942c',color:'#0a2346',padding:'13px 18px',textDecoration:'none',borderRadius:10,fontWeight:700}}>Open physical printer test</a>
-   </aside>
-  </section>
- </main>;
+export default function GraduationPreviewPage(){
+ const [name,setName]=useState('LaMarr'),[year,setYear]=useState('2026'),[date,setDate]=useState('October 10, 2026');
+ const [previewPhoto,setPreviewPhoto]=useState(''),[error,setError]=useState(''),[busy,setBusy]=useState(false);
+ const cfg=useMemo(()=>graduationShowcaseConfig({name,year,date}),[name,year,date]);
+ const one=useMemo(()=>renderKeepsake({photo:previewPhoto,cfg,template:'grad-gala',layout:'card',id:'grad-proof-one'}),[previewPhoto,cfg]);
+ const four=useMemo(()=>renderKeepsake({photo:previewPhoto,poses:previewPhoto?Array(4).fill(previewPhoto):[],cfg,template:'grad-gala',layout:'photo_strip',stripMode:'single',id:'grad-proof-four'}),[previewPhoto,cfg]);
+ async function upload(e){
+  const file=e.target.files?.[0];e.target.value='';
+  if(!file)return;
+  setBusy(true);setError('');
+  try{setPreviewPhoto(await readPreviewPhoto(file));}
+  catch(err){setError(err.message||'Could not open this photo. Try JPG or PNG.');}
+  finally{setBusy(false);}
+ }
+ function openBooth(){
+  setError('');
+  try{window.location.assign(startGraduationShowcase(localStorage,{name,year,date}));}
+  catch{setError('This device could not save the preview. Check Safari storage and try again. No customer event was changed.');}
+ }
+ return <main className="gpPage" data-testid="graduation-design-preview"><div className="gpWrap">
+   <header className="gpHeader"><div><span className="gpOverline">FRIENDLY PHOTO BOOTH · LIVE GRADUATION DESIGN</span><h1>Make it look like <em>the celebration.</em></h1><p>The same artwork appears on the finished 4×6 print, digital download, and booth design screen.</p></div><a className="gpReturn" href="/launch">Back to start</a></header>
+   <section className="gpCustomize" aria-label="Personalize the graduation design"><div className="gpStep"><span>01</span><div><strong>Enter the graduate’s details</strong><p>See the name and date update in both layouts.</p></div></div>
+    <div className="gpInputs"><label>Graduate’s name<input value={name} maxLength={30} onChange={e=>setName(e.target.value)}/></label><label>Class year<input value={year} inputMode="numeric" maxLength={4} onChange={e=>setYear(e.target.value.replace(/\D/g,'').slice(0,4))}/></label><label>Event date<input value={date} maxLength={50} onChange={e=>setDate(e.target.value)}/></label></div>
+    <div className="gpSampleLine"><label className="gpPhotoPick" htmlFor="gpUpload">Add a sample photo (optional)<input id="gpUpload" type="file" accept="image/jpeg,image/png,image/webp" onChange={upload} disabled={busy}/></label>{previewPhoto&&<button type="button" className="gpClear" onClick={()=>setPreviewPhoto('')}>Remove sample</button>}<small>{busy?'Preparing photo…':previewPhoto?'Preview only. The four-photo proof repeats this sample for illustration; the real booth captures four different poses.':'No photo? We show placeholder silhouettes until you take a real picture.'}</small></div>
+    {error&&<p role="alert" className="gpError">{error}</p>}
+   </section>
+   <div className="gpStep gpDesignTitle"><span>02</span><div><strong>Compare both real print layouts</strong><p>Navy and orange balloons, metallic-style gold frame, large photographs, class year and personalized name.</p></div></div>
+   <section className="gpGallery" aria-label="One-photo and four-photo graduation print proofs">
+    <Artwork title="One big photo · 4×6 card" caption="Full portrait, gold frame and celebration name" html={one} testId="graduation-one-proof"/>
+    <Artwork title="Four separate poses · 4×6 keepsake" caption="Four large photos taken one after another by the booth" html={four} testId="graduation-four-proof"/>
+   </section>
+   <section className="gpAction"><div className="gpStep"><span>03</span><div><strong>Try it in the Photo Booth</strong><p>Take one photo or four poses. This opens a separate rehearsal event; it never changes the paid booking or print allowance.</p></div></div><button type="button" className="gpStart" onClick={openBooth}>Use this design — open the Photo Booth <span aria-hidden="true">→</span></button><small>The photo backdrop in your reference is silver sequins. For that exact background, place a real silver sequin backdrop behind the guest; the artwork does not replace their surroundings.</small></section>
+ </div></main>;
 }
