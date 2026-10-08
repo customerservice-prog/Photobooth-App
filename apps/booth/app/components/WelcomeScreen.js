@@ -44,7 +44,7 @@ const WelcomeProof=memo(function WelcomeProof({cfg,shots}){
  const view={...cfg,photoFit:'fill'};
  return <aside className="bwShowcase" aria-label="Personalized keepsake design preview"><div className="bwShowcaseTop"><span>YOUR EVENT KEEPSAKE<br/><em>Made for your moment.</em></span><Mark name="sparkle" size={30}/></div><div className="bwPaperStack"><div className="bwPaperBack" aria-hidden="true"/><div className="bwRealProof"><PrintCard photo={sample} layout={normalizePrintLayouts(cfg.printLayouts).defaultLayout} stripMode={normalizePrintLayouts(cfg.printLayouts).stripMode} sample cfg={view} monogram={eventMonogram(cfg)} template={cfg.defaultTemplate||'ivory'}/></div><span className="bwSeal" aria-hidden="true"><Mark name="sparkle" size={17}/><b>MADE<br/>FOR YOU</b></span></div><div className="bwProofCaption"><span className="bwProofRule"/><p>YOUR {shots===1?'ONE PHOTO':shots+' POSES'}. YOUR PERSONALIZED DESIGN.<small>Sample preview · your photos go here</small></p><span className="bwProofRule"/></div></aside>;
 });
-export default function WelcomeScreen({cfg,eventName,online,starting,installed,printsUsed=0,onStartQuick,onStartFour,onInstall,onOperator,voiceStatus='idle',onVoiceTest}){
+export default function WelcomeScreen({cfg,eventName,online,starting,installed,printsUsed=0,onStartQuick,onStartFour,onInstall,onOperator,voiceStatus='idle'}){
  const [staffPrompt,setStaffPrompt]=useState(false);
  const rules=normalizePrintPackage(cfg.printPackage),layouts=normalizePrintLayouts(cfg.printLayouts),available=rules.printingEnabled&&printsRemaining(rules,printsUsed)>0,title=String(cfg.title||'Our Celebration');
  const time=cfg.schedule?scheduleLabel(cfg):(cfg.details?.subtitle!==cfg.subtitle?cfg.details?.subtitle:'');
@@ -79,9 +79,8 @@ export default function WelcomeScreen({cfg,eventName,online,starting,installed,p
    </ol>
    <div className="bwGuestTools">
     <p className="bwChoiceNote"><Mark name={available?'print':'share'} size={17}/>{available?'One photo makes a 4×6 card. Four photos can become a card or strip.':'Digital photos are available. Ask the attendant about printing.'}</p>
-    <button type="button" data-testid="booth-sound-test" className="bwSoundCheck" onClick={onVoiceTest}><span aria-hidden="true">🔊</span> Test speaker</button>
    </div>
-   {(voiceStatus==='blocked'||voiceStatus==='unavailable')&&<p className="bwSoundWarning" role="alert">No sound detected. Tap Test speaker, turn up your iPad media volume and check Bluetooth output.</p>}
+   {(voiceStatus==='blocked'||voiceStatus==='unavailable')&&<p className="bwSoundWarning" role="alert">Sound could not start. Ask an attendant to check iPad volume and Bluetooth in Staff Tools.</p>}
   </div></section><WelcomeProof cfg={cfg} shots={preferred==='one'?1:rules.shotsPerSession}/></div>
   <footer className="bwFooter"><span className={'bwConnection'+(online?'':' bwOffline')} role="status"><i/>{online?'Online':'Offline · booth still works'}</span><span className="bwCredit">Friendly Party Rental · Photo Booth</span><div className="bwUtilities"><AppUpdate disabled={starting}/>{!installed&&<button type="button" onClick={onInstall}>Add to iPad</button>}</div></footer>
  </div>{staffPrompt&&<StaffAccessGate onClose={()=>setStaffPrompt(false)} onConfirm={()=>{setStaffPrompt(false);onOperator?.();}}/>}</div>;
