@@ -43,5 +43,5 @@ test('events running past midnight keep the following-day end without moving the
 });
 test('admin never tells staff that these updates automatically sync to a live iPad',()=>{
  assert.match(guestHandoffMessage(),/private admin dashboard/);
- assert.match(guestHandoffMessage(),/does not silently change/);
+ assert.match(guestHandoffMessage(),/does not silently interrupt/);
 });
