@@ -225,6 +225,7 @@ export default function Booth(){
      installed={installed}
      managed={scope.managed}
      demo={scope.demo}
+     eventScope={scope}
      remaining={printsRemaining(normalizePrintPackage(cfg.printPackage),printsUsed)}
      setupHref={scope.setup||'/setup'}
      photos={gallery}
