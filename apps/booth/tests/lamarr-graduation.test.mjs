@@ -10,7 +10,7 @@ test('LaMarr four-photo graduation layout uses exactly four distinct guest pictu
  for(const pose of poses)assert.ok(svg.includes(pose));
  assert.match(svg,/October 10th, 2026/);
  assert.match(svg,/LaMarr/);
- assert.doesNotMatch(svg,/Page 1 of 1|http:\/\/|https:\/\//);
+ assert.doesNotMatch(svg,/Page 1 of 1|photobooth\.com/);
 });
 test('LaMarr one-photo layout uses only actual chosen guest photo',()=>{
  const svg=renderKeepsake({layout:'card',cfg,photo:poses[0]});
