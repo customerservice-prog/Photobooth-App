@@ -1,6 +1,6 @@
 // Event-specific physical 4×6 artwork used identically by iPad preview, export and print.
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&apos;'}[c]));
-export const isLamarrGraduation=cfg=>/lamarr/i.test(String(cfg?.details?.graduate||'')+' '+String(cfg?.title||''));
+export const isLamarrGraduation=cfg=>/lamar{1,2}/i.test(String(cfg?.details?.graduate||'')+' '+String(cfg?.title||''));
 const rect=(x,y,w,h,color,rx=0)=>'<rect x="'+x+'" y="'+y+'" width="'+w+'" height="'+h+'" rx="'+rx+'" fill="'+color+'"/>';
 function defs(){return '<defs><linearGradient id="lmBg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#031126"/><stop offset=".55" stop-color="#0d3264"/><stop offset="1" stop-color="#040d23"/></linearGradient><linearGradient id="lmGold" x1="0" y1="0" x2="1" y2="0"><stop stop-color="#c7832b"/><stop offset=".25" stop-color="#fff0b9"/><stop offset=".58" stop-color="#e9b867"/><stop offset="1" stop-color="#9b641e"/></linearGradient><linearGradient id="lmOrange"><stop stop-color="#ffb24c"/><stop offset=".6" stop-color="#fa7d17"/><stop offset="1" stop-color="#c9560e"/></linearGradient><radialGradient id="lmBall"><stop stop-color="#ffe3a4"/><stop offset=".35" stop-color="#ffa42c"/><stop offset="1" stop-color="#c7570a"/></radialGradient></defs>';}
 function star(x,y,size,fill){return '<path d="M0 -1L.24 -.25 1 0 .24 .25 0 1 -.24 .25 -1 0 -.24 -.25Z" transform="translate('+x+' '+y+') scale('+size+')" fill="'+fill+'"/>';}
