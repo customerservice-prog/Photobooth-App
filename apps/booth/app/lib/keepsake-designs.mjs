@@ -7,12 +7,17 @@ import {renderCorporate} from './templates/corporate.mjs';
 import {renderCelebration} from './templates/celebration.mjs';
 import {getDesign} from './template-registry.mjs';
 import {renderClassicPhotoStrip} from './classic-photo-strip.mjs';
+import {isLamarrGraduation,renderLamarrFour,renderLamarrOne} from './lamarr-graduation.mjs';
 import {applySvgPhotoFinish} from './svg-photo-finish.mjs';
 import {applyEventPaletteTrim} from './setup-lookbook.mjs';
 export {getDesigns,getDesign,TEMPLATE_FAMILIES} from './template-registry.mjs';
 export {EVENT_LABELS,eventCopy,fitText} from './keepsake-model.mjs';
 const renderers={wedding:renderWeddingBirthday,birthday:renderWeddingBirthday,mitzvah:renderMitzvah,graduation:renderGraduation,corporate:renderCorporate,other:renderCelebration};
 export function renderKeepsake(input={}){
+ if(isLamarrGraduation(input.cfg)){
+  const art=input.layout==='photo_strip'?renderLamarrFour(input.poses,input.cfg):renderLamarrOne(input.photo,input.cfg);
+  return applySvgPhotoFinish(art,input.filter,input.id);
+ }
  if(input.layout==='photo_strip')return applySvgPhotoFinish(renderClassicPhotoStrip(input),input.filter,input.id);
  const cfg=input.cfg&&typeof input.cfg==='object'?input.cfg:{};
  const spec=getDesign(cfg.type,input.template),safe={...input,cfg:{...cfg,type:spec.family},template:spec.id};
