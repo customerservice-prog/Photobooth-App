@@ -44,12 +44,12 @@ export default async function EditEventPage({params}){
     <div style={{marginTop:14}}><F label="Notes for staff" hint="Parking, gate access, loading entrance and contact instructions."><textarea className="input" rows={3} name="internalNotes" defaultValue={event.internalNotes||''}/></F></div>
    </section>
    <section className="card formSection" id="equipment">
-    <div className="eyebrow">EQUIPMENT · REQUIRED BEFORE AN EVENT</div><h2 className="sectionTitle">Choose the booth and print design</h2><p className="sectionLead">These selections identify your hardware and design records in the admin database.</p>
+    <div className="eyebrow">EQUIPMENT · REQUIRED BEFORE AN EVENT</div><h2 className="sectionTitle">Assign the photo booth</h2><p className="sectionLead">Select the physical booth. Choose and approve the customer's actual print artwork in Step 04 below; you do not need a second template selection.</p>
     <div className="formGrid">
      <F label="Physical photo booth"><select className="input" name="boothId" defaultValue={event.boothId||''}><option value="">Choose a booth…</option>{booths.map(b=><option key={b.id} value={b.id}>{b.name} · {b.status==='ONLINE'?'Marked online':b.status==='MAINTENANCE'?'Maintenance':'Marked offline'}</option>)}</select></F>
-     <F label="Print design record"><select className="input" name="templateId" defaultValue={event.templateId||''}><option value="">Choose a print design…</option>{templates.map(t=><option key={t.id} value={t.id}>{t.name} · {t.format.replaceAll('_',' ')}</option>)}</select></F>
+     <F label="Legacy print design record (optional)"><select className="input" name="templateId" defaultValue={event.templateId||''}><option value="">Choose a print design…</option>{templates.map(t=><option key={t.id} value={t.id}>{t.name} · {t.format.replaceAll('_',' ')}</option>)}</select></F>
     </div>
-    {(!booths.length||!templates.length)&&<div className="warningNote" style={{marginTop:14}}>Missing options? {!booths.length&&<Link href="/booths/new">Register a booth →</Link>}{!booths.length&&!templates.length?' · ':''}{!templates.length&&<Link href="/templates/new">Add a print design →</Link>}</div>}
+    {(!booths.length||!templates.length)&&<div className="warningNote" style={{marginTop:14}}>Missing a registered booth? {!booths.length&&<Link href="/booths/new">Register the Photo Booth →</Link>}{!templates.length&&<span> The approved design below works without an old template record.</span>}</div>}
    </section>
    <input type="hidden" name="numberOfPhotos" value={event.numberOfPhotos===3?'3':'4'}/>
    <ExperienceEditor initial={experience} eventType={type}/>
