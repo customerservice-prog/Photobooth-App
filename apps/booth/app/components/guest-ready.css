@@ -11,6 +11,7 @@
 .agPaperWrap{justify-self:center;align-self:center;min-height:0;width:min(35vw,calc((100dvh - 185px)*.6667),380px);aspect-ratio:2 / 3;max-height:calc(100dvh - 185px);border:8px solid #fbfaf6;box-shadow:0 16px 50px #112e2840,0 0 0 1px #c2c8b8;background:#112c41;border-radius:4px;overflow:hidden}
 .agPaperWrap img{width:100%;height:100%;display:block;object-fit:contain}
 .agPreparing{height:100%;display:grid;place-items:center;padding:24px;color:#fff4d0;text-align:center;font-weight:650;font-size:17px}
+.agSaved{font:700 12px/1.45 system-ui,sans-serif;color:#28604a;text-align:center;margin:4px 0 0;padding:0 12px}
 .agStatus{max-width:850px;margin:0 auto 6px;padding:9px 15px;border:1px solid #a1c2ad;border-radius:10px;background:#e5efe5;color:#294d3d;font-size:12px;line-height:1.4;text-align:center}.agWarning{border-color:#dbb4ab;background:#fff2ee;color:#8c3831}
 .agStatus button{margin-left:12px;border:1px solid currentColor;background:transparent;padding:7px;border-radius:7px;color:inherit;font-weight:700}
 .agDock{min-height:100px;display:flex;justify-content:center;align-items:center;gap:clamp(6px,1vw,13px);padding:14px clamp(10px,2vw,26px) max(15px,env(safe-area-inset-bottom));background:#f9f8f3;border-top:1px solid #cfd5ca;box-shadow:0 -10px 28px #1327220c}
