@@ -5,7 +5,7 @@ import WelcomeScreen from './components/WelcomeScreen';
 import StaffDashboard from './components/StaffDashboard';
 import PhotoCapture from './components/PhotoCapture';
 import {runPhotoSequence,takeFreshPhoto,waitForPose} from './lib/photo-sequence.mjs';
-import {playPhotoCue,preparePhotoAudio,stopTalking} from './lib/photo-voice.mjs';
+import {playPhotoCue,preparePhotoAudio,speakCue,stopTalking} from './lib/photo-voice.mjs';
 import {normalizeGuestPause,waitForGuestReady} from './lib/guest-pause.mjs';
 import {normalizeEventConfig} from './lib/event-config.mjs';
 import {normalizePrintPackage,printsRemaining,canPrint} from './lib/print-package.mjs';
@@ -129,14 +129,14 @@ export default function Booth(){
         capture:options=>takeFreshPhoto(video.current,options),
         onProgress:next=>{if(id===run.current){capturePhase.current=next.phase;setCapture(next);}},
         onCue:cue=>{
-          if(id!==run.current||!audioReady)return 0;
-          try{
-            const duration=playPhotoCue(cue);
-            if(duration)return duration;
-          }catch{}
-          // A device may suspend sound while a photo series is running.
-          // Continue the visual countdown without interrupting any capture.
-          audioReady=false;setVoiceStatus('unavailable');return 0;
+          if(id!==run.current)return 0;
+          if(audioReady){
+            try{const duration=playPhotoCue(cue);if(duration)return duration;}catch{}
+            audioReady=false;setVoiceStatus('unavailable');
+          }
+          // Speak through iPad text-to-speech if recorded clips fail.
+          // The on-screen countdown remains authoritative if sound is muted.
+          speakCue(cue);return 0;
         }
       });
       stopTalking();const data=total===1?shots[0]:await composePhotoStrip(shots,cfg);if(id!==run.current)return;
