@@ -40,6 +40,7 @@ for(const [engine,api] of [['chromium',chromium],['webkit',webkit]]){
   // existing paid events, photographs or their print counter.
   await page.getByTestId('launch-graduation').click();
   await page.getByTestId('graduation-design-preview').waitFor();
+  await page.screenshot({path:out+'/graduation-showcase-'+engine+'.png',fullPage:true});
   assert.match(await page.getByTestId('graduation-one-proof').getAttribute('data-testid'),/graduation-one-proof/);
   assert.equal(await page.getByTestId('graduation-four-proof').locator('[data-guest-photo]').count(),0,'sample placeholders cannot impersonate captured guests');
   await page.getByRole('button',{name:/Use this design — open the Photo Booth/}).click();
