@@ -1,2 +1,36 @@
-import Link from "next/link";import {prisma} from "../../lib/prisma";export const dynamic="force-dynamic";
-export default async function EventsPage(){let events=[],dbError=null;try{events=await prisma.event.findMany({include:{customer:true,booth:true,template:true},orderBy:{date:"asc"}})}catch(e){dbError=e.message}return <main className="page"><div style={{display:"flex",justifyContent:"space-between",alignItems:"end",gap:20,flexWrap:"wrap"}}><div><div className="eyebrow">Bookings & production</div><h1 className="title">Events</h1><p className="muted">Prepare, assign and monitor every photo booth experience.</p></div><Link href="/events/new" className="btn">＋ New Event</Link></div>{dbError&&<div className="card" style={{padding:20,marginTop:24,color:"#e78d8d"}}>Could not load events: {dbError}</div>}{!dbError&&<section className="card" style={{marginTop:28,overflow:"hidden"}}>{events.length?events.map((e,i)=><Link href={`/events/${e.id}`} key={e.id} style={{display:"grid",gridTemplateColumns:"85px minmax(180px,1.5fr) minmax(140px,1fr) minmax(120px,.8fr) auto",gap:18,alignItems:"center",padding:"18px 22px",borderTop:i?"1px solid #282923":"none",textDecoration:"none"}}><div style={{textAlign:"center"}}><div style={{fontFamily:"Georgia,serif",fontSize:27}}>{new Date(e.date).getDate()}</div><div className="eyebrow" style={{letterSpacing:1}}>{new Date(e.date).toLocaleString("en",{month:"short"})}</div></div><div><strong style={{fontSize:15}}>{e.name}</strong><div className="muted" style={{fontSize:12,marginTop:5}}>{e.venueName||"Venue not entered"}</div></div><div><div style={{fontSize:13}}>{e.customer?.name}</div><div className="muted" style={{fontSize:11,marginTop:4}}>{e.eventType||"Event"}</div></div><div className="muted" style={{fontSize:12}}>{e.template?.name||"Design pending"}</div><span style={{padding:"7px 9px",borderRadius:99,border:"1px solid #3b3323",color:"#c8a760",fontSize:9,letterSpacing:1,textTransform:"uppercase"}}>{e.status}</span></Link>):<div style={{padding:48,textAlign:"center"}}><div style={{fontSize:34,color:"#c8a760"}}>◈</div><h2 style={{fontFamily:"Georgia,serif",fontWeight:400}}>Your event desk is clear</h2><p className="muted">Create tomorrow's wedding to start the setup workflow.</p><Link className="btn" href="/events/new">Create Wedding Event</Link></div>}</section>}</main>}
+import Link from 'next/link';
+import {prisma} from '../../lib/prisma';
+import {readiness,toLocalDay} from '../../lib/studio-experience.mjs';
+import {PageHeader,EventTile,EmptyState,DatabaseError} from '../StudioUI';
+export const dynamic='force-dynamic';
+export default async function EventsPage({searchParams={}}){
+ const query=String(searchParams.q||'').trim().slice(0,100);
+ const filter=['upcoming','needs','all','completed'].includes(searchParams.filter)?searchParams.filter:'upcoming';
+ let events=[],error=null;
+ try{events=await prisma.event.findMany({include:{customer:true,booth:true,template:true},orderBy:{date:'asc'},take:200})}catch(e){error=e}
+ const today=new Intl.DateTimeFormat('en-CA',{timeZone:'America/New_York',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
+ const matches=events.filter(e=>{
+  const text=[e.name,e.venueName,e.customer?.name,e.customer?.email,e.booth?.name].filter(Boolean).join(' ').toLowerCase();
+  const inSearch=!query||text.includes(query.toLowerCase());
+  if(!inSearch)return false;
+  if(filter==='needs')return !readiness(e).ready&&!['COMPLETED','ARCHIVED'].includes(e.status);
+  if(filter==='upcoming')return toLocalDay(e.date)>=today&&!['COMPLETED','ARCHIVED'].includes(e.status);
+  if(filter==='completed')return ['COMPLETED','ARCHIVED'].includes(e.status);
+  return true;
+ });
+ const filterUrl=(kind)=>'/events?filter='+kind+(query?'&q='+encodeURIComponent(query):'');
+ return <main className="page">
+  <PageHeader eyebrow="YOUR EVENTS" title="Find an event. Finish its setup." subtitle="Every event shows what is ready and what needs attention. Choose an event to see everything in one place."><Link className="btn" href="/events/new">＋ New event</Link></PageHeader>
+  <form className="searchBar" action="/events" method="get">
+   <input type="hidden" name="filter" value={filter}/>
+   <input className="input" type="search" name="q" defaultValue={query} placeholder="Search event, customer or venue" aria-label="Search events"/>
+   <button type="submit" className="btn">Search</button>
+   {query&&<Link href={'/events?filter='+filter} className="btn btn2">Clear</Link>}
+  </form>
+  <nav className="filterLinks" aria-label="Event filters">{[['upcoming','Upcoming'],['needs','Needs setup'],['all','All events'],['completed','Completed']].map(([kind,label])=><Link key={kind} href={filterUrl(kind)} className={filter===kind?'isSelected':''} aria-current={filter===kind?'page':undefined}>{label}</Link>)}</nav>
+  {error?<DatabaseError topic="events"/>:<section style={{marginTop:21}}>
+    <p className="rowSubtitle" style={{marginBottom:13}}>{matches.length} matching event{matches.length===1?'':'s'}{events.length>=200?' · showing up to 200 most relevant records':''}</p>
+    {matches.length?<div className="eventTiles">{matches.map(event=><EventTile key={event.id} event={event}/>)}</div>:<EmptyState title={query?'No matching events':'Nothing in this view yet'} description={query?'Try a different event name, customer or venue.':'Choose another filter or create a new event to get started.'} href={query?'/events?filter=all':'/events/new'} label={query?'Show all events':'Create an event →'}/>}
+   </section>}
+ </main>;
+}
