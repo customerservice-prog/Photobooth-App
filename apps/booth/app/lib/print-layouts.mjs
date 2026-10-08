@@ -23,4 +23,4 @@ export function initialPrintLayout(settings,poses,total){
  return rules.defaultLayout==='photo_strip'&&(!rules.cardEnabled||hasOriginalPoses(poses,total))?'photo_strip':'card';
 }
 export function getStripDesign(id){return STRIP_DESIGNS.find(d=>d.id===id)||STRIP_DESIGNS[0];}
-export function stripDescription(mode){return mode==='single'?'One vertical strip centered on a 4×6 sheet':'Two matching 2×6 strips on one 4×6 sheet';}
+export function stripDescription(mode){return mode==='single'?'One full-width photo strip filling a 4×6 sheet':'Two matching 2×6 strips on one 4×6 sheet';}
