@@ -155,6 +155,10 @@ export default function Booth(){
     }catch(e){setError(e.message||'Print counter could not be saved. No print was sent.');return false;}finally{printGuard.current=false;}
   }
   function print(){if(printing)return false;clearTimeout(timer.current);setPrinting(true);let fallback;const release=()=>{clearTimeout(fallback);removeEventListener('afterprint',release);setPrinting(false);printCleanup.current=()=>{};};printCleanup.current=release;addEventListener('afterprint',release);fallback=setTimeout(release,120000);try{window.print();return true;}catch{release();setError('Print options could not open. Please try again.');return false;}}
+  function reviewPrint(id,outcome){
+    try{markPrintOutcome(localStorage,scope,id,outcome);setPrintsUsed(usage(localStorage,scope));return true;}
+    catch(e){setError(e.message||'Print request could not be updated.');return false;}
+  }
   function testSpeaker(){preparePhotoAudio().then(()=>setVoiceStatus('playing')).catch(()=>setVoiceStatus('blocked'));}
   async function recover(p){const token=++run.current;setError('');let originals=[];try{if(scope.managed||scope.imported)originals=await capturePoses(scope.archive,p.id);}catch{setError('The original poses could not be opened. The saved card is still available; retake to create a photo strip.');}if(token!==run.current)return;captureId.current=p.id;setSessionShots(originals.length===1?1:originals.length===3?3:4);setPoses(originals);setPhoto(p.data);setOperator(false);setEditing(false);setStep('preview')}
   const eventMeta=eventTypes[cfg.type]||eventTypes.other;
