@@ -23,7 +23,7 @@ export function decodeBoothHandoff(fragment){
   !idRe.test(payload.id)||typeof payload.title!=='string'||!payload.title.trim()||payload.title.length>96||
   /[\u0000-\u001f<>]/.test(payload.title)||!dateRe.test(payload.date)||!Number.isFinite(Date.parse(payload.date+'T12:00:00Z'))||
   new Date(payload.date+'T12:00:00Z').toISOString().slice(0,10)!==payload.date||
-  !/^([01]\\d|2[0-3]):[0-5]\\d$/.test(payload.start)||!/^([01]\\d|2[0-3]):[0-5]\\d$/.test(payload.end)||
+  !/^([01]\d|2[0-3]):[0-5]\d$/.test(payload.start)||!/^([01]\d|2[0-3]):[0-5]\d$/.test(payload.end)||
   typeof payload.rev!=='string'||!iso.test(payload.rev)||!Number.isFinite(Date.parse(payload.rev))||
   !types.has(payload.type)||!['one','four'].includes(payload.f)||
   ![6,9,12].includes(payload.p)||!['card','strip'].includes(payload.mode)||
