@@ -173,8 +173,8 @@ export default function Booth(){
     {error&&<div className="boothAlert" role="alert"><div className="error">{error}<button onClick={()=>setError('')} aria-label="Dismiss message">×</button></div></div>}
     {installOpen&&<div className="installPanel" role="dialog" aria-modal="true" aria-label="Install on iPad"><div className="installCard"><h2>Add Friendly Booth to your Home Screen.</h2><div className="installSteps"><div><b>1</b><span>Open this booth in Safari.</span></div><div><b>2</b><span>Open Share, then Add to Home Screen.</span></div><div><b>3</b><span>Open the new Friendly Booth icon.</span></div></div><p>This adds the web app. Device locking is a separate iPad setting.</p><button className="action primary" onClick={()=>setInstallOpen(false)}>Close instructions</button></div></div>}
     {operator&&<StaffDashboard
-     onClose={()=>setOperator(false)}
-     onReset={()=>{setOperator(false);reset();}}
+     onClose={()=>{setOperator(false);void fetch('/api/staff/lock',{method:'POST'}).catch(()=>{});}}
+     onReset={()=>{setOperator(false);reset();void fetch('/api/staff/lock',{method:'POST'}).catch(()=>{});}}
      onVoiceTest={testSpeaker}
      onRecover={recover}
      onSaveConfig={saveConfig}
