@@ -30,7 +30,7 @@ export default function AdminNavigation({children}){
    <div className="sidefoot"><strong>Need the guest photo booth?</strong><a href={BOOTH_URL} target="_blank" rel="noopener noreferrer">Open guest booth ↗</a><small>Opens separately. Device setup is stored on the iPad.</small></div>
   </aside>
   <div className="content">
-   <header className="adminTopbar"><div className="adminBreadcrumb"><span className="adminTopMark" aria-hidden="true">✦</span><span>Photo Booth / Staff workspace</span></div><div className="adminTopActions"><Link href="/events/new" className="topNewEvent">＋ New event</Link><a href={BOOTH_URL} target="_blank" rel="noopener noreferrer" className="topGuestLink">Guest booth ↗</a></div></header>
+   <header className="adminTopbar"><div className="adminBreadcrumb"><span className="adminTopMark" aria-hidden="true">✦</span><span>Photo Booth / Staff workspace</span></div><div className="adminTopActions"><Link href="/events/new" className="topNewEvent">＋ New event</Link><a href={BOOTH_URL} target="_blank" rel="noopener noreferrer" className="topGuestLink">Guest booth ↗</a><form method="POST" action="/api/auth/logout"><button type="submit" className="topGuestLink">Sign out</button></form></div></header>
    {children}
   </div>
  </div>;
