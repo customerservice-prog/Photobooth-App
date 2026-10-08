@@ -29,15 +29,20 @@ export function decodeBoothHandoff(fragment){
   ![6,9,12].includes(payload.p)||!['card','strip'].includes(payload.mode)||
   ![1,2].includes(payload.s)||!['fill','fit'].includes(payload.fit)||!hex.test(payload.a)||!hex.test(payload.b)||
   !finiteInt(payload.limit,10000)||typeof payload.on!=='boolean'||typeof payload.qr!=='boolean'||
-  !['ivory','blush','champagne'].includes(payload.design))
+  !(['ivory','blush','champagne'].includes(payload.design)||(payload.type==='graduation'&&payload.design==='grad-gala'))||
+  (payload.name!==undefined&&(typeof payload.name!=='string'||payload.name.length>65||/[\u0000-\u001f<>]/.test(payload.name)))||
+  (payload.year!==undefined&&(typeof payload.year!=='string'||(payload.year!==''&&!/^\d{4}$/.test(payload.year))))||
+  (payload.guest!==undefined&&payload.guest!=='approved'))
   throw new Error('This is not a valid Friendly Photo Booth event link. Ask staff for a new one.');
  return payload;
 }
 export function configFromBoothHandoff(payload,existing={}){
  const title=payload.title.trim();
  const old=existing&&typeof existing==='object'?existing:{};
+ const displayName=String(payload.name||title).trim().slice(0,65)||title;
  const details={...(old.details&&typeof old.details==='object'?old.details:{}),
-  eventName:title,primaryColor:payload.a.toLowerCase(),secondaryColor:payload.b.toLowerCase()};
+  eventName:title,primaryColor:payload.a.toLowerCase(),secondaryColor:payload.b.toLowerCase(),
+  ...(payload.type==='graduation'?{graduate:displayName,classYear:payload.year||''}:{honoree:displayName})};
  const previousLayouts=normalizePrintLayouts(old.printLayouts);
  const defaultLayout=payload.mode==='strip'?'photo_strip':'card';
  const previousPackage=normalizePrintPackage(old.printPackage);
@@ -47,6 +52,7 @@ export function configFromBoothHandoff(payload,existing={}){
   schedule:{date:payload.date,start:payload.start,end:payload.end,timeZone:'America/New_York'},
   details,photoFit:payload.fit,photoPauseSeconds:payload.p,
   defaultPhotoExperience:payload.f,defaultTemplate:payload.design,
+  guestMode:'approved',approvedPrintName:displayName,
   printLayouts:{...previousLayouts,cardEnabled:true,stripEnabled:true,
    defaultLayout,stripMode:payload.s===2?'double':'single'},
   printPackage:{...previousPackage,includedPrints:payload.limit,addOnPrints:0,
