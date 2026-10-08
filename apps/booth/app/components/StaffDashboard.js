@@ -3,6 +3,7 @@ import {useEffect,useRef,useState} from 'react';
 import {decodeBoothHandoff} from '../lib/booth-handoff.mjs';
 import StaffBackupPanel from './StaffBackupPanel';
 import StaffEventCloseout from './StaffEventCloseout';
+import AppUpdate from './AppUpdate';
 import StaffPrintPanel from './StaffPrintPanel';
 import StaffDeviceChecklist from './StaffDeviceChecklist';
 import './staff-dashboard.css';
@@ -75,6 +76,7 @@ export default function StaffDashboard({onClose,onReset,onVoiceTest,onRecover,on
     <div><small>PHOTOS</small><strong>{saved}</strong><span>{managed?'Archived sessions':'Recent local photos'}</span></div>
     <div><small>DEVICE</small><strong>{installed?'Installed':'Browser'}</strong><span>{installed?'Home Screen app':'Open on iPad for events'}</span></div>
    </section>
+   <div className="operatorKioskCard"><span className="operatorOverline">STAFF DEVICE MAINTENANCE</span><h3>Update the Photo Booth when guests are finished</h3><p>App updates are hidden from guests. Update only between sessions, after checking that the event photographs have been saved.</p><AppUpdate/></div>
    <StaffBackupPanel/>
    {(eventScope?.managed||eventScope?.imported)&&<details className="operatorFold" data-testid="staff-end-event-open"><summary>Finish the event &amp; save all digital photos <span>Export ZIP · safely prepare next rental</span></summary><div className="operatorFoldContent"><StaffEventCloseout scope={eventScope} eventName={cfg.title}/></div></details>}
    <StaffPrintPanel onReviewPrint={onReviewPrint}/>
