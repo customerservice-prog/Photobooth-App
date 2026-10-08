@@ -1,3 +1,24 @@
-import Link from "next/link";import {prisma} from "../../lib/prisma";export const dynamic="force-dynamic";
-const swatches={Wedding:"linear-gradient(145deg,#f3ead9,#b99654)",Birthday:"linear-gradient(145deg,#d7b4e8,#72538c)",Corporate:"linear-gradient(145deg,#b8cfdd,#38546a)",Graduation:"linear-gradient(145deg,#d6c38a,#34312a)"};
-export default async function TemplatesPage(){let templates=[],dbError=null;try{templates=await prisma.template.findMany({where:{archived:false},orderBy:{name:"asc"}})}catch(e){dbError=e.message}return <main className="page"><div style={{display:"flex",justifyContent:"space-between",alignItems:"end",gap:20,flexWrap:"wrap"}}><div><div className="eyebrow">Creative library</div><h1 className="title">Design Studio</h1><p className="muted">Elegant print layouts prepared for guest-ready events.</p></div><Link className="btn" href="/templates/new">＋ New Design</Link></div>{dbError&&<div className="card" style={{padding:20,marginTop:25,color:"#e78d8d"}}>Could not load designs: {dbError}</div>}{!dbError&&<div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(230px,1fr))",gap:16,marginTop:28}}>{templates.map(t=><article className="card" key={t.id} style={{overflow:"hidden"}}><div style={{height:220,margin:10,borderRadius:12,background:swatches[t.category]||"linear-gradient(145deg,#d9d4ca,#77736c)",display:"grid",placeItems:"center",color:"rgba(20,16,10,.72)",position:"relative"}}><div style={{position:"absolute",inset:13,border:"1px solid rgba(255,255,255,.5)",borderRadius:6}}/><div style={{textAlign:"center",fontFamily:"Georgia,serif"}}><div style={{fontSize:28}}>✦</div><div style={{fontSize:18,marginTop:6}}>{t.category}</div><div style={{fontSize:10,letterSpacing:2,marginTop:5}}>CELEBRATION</div></div></div><div style={{padding:"10px 17px 18px"}}><strong>{t.name}</strong><div className="muted" style={{fontSize:11,marginTop:7,textTransform:"uppercase",letterSpacing:1}}>{t.format.replaceAll("_"," · ")}</div></div></article>)}{templates.length===0&&<div className="card" style={{padding:36,gridColumn:"1/-1",textAlign:"center"}}><div style={{fontSize:34,color:"#c8a760"}}>◇</div><h2 style={{fontFamily:"Georgia,serif",fontWeight:400}}>Build your wedding collection</h2><p className="muted">Create Ivory & Gold, Black Tie, Botanical Sage, Blush Romance, and Modern Minimal designs so every couple has a premium choice.</p><Link className="btn" href="/templates/new">Create First Wedding Design</Link></div>}</div>}</main>}
+import Link from 'next/link';
+import {prisma} from '../../lib/prisma';
+import {PageHeader,EmptyState,DatabaseError} from '../StudioUI';
+import {BOOTH_SETUP_URL} from '../../lib/studio-experience.mjs';
+export const dynamic='force-dynamic';
+export default async function TemplatesPage(){
+ let designs=[],error=null;
+ try{designs=await prisma.template.findMany({where:{archived:false},orderBy:{name:'asc'}})}catch(e){error=e}
+ return <main className="page">
+  <PageHeader eyebrow="PRINT DESIGN LIBRARY" title="Print designs" subtitle="Pick a design record for an event. Finished artwork is different from a blank draft canvas."><Link className="btn" href="/templates/new">＋ Add design</Link><a href={BOOTH_SETUP_URL} target="_blank" rel="noopener noreferrer" className="btn btn2">View actual iPad designs ↗</a></PageHeader>
+  <div className="helpNote" style={{marginBottom:19}}><strong>Two separate design libraries:</strong> These admin records are not automatically the printable designs in the guest booth. The guest iPad has its own built-in card and strip designs. Preview and test those on the real booth before the event.</div>
+  {error?<DatabaseError topic="print designs"/>:designs.length?<div className="uiCards">{designs.map(d=>{
+   const complete=Array.isArray(d.layout?.layers)&&d.layout.layers.length>0;
+   const type=d.format==='2x6_strip'?'Photo Strip':d.format==='4x6_landscape'?'4×6 Landscape':'4×6 Portrait';
+   return <article className="card cardPad" key={d.id}><div className="sectionHeader"><div className="eyebrow">{d.category}</div><span className={'statusChip'+(complete?'':' warning')}>{complete?'Artwork on file':'Blank canvas'}</span></div>
+    <div style={{height:157,border:'1px solid #d5ddcc',borderRadius:11,background:'linear-gradient(135deg,#e5ebdc,#f8e6c3)',display:'grid',placeItems:'center',margin:'12px 0',color:'#356149'}}>
+     {d.previewImageUrl?<img src={d.previewImageUrl} alt={'Preview of '+d.name} style={{maxHeight:147,maxWidth:'100%',objectFit:'contain'}}/>:<div style={{textAlign:'center'}}><span style={{display:'block',font:'italic 48px Georgia,serif'}}>✦</span><small>{complete?'Design record':'No artwork preview uploaded'}</small></div>}
+    </div>
+    <h2 className="sectionTitle">{d.name}</h2><p className="rowSubtitle">{type} · {complete?d.layout.layers.length+' layout elements':'No print elements created yet'}</p>
+    <div className="noticeOnly" style={{marginTop:13}}>{complete?'Check its actual printed output before using it with guests.':'Creating this template added a blank canvas, not a finished print layout.'}</div>
+   </article>;
+  })}</div>:<EmptyState title="No admin designs yet" description="You can register a new design, or open the guest iPad to use its existing themed card and strip choices." href="/templates/new" label="Add design"/>}
+ </main>;
+}
