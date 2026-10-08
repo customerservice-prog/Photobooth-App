@@ -10,6 +10,7 @@ import {scheduleLabel} from '../lib/event-workspace.mjs';
 import StaffAccessGate from './StaffAccessGate';
 import './welcome-screen.css';
 import './photo-only-welcome.css';
+import './guest-first-welcome.css';
 function Mark({name='camera',size=24}){
  const paths={
  camera:<><path d="M8 6l1.5-2h5L16 6h3a2 2 0 012 2v10a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2z"/><circle cx="12" cy="13" r="4"/><path d="M18 9h.01"/></>,
