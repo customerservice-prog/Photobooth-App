@@ -7,7 +7,7 @@ import StaffDeviceChecklist from './StaffDeviceChecklist';
 import './staff-dashboard.css';
 
 // A functional staff dashboard shared by demo and live contexts. The staff
-// confirmation is not authentication; the iPad must be supervised/Guided Access.
+// Staff PIN authorizes controls; Apple Guided Access locks the actual iPad.
 export default function StaffDashboard({onClose,onReset,onVoiceTest,onRecover,onSaveConfig,onLoadBryan,
  online,saved,installed,managed,demo,remaining,setupHref,photos=[],cfg,eventTypes,voiceStatus,
  keepScreenAwake=true,screenAwakeStatus='requesting',onToggleScreenAwake,onRetryScreenAwake,onReviewPrint}){
