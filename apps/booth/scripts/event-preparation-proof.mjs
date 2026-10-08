@@ -27,7 +27,14 @@ try{
    await page.setViewportSize({width:w,height:h});const ok=await page.evaluate(()=>{const r=document.querySelector('.epPage');return r.scrollWidth<=r.clientWidth+1;});assert(ok,engine+' '+name+' preparation has no horizontal overflow');await page.screenshot({path:`${out}/prep-${engine}-${name}.png`,fullPage:true});pass(engine+'-preparation-'+name);
   }
   await page.setViewportSize({width:1366,height:768});await page.getByRole('button',{name:'Try office demo →',exact:true}).click();await page.waitForURL('**/?event=oct10-2026&demo=1');await page.getByTestId('welcome-four-photo').waitFor();
-  assert((await page.locator('.workspaceBanner').innerText()).includes('OFFICE DEMO'));assert.equal(await page.getByRole('link',{name:'Event setup',exact:true}).getAttribute('href'),'/event-prep');assert((await page.locator('.bwEventMeta').innerText()).includes('4 PM–8 PM'));assert.equal(await page.locator('.bwSessionChoices button').count(),2);assert.equal(await page.getByTestId('welcome-quick-photo').count(),1);assert.equal(await page.getByTestId('welcome-four-photo').count(),1);pass(engine+'-demo-navigation-and-new-york-event-time');
+  assert((await page.locator('.workspaceBanner').innerText()).includes('OFFICE DEMO'));
+   await page.getByTestId('welcome-staff-tools').click();
+   await page.getByRole('dialog',{name:'Staff access',exact:true}).waitFor();
+   await page.getByTestId('staff-confirm').click();
+   await page.getByRole('dialog',{name:'Operator controls',exact:true}).waitFor();
+   assert.equal(await page.getByRole('link',{name:/Event setup/}).getAttribute('href'),'/event-prep');
+   await page.getByRole('button',{name:'Close controls',exact:true}).click();
+   assert.equal(await page.getByRole('dialog',{name:'Operator controls'}).count(),0);assert((await page.locator('.bwEventMeta').innerText()).includes('4 PM–8 PM'));assert.equal(await page.locator('.bwSessionChoices button').count(),2);assert.equal(await page.getByTestId('welcome-quick-photo').count(),1);assert.equal(await page.getByTestId('welcome-four-photo').count(),1);pass(engine+'-demo-navigation-and-new-york-event-time');
   await page.screenshot({path:`${out}/prep-${engine}-office-demo.png`,fullPage:true});
   if(engine==='chromium'){
    await page.getByTestId('welcome-four-photo').click();await page.locator('.ksStudio').waitFor({timeout:100000});await page.getByRole('button',{name:'Try demo print',exact:true}).click();assert.equal(await page.evaluate(()=>window.__printCalls),0);assert.equal(await page.evaluate(k=>localStorage.getItem(k),EVENT_KEYS.liveUsage),'17');assert.equal(await page.evaluate(k=>localStorage.getItem(k),EVENT_KEYS.demoUsage),'3');assert(await page.getByRole('button',{name:'Demo print complete',exact:true}).isDisabled());pass('chromium-demo-print-is-simulated-and-does-not-use-real-allowance');

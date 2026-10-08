@@ -2,6 +2,7 @@
 import {useCallback,useEffect,useRef,useState} from 'react';
 import PhotoPreview from './components/PhotoPreview';
 import WelcomeScreen from './components/WelcomeScreen';
+import StaffDashboard from './components/StaffDashboard';
 import PhotoCapture from './components/PhotoCapture';
 import {runPhotoSequence,takeFreshPhoto,waitForPose} from './lib/photo-sequence.mjs';
 import {playPhotoCue,preparePhotoAudio,stopTalking} from './lib/photo-voice.mjs';
@@ -23,7 +24,7 @@ export default function Booth(){
   const [scope,setScope]=useState(workspace()),[initialized,setInitialized]=useState(false);
   const {config:CFG,photos:STORE,usage:PRINT_USAGE}=scope;
   const[step,setStep]=useState('welcome'),[photo,setPhoto]=useState(null),[poses,setPoses]=useState([]),[error,setError]=useState(''),[online,setOnline]=useState(true),[saved,setSaved]=useState(0),[operator,setOperator]=useState(false),[printing,setPrinting]=useState(false),[cfg,setCfg]=useState(defaultCfg),[gallery,setGallery]=useState([]),[filter,setFilter]=useState('original'),[template,setTemplate]=useState('ivory'),[installOpen,setInstallOpen]=useState(false),[installed,setInstalled]=useState(false),[editing,setEditing]=useState(false),[starting,setStarting]=useState(false),[previewActive,setPreviewActive]=useState(false),[capture,setCapture]=useState({phase:'ready',current:1,total:4,completed:0,shots:[]}),[sessionShots,setSessionShots]=useState(4),[printsUsed,setPrintsUsed]=useState(0),[voiceStatus,setVoiceStatus]=useState('idle');
-  const video=useRef(null),stream=useRef(null),timer=useRef(null),tapTimer=useRef(null),tap=useRef(0),startGuard=useRef(false),run=useRef(0),printCleanup=useRef(()=>{}),captureId=useRef(null),printGuard=useRef(false),captureAbort=useRef(null),capturePhase=useRef('ready'),resumeGuestPause=useRef(null);
+  const video=useRef(null),stream=useRef(null),timer=useRef(null),startGuard=useRef(false),run=useRef(0),printCleanup=useRef(()=>{}),captureId=useRef(null),printGuard=useRef(false),captureAbort=useRef(null),capturePhase=useRef('ready'),resumeGuestPause=useRef(null);
   useEffect(()=>{
     let active=true;
     setOnline(navigator.onLine);setInstalled(navigator.standalone===true||window.matchMedia?.('(display-mode: standalone)').matches===true);
@@ -48,7 +49,7 @@ export default function Booth(){
       if(active)setInitialized(true);
     }catch(e){if(active)setError(e.message||'Saved settings could not be read. No photos or counters were reset.');}}
     load();
-    return()=>{active=false;removeEventListener('online',f);removeEventListener('offline',f);clearTimeout(timer.current);clearTimeout(tapTimer.current);printCleanup.current();captureAbort.current?.abort();stopTalking();run.current++;stopCamera();};
+    return()=>{active=false;removeEventListener('online',f);removeEventListener('offline',f);clearTimeout(timer.current);printCleanup.current();captureAbort.current?.abort();stopTalking();run.current++;stopCamera();};
   },[]);
   useEffect(()=>{
     clearTimeout(timer.current);
@@ -120,25 +121,37 @@ export default function Booth(){
     }catch(e){setError(e.message||'Print counter could not be saved. No print was sent.');return false;}finally{printGuard.current=false;}
   }
   function print(){if(printing)return false;clearTimeout(timer.current);setPrinting(true);let fallback;const release=()=>{clearTimeout(fallback);removeEventListener('afterprint',release);setPrinting(false);printCleanup.current=()=>{};};printCleanup.current=release;addEventListener('afterprint',release);fallback=setTimeout(release,120000);try{window.print();return true;}catch{release();setError('Print options could not open. Please try again.');return false;}}
-  function secret(){tap.current++;clearTimeout(tapTimer.current);tapTimer.current=setTimeout(()=>tap.current=0,2200);if(tap.current>=5){tap.current=0;setOperator(true)}}
+  function testSpeaker(){preparePhotoAudio().then(()=>setVoiceStatus('playing')).catch(()=>setVoiceStatus('blocked'));}
   async function recover(p){const token=++run.current;setError('');let originals=[];try{if(scope.managed)originals=await capturePoses(scope.archive,p.id);}catch{setError('The original poses could not be opened. The saved card is still available; retake to create a photo strip.');}if(token!==run.current)return;captureId.current=p.id;setSessionShots(originals.length===1?1:originals.length===3?3:4);setPoses(originals);setPhoto(p.data);setOperator(false);setEditing(false);setStep('preview')}
   const eventMeta=eventTypes[cfg.type]||eventTypes.other;
   const isPreview=step==='preview',isCapturing=['camera','photoSeries'].includes(step);
   return <>{scope.managed&&<div className="workspaceBanner"><span>{scope.demo?'OFFICE DEMO · no physical prints · event allowance unchanged':'ACTUAL EVENT · photos saved on this device'}</span><a href="/event-prep">Event preparation →</a></div>}
   <main className={`booth theme-${cfg.type||'other'}${step==='welcome'?' bwWelcomeMode':''}`} data-build="smile-sequence-v1" data-capture-mode="photo" data-managed-event={scope.managed?'true':undefined}>
     {!isPreview&&!isCapturing&&step!=='welcome'&&<a className="floatingHelp" href="/help" aria-label="Photo booth help">Help</a>}
-    {!isPreview&&!isCapturing&&step!=='welcome'&&<button className="operator" aria-label="Operator controls (tap five times)" onClick={secret}/>}
-    {step==='welcome'&&<WelcomeScreen cfg={cfg} eventName={eventMeta.name} online={online} starting={starting||!initialized} installed={installed} printsUsed={printsUsed} onStartQuick={()=>begin(1)} onStartFour={()=>begin(4)} onInstall={()=>setInstallOpen(true)} onOperator={secret} voiceStatus={voiceStatus} onVoiceTest={()=>preparePhotoAudio().then(()=>setVoiceStatus('playing')).catch(()=>setVoiceStatus('blocked'))}/>}
+    {step==='welcome'&&<WelcomeScreen cfg={cfg} eventName={eventMeta.name} online={online} starting={starting||!initialized} installed={installed} printsUsed={printsUsed} onStartQuick={()=>begin(1)} onStartFour={()=>begin(4)} onInstall={()=>setInstallOpen(true)} onOperator={()=>setOperator(true)} voiceStatus={voiceStatus} onVoiceTest={testSpeaker}/>}
     {isCapturing&&<PhotoCapture videoRef={video} progress={capture} onCancel={()=>cancelCapture()} onReady={readyForNextPhoto} soundStatus={voiceStatus} onEnableSound={()=>preparePhotoAudio().then(()=>setVoiceStatus('playing')).catch(()=>setVoiceStatus('blocked'))}/>}
     {step==='preview'&&photo&&<PhotoPreview photo={photo} poses={poses} sessionShots={sessionShots} cfg={cfg} filter={filter} filters={filters} template={template} printing={printing} editing={editing} printPackage={normalizePrintPackage(cfg.printPackage)} printsUsed={printsUsed} onEdit={setEditing} onCommitEvent={persistConfig} onSessionActive={setPreviewActive} onTemplate={setTemplate} onFilter={setFilter} onPrint={requestPrint} onRetake={retake} onFinish={finish} onArchive={scope.managed?archiveArtifact:undefined}/>}
     {step==='thanks'&&<section className="screen"><div className="check">✓</div><h1 className="hero">Enjoy the celebration.</h1><p className="sub">The booth will be ready for the next guest in a moment.</p></section>}
     {error&&<div className="boothAlert" role="alert"><div className="error">{error}<button onClick={()=>setError('')} aria-label="Dismiss message">×</button></div></div>}
     {installOpen&&<div className="installPanel" role="dialog" aria-modal="true" aria-label="Install on iPad"><div className="installCard"><h2>Add Friendly Booth to your Home Screen.</h2><div className="installSteps"><div><b>1</b><span>Open this booth in Safari.</span></div><div><b>2</b><span>Open Share, then Add to Home Screen.</span></div><div><b>3</b><span>Open the new Friendly Booth icon.</span></div></div><p>This adds the web app. Device locking is a separate iPad setting.</p><button className="action primary" onClick={()=>setInstallOpen(false)}>Close instructions</button></div></div>}
-    {operator&&<div className="operatorPanel" role="dialog" aria-label="Operator controls"><div className="operatorInner"><div className="kicker">Operator controls</div><h2>Event setup & recovery</h2><button className="action" onClick={()=>setOperator(false)}>Close controls</button><div className="opCard">Network: {online?'Online':'Offline'} · {scope.managed?'Archived sessions':'Recent local photos'}: {saved} · App: {installed?'Home Screen':'Browser'} · {scope.demo?'Demo requests remaining':'Print requests remaining'}: {printsRemaining(normalizePrintPackage(cfg.printPackage),printsUsed)}</div>
-    <a className="action" href="/event-prep">October event preparation & photo downloads</a>
-    <div className="opCard"><strong>iPad locking</strong><p>Use Apple Guided Access to keep guests in the app. This website cannot enable, disable or verify the iPad’s system lock.</p><a className="action" href="/help#guided-access">Guided Access guide</a></div>
-    {!scope.managed&&<><button className="action" onClick={loadBryan}>Load Bryan Wedding test</button><form onSubmit={saveConfig} className="opCard"><label>Event type<select className="input" name="type" defaultValue={cfg.type||'other'}>{Object.entries(eventTypes).map(([id,m])=><option key={id} value={id}>{m.name}</option>)}</select></label><label>Event name<input className="input" name="title" defaultValue={cfg.title}/></label><label>Caption<input className="input" name="subtitle" defaultValue={cfg.subtitle}/></label><label>Date<input className="input" name="date" defaultValue={cfg.date}/></label><label>Included physical prints<input className="input" name="includedPrints" type="number" min="0" defaultValue={normalizePrintPackage(cfg.printPackage).includedPrints}/></label><label>Additional physical prints<input className="input" name="addOnPrints" type="number" min="0" step="54" defaultValue={normalizePrintPackage(cfg.printPackage).addOnPrints}/></label><label>Photos per guest session<select className="input" name="shotsPerSession" defaultValue={normalizePrintPackage(cfg.printPackage).shotsPerSession}><option value="3">3 photos</option><option value="4">4 photos</option></select></label><button className="action primary">Save event</button></form></>}
-    <a className="action" href="/delivery-check">Text / email setup and receipt test</a><a className="action" href="/print-test">Canon test print</a><a className="action" href="/help">Help & troubleshooting</a>
-    <div className="opCard"><strong>Recent photo recovery</strong><div className="recoveryGrid">{gallery.slice(0,8).map(p=><button key={p.id} onClick={()=>recover(p)}><img src={p.data} alt="Recover this capture"/></button>)}</div></div><button className="action" onClick={()=>{setOperator(false);reset()}}>Reset guest screen</button></div></div>}
+    {operator&&<StaffDashboard
+     onClose={()=>setOperator(false)}
+     onReset={()=>{setOperator(false);reset();}}
+     onVoiceTest={testSpeaker}
+     onRecover={recover}
+     onSaveConfig={saveConfig}
+     onLoadBryan={loadBryan}
+     online={online}
+     saved={saved}
+     installed={installed}
+     managed={scope.managed}
+     demo={scope.demo}
+     remaining={printsRemaining(normalizePrintPackage(cfg.printPackage),printsUsed)}
+     setupHref={scope.setup||'/setup'}
+     photos={gallery}
+     cfg={cfg}
+     eventTypes={eventTypes}
+     voiceStatus={voiceStatus}
+    />}
   </main></>;
 }

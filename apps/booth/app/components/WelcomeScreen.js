@@ -7,8 +7,10 @@ import {normalizePrintPackage,printsRemaining} from '../lib/print-package.mjs';
 import {normalizeGuestPause,normalizePhotoPreference} from '../lib/guest-pause.mjs';
 import {eventMonogram} from '../lib/event-config.mjs';
 import {scheduleLabel} from '../lib/event-workspace.mjs';
+import StaffAccessGate from './StaffAccessGate';
 import './welcome-screen.css';
 import './photo-only-welcome.css';
+import './guest-first-welcome.css';
 function Mark({name='camera',size=24}){
  const paths={
  camera:<><path d="M8 6l1.5-2h5L16 6h3a2 2 0 012 2v10a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2z"/><circle cx="12" cy="13" r="4"/><path d="M18 9h.01"/></>,
@@ -39,23 +41,48 @@ const WelcomeProof=memo(function WelcomeProof({cfg,shots}){
    x.textAlign='center';x.textBaseline='middle';x.fillStyle='#fffaf0';x.font='italic 110px Georgia, serif';x.fillText(String(i+1).padStart(2,'0'),left+w/2,top+h*.47);x.font='500 19px sans-serif';x.fillText('YOUR POSE',left+w/2,top+h*.72);x.restore();
   });setSample(c.toDataURL('image/png'));return()=>{c.width=0;c.height=0;};
  },[shots,primary,secondary]);
- const view={...cfg,photoFit:'fit'};
- return <aside className="bwShowcase" aria-label="Personalized keepsake design preview"><div className="bwShowcaseTop"><span>A LITTLE MOMENT.<br/><em>A lovely keepsake.</em></span><Mark name="sparkle" size={30}/></div><div className="bwPaperStack"><div className="bwPaperBack" aria-hidden="true"/><div className="bwRealProof"><PrintCard photo={sample} layout={normalizePrintLayouts(cfg.printLayouts).defaultLayout} stripMode={normalizePrintLayouts(cfg.printLayouts).stripMode} sample cfg={view} monogram={eventMonogram(cfg)} template={cfg.defaultTemplate||'ivory'}/></div><span className="bwSeal" aria-hidden="true"><Mark name="sparkle" size={17}/><b>MADE<br/>FOR YOU</b></span></div><div className="bwProofCaption"><span className="bwProofRule"/><p>YOUR {shots===1?'ONE PHOTO':shots+' POSES'}. YOUR PERSONALIZED DESIGN.<small>Sample preview · your photos go here</small></p><span className="bwProofRule"/></div></aside>;
+ const view={...cfg,photoFit:'fill'};
+ return <aside className="bwShowcase" aria-label="Personalized keepsake design preview"><div className="bwShowcaseTop"><span>YOUR EVENT KEEPSAKE<br/><em>Made for your moment.</em></span><Mark name="sparkle" size={30}/></div><div className="bwPaperStack"><div className="bwPaperBack" aria-hidden="true"/><div className="bwRealProof"><PrintCard photo={sample} layout={normalizePrintLayouts(cfg.printLayouts).defaultLayout} stripMode={normalizePrintLayouts(cfg.printLayouts).stripMode} sample cfg={view} monogram={eventMonogram(cfg)} template={cfg.defaultTemplate||'ivory'}/></div><span className="bwSeal" aria-hidden="true"><Mark name="sparkle" size={17}/><b>MADE<br/>FOR YOU</b></span></div><div className="bwProofCaption"><span className="bwProofRule"/><p>YOUR {shots===1?'ONE PHOTO':shots+' POSES'}. YOUR PERSONALIZED DESIGN.<small>Sample preview · your photos go here</small></p><span className="bwProofRule"/></div></aside>;
 });
 export default function WelcomeScreen({cfg,eventName,online,starting,installed,printsUsed=0,onStartQuick,onStartFour,onInstall,onOperator,voiceStatus='idle',onVoiceTest}){
+ const [staffPrompt,setStaffPrompt]=useState(false);
  const rules=normalizePrintPackage(cfg.printPackage),layouts=normalizePrintLayouts(cfg.printLayouts),available=rules.printingEnabled&&printsRemaining(rules,printsUsed)>0,title=String(cfg.title||'Our Celebration');
  const time=cfg.schedule?scheduleLabel(cfg):(cfg.details?.subtitle!==cfg.subtitle?cfg.details?.subtitle:'');
  const pause=normalizeGuestPause(cfg.photoPauseSeconds),preferred=normalizePhotoPreference(cfg.defaultPhotoExperience);
- return <div className="bwWelcome" data-welcome-version="premium-2026-10-06" data-capture-mode="photo"><div className="bwFrame">
-  <header className="bwHeader"><div className="bwBrand"><span className="bwBrandMark"><Mark size={26}/></span><span><b>FRIENDLY</b><small>THE PHOTO BOOTH EXPERIENCE</small></span></div><nav className="bwHeaderActions" aria-label="Booth navigation"><a className="bwSetup" href={cfg.runtime?.setup||'/setup'}><Mark name="settings" size={17}/><span>{cfg.setupComplete?'Event setup':'Set up event'}</span></a><a className="bwHelp" href="/help"><Mark name="help" size={18}/><span>Help</span></a></nav></header>
-  <div className="bwStage"><section className="bwInvitation" aria-labelledby="bwEventTitle"><div className="bwEyebrow"><span/>{eventName||'Celebration'} · You're invited to smile</div><h1 id="bwEventTitle" className={title.length>65?'bwLongTitle':''}>{title}</h1><div className="bwEventMeta">{cfg.date&&<span><Mark name="calendar" size={17}/>{cfg.date}</span>}{time&&<span className="bwTime">{time}</span>}</div><p className="bwIntro">Choose your photo experience.<br/><em>Then listen for the countdown and smile.</em></p>
+ return <div className="bwWelcome" data-welcome-version="guest-first-2026-10-07" data-capture-mode="photo"><div className="bwFrame">
+  <header className="bwHeader"><div className="bwBrand"><span className="bwBrandMark"><Mark size={26}/></span><span><b>FRIENDLY</b><small>THE PHOTO BOOTH EXPERIENCE</small></span></div><nav className="bwHeaderActions" aria-label="Booth navigation"><a className="bwHelp" href="/help" aria-label="Help"><Mark name="help" size={18}/><span>Help</span></a><button type="button" className="bwStaffShortcut" data-testid="welcome-staff-tools" onClick={()=>setStaffPrompt(true)}><Mark name="settings" size={18}/><span>Staff tools</span></button></nav></header>
+  <div className="bwStage"><section className="bwInvitation" aria-labelledby="bwEventTitle"><div className="bwEyebrow"><span/>{eventName||'Celebration'} · You're invited to smile</div><h1 id="bwEventTitle" className={title.length>65?'bwLongTitle':''}>{title}</h1><div className="bwEventMeta">{cfg.date&&<span><Mark name="calendar" size={17}/>{cfg.date}</span>}{time&&<span className="bwTime">{time}</span>}</div><div className="bwGuestIntro"><strong>Ready for your close-up?</strong><p>Choose one photo or the full four-photo experience. The booth will guide you through every shot.</p></div>
+
   <div className="bwExperience" aria-label="Choose your photo session">
    <div className="bwSessionChoices">
-    <button type="button" className={'bwSessionCard bwQuickSession'+(preferred==='one'?' isPreferred':'')} data-testid="welcome-quick-photo" disabled={starting} onClick={onStartQuick}><span className="bwSessionIcon"><Mark size={27}/></span><span className="bwSessionWords"><span className="bwSessionKicker">{preferred==='one'?'GUEST FAVORITE · FEATURED':'QUICK & SIMPLE'}</span><strong>{starting?'Starting camera…':'1 Photo'}</strong><small>One countdown · one 4×6 keepsake · print or digital</small></span><span className="bwRoundArrow"><Mark name="arrow" size={21}/></span></button>
-    <button type="button" className={'bwSessionCard bwFourSession'+(preferred==='four'?' isPreferred':'')} data-testid="welcome-four-photo" disabled={starting} onClick={onStartFour}><span className="bwSessionBadge">CLASSIC BOOTH</span><span className="bwSessionIcon"><Mark name="sparkle" size={27}/></span><span className="bwSessionWords"><span className="bwSessionKicker">{preferred==='four'?'FEATURED EXPERIENCE':'THE FULL EXPERIENCE'}</span><strong>{starting?'Starting camera…':'4 Photos'}</strong><small>Four different poses · {pause}-second pose break between photos · card or strip</small></span><span className="bwRoundArrow"><Mark name="arrow" size={21}/></span></button>
+    <button type="button" className={'bwSessionCard bwQuickSession'+(preferred==='one'?' isPreferred':'')} data-testid="welcome-quick-photo" disabled={starting} onClick={onStartQuick}>
+     <span className="bwSessionIcon"><Mark size={30}/></span>
+     <span className="bwSessionWords">
+      <span className="bwSessionKicker">{preferred==='one'?'FEATURED PHOTO EXPERIENCE':'THE QUICK PORTRAIT'}</span>
+      <strong>1 Photo</strong><small>One countdown. One lovely 4×6 keepsake.</small>
+      <span className="bwCardCTA">START 1 PHOTO <Mark name="arrow" size={17}/></span>
+     </span>
+    </button>
+    <button type="button" className={'bwSessionCard bwFourSession'+(preferred==='four'?' isPreferred':'')} data-testid="welcome-four-photo" disabled={starting} onClick={onStartFour}>
+     <span className="bwSessionIcon"><Mark name="sparkle" size={30}/></span>
+     <span className="bwSessionWords">
+      <span className="bwSessionKicker">{preferred==='four'?'FEATURED PHOTO EXPERIENCE':'THE CLASSIC BOOTH'}</span>
+      <strong>4 Photos</strong><small>Four different poses, with a {pause}-second break to get ready.</small>
+      <span className="bwCardCTA">START 4 PHOTOS <Mark name="arrow" size={17}/></span>
+     </span>
+    </button>
    </div>
-  <ol className="bwPhotoSteps" aria-label="How your photo session works"><li><span className="bwStepNumber" aria-hidden="true">01</span><strong>Choose 1 or 4 photos</strong><small>Take one photo or the full four-photo series</small></li><li><span className="bwStepNumber" aria-hidden="true">02</span><strong>Listen & smile</strong><small>The booth says “3, 2, 1, Smile!”</small></li><li><span className="bwStepNumber" aria-hidden="true">03</span><strong>{available?'Print or save':'Save your photos'}</strong><small>{available?'Four-photo guests can choose card or strip':'Keep a digital copy'}</small></li></ol>
-  <p className="bwChoiceNote"><Mark name={available?'print':'share'} size={16}/>{available?'One photo stays a 4×6 keepsake. Four photos can become a card or classic strip.':'Digital photos are available. Ask the attendant about printing.'}<button type="button" data-testid="booth-sound-test" className="bwSoundCheck" onClick={onVoiceTest}>🔊 Test speaker</button></p>{(voiceStatus==='blocked'||voiceStatus==='unavailable')&&<p className="bwSoundWarning" role="alert">Sound could not start. Tap Test speaker, turn up iPad media volume and check Bluetooth output.</p>}</div></section><WelcomeProof cfg={cfg} shots={preferred==='one'?1:rules.shotsPerSession}/></div>
-  <footer className="bwFooter"><span className={'bwConnection'+(online?'':' bwOffline')} role="status"><i/>{online?'Online':'Offline · keep booth open'}</span><span className="bwCredit">Made for your good times.<b>Friendly Party Rental</b></span><div className="bwUtilities"><AppUpdate disabled={starting}/>{!installed&&<button type="button" onClick={onInstall}>Add to iPad</button>}<button type="button" onClick={onOperator} aria-label="Operator controls (tap five times)">Staff</button></div></footer>
- </div></div>;
+   <ol className="bwPhotoSteps" aria-label="How your photo session works">
+    <li><span className="bwStepNumber" aria-hidden="true">01</span><strong>Pick your session</strong><small>1 or 4 photos</small></li>
+    <li><span className="bwStepNumber" aria-hidden="true">02</span><strong>Pose & smile</strong><small>Follow the countdown</small></li>
+    <li><span className="bwStepNumber" aria-hidden="true">03</span><strong>{available?'Print or save':'Save your photos'}</strong><small>{available?'A card or photo strip':'Digital copy available'}</small></li>
+   </ol>
+   <div className="bwGuestTools">
+    <p className="bwChoiceNote"><Mark name={available?'print':'share'} size={17}/>{available?'One photo makes a 4×6 card. Four photos can become a card or strip.':'Digital photos are available. Ask the attendant about printing.'}</p>
+    <button type="button" data-testid="booth-sound-test" className="bwSoundCheck" onClick={onVoiceTest}><span aria-hidden="true">🔊</span> Test speaker</button>
+   </div>
+   {(voiceStatus==='blocked'||voiceStatus==='unavailable')&&<p className="bwSoundWarning" role="alert">No sound detected. Tap Test speaker, turn up your iPad media volume and check Bluetooth output.</p>}
+  </div></section><WelcomeProof cfg={cfg} shots={preferred==='one'?1:rules.shotsPerSession}/></div>
+  <footer className="bwFooter"><span className={'bwConnection'+(online?'':' bwOffline')} role="status"><i/>{online?'Online':'Offline · booth still works'}</span><span className="bwCredit">Friendly Party Rental · Photo Booth</span><div className="bwUtilities"><AppUpdate disabled={starting}/>{!installed&&<button type="button" onClick={onInstall}>Add to iPad</button>}</div></footer>
+ </div>{staffPrompt&&<StaffAccessGate onClose={()=>setStaffPrompt(false)} onConfirm={()=>{setStaffPrompt(false);onOperator?.();}}/>}</div>;
 }

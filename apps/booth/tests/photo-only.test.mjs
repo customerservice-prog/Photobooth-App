@@ -5,7 +5,8 @@ const read=p=>readFileSync(new URL('../app/'+p,import.meta.url),'utf8');
 
 test('welcome offers one-photo and four-photo still-image experiences with an instructional guide',()=>{
   const source=read('components/WelcomeScreen.js');
-  assert.equal((source.match(/data-testid="welcome-/g)||[]).length,2);
+  assert.equal((source.match(/data-testid="welcome-(quick|four)-photo"/g)||[]).length,2);
+  assert(source.includes('data-testid="welcome-staff-tools"'));
   assert(source.includes('data-testid="welcome-quick-photo"'));
   assert(source.includes('data-testid="welcome-four-photo"'));
   assert(source.includes('onClick={onStartQuick}'));

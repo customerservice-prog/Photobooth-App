@@ -1,0 +1,293 @@
+/* Guest-first Photo Booth welcome — event title, two primary choices, visible staff entry.
+   Scoped to the welcome route; does not alter captured photos or print layouts. */
+.booth.bwWelcomeMode{background:#f7f5ee}
+.booth.bwWelcomeMode .bwWelcome{
+ --bw-ink:#243f35;--bw-muted:#637367;--bw-gold:#ba985c;
+ color:var(--bw-ink);
+ background:radial-gradient(ellipse at 95% 1%,#e7eee5 0,transparent 37%),
+  radial-gradient(ellipse at 0% 100%,#f2e7d2 0,transparent 35%),#f8f6f0;
+}
+.booth.bwWelcomeMode .bwFrame{width:min(100%,1380px);padding:18px 38px 14px;min-height:100%;height:auto}
+.booth.bwWelcomeMode .bwHeader{gap:16px;padding:0 0 12px;min-height:56px}
+.booth.bwWelcomeMode .bwHeaderActions{gap:10px}
+.booth.bwWelcomeMode .bwHeaderActions .bwHelp{
+ border:1px solid #d1d9ce;min-height:48px;
+ border-radius:14px;background:#fffefa;padding:0 18px;
+ font-weight:700;color:#3f5848;
+}
+.booth.bwWelcomeMode .bwStaffShortcut{
+ display:inline-flex;align-items:center;justify-content:center;gap:9px;
+ min-height:48px;padding:10px 20px;
+ border:1px solid #315846;border-radius:14px;
+ background:linear-gradient(135deg,#2b5644,#204235);
+ color:#fff8e8;font:750 13px/1.2 system-ui,sans-serif;
+ box-shadow:0 5px 14px #183b2d24;cursor:pointer;
+}
+.booth.bwWelcomeMode .bwStaffShortcut:hover{background:#376d52}
+.booth.bwWelcomeMode .bwStaffShortcut:focus-visible{
+ outline:3px solid #c79d5c;outline-offset:3px;
+}
+.booth.bwWelcomeMode .bwStage{
+ display:grid;flex:1;
+ grid-template-columns:minmax(0,1.28fr) minmax(315px,.72fr);
+ align-items:center;gap:clamp(18px,3vw,48px);padding:21px 0 15px;
+}
+.booth.bwWelcomeMode .bwInvitation{align-self:center;min-width:0}
+.booth.bwWelcomeMode .bwEyebrow{margin:0 0 11px;font-size:9px;letter-spacing:2px}
+.booth.bwWelcomeMode .bwInvitation h1{
+ max-width:720px;margin:0 0 13px;
+ font:400 clamp(35px,3.4vw,53px)/1.08 Georgia,serif;
+ letter-spacing:-1.5px;
+}
+.booth.bwWelcomeMode .bwInvitation h1.bwLongTitle{font-size:clamp(30px,2.8vw,43px)}
+.booth.bwWelcomeMode .bwEventMeta{font-size:12px;min-height:20px;gap:7px 13px}
+.booth.bwWelcomeMode .bwGuestIntro{margin:17px 0 17px}
+.booth.bwWelcomeMode .bwGuestIntro strong{
+ display:block;font:italic 400 clamp(25px,2.7vw,35px)/1.15 Georgia,serif;
+ color:#264b3d;letter-spacing:-.4px;
+}
+.booth.bwWelcomeMode .bwGuestIntro p{
+ margin:6px 0 0;max-width:630px;
+ font-size:13px;line-height:1.48;color:#647165;
+}
+.booth.bwWelcomeMode .bwExperience{max-width:none}
+.booth.bwWelcomeMode .bwSessionChoices{
+ display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:13px;
+}
+.booth.bwWelcomeMode .bwSessionCard{
+ display:flex;align-items:flex-start;gap:14px;
+ min-width:0;min-height:166px;
+ padding:20px 17px 16px;
+ border-radius:19px;
+ box-shadow:0 9px 23px #143e3012;
+ cursor:pointer;
+ transition:transform .16s ease,box-shadow .16s ease;
+}
+.booth.bwWelcomeMode .bwQuickSession{
+ background:linear-gradient(136deg,#fffdfa,#eff3eb);
+ border:1.5px solid #aabdae;color:#244838;
+}
+.booth.bwWelcomeMode .bwFourSession{
+ background:radial-gradient(circle at 90% 10%,#789b8552,transparent 43%),
+  linear-gradient(139deg,#2e5c47,#174132);
+ border:1.5px solid #1f4938;color:#fffbeb;
+}
+.booth.bwWelcomeMode .bwSessionCard.isPreferred{
+ box-shadow:0 0 0 3px #cdb07891,0 13px 27px #163a2c23;
+}
+.booth.bwWelcomeMode .bwSessionCard:hover:not(:disabled){
+ transform:translateY(-2px);box-shadow:0 12px 30px #254b3233;
+}
+.booth.bwWelcomeMode .bwSessionIcon{
+ width:53px;height:53px;border-radius:15px;
+ flex:none;display:grid;place-items:center;
+}
+.booth.bwWelcomeMode .bwQuickSession .bwSessionIcon{color:#966f40;background:#f6ecda;border:1px solid #dfc59b}
+.booth.bwWelcomeMode .bwFourSession .bwSessionIcon{color:#ffdf9b;background:#ffffff12;border:1px solid #f7e1ae8a}
+.booth.bwWelcomeMode .bwSessionWords{
+ display:flex;flex:1;align-self:stretch;flex-direction:column;
+ gap:4px;min-width:0;
+}
+.booth.bwWelcomeMode .bwSessionKicker{font-size:9px;letter-spacing:1.35px;margin:0;font-weight:800}
+.booth.bwWelcomeMode .bwSessionWords strong{
+ font:400 clamp(29px,3vw,41px)/1 Georgia,serif;letter-spacing:-.6px;
+}
+.booth.bwWelcomeMode .bwSessionWords small{
+ display:block;min-height:30px;max-width:280px;margin:2px 0 0;
+ font-size:12px;line-height:1.4;
+}
+.booth.bwWelcomeMode .bwFourSession .bwSessionWords small{color:#e5eddf}
+.booth.bwWelcomeMode .bwCardCTA{
+ display:inline-flex;align-items:center;justify-content:space-between;gap:8px;
+ width:fit-content;min-height:29px;margin-top:auto;padding-top:8px;
+ font:800 11px/1.2 system-ui,sans-serif;letter-spacing:1.1px;
+ border-bottom:1px solid currentColor;
+}
+.booth.bwWelcomeMode .bwQuickSession .bwCardCTA{color:#2e6750}
+.booth.bwWelcomeMode .bwFourSession .bwCardCTA{color:#f5d69b}
+.booth.bwWelcomeMode .bwPhotoSteps{
+ display:grid;grid-template-columns:repeat(3,minmax(0,1fr));
+ gap:12px;margin:15px 0 0;padding:13px 15px;
+ border:1px solid #e1e5d9;border-radius:14px;background:#f0f1e9;
+}
+.booth.bwWelcomeMode .bwPhotoSteps li{
+ display:grid;grid-template-columns:27px minmax(0,1fr);
+ grid-template-rows:auto auto;gap:3px 7px;align-content:center;
+ border-right:1px solid #d2dbcf;padding:2px 8px 2px 0;
+}
+.booth.bwWelcomeMode .bwPhotoSteps li:last-child{border:0}
+.booth.bwWelcomeMode .bwStepNumber{
+ grid-column:1;grid-row:1/3;margin:0;align-self:center;
+ font:italic 22px Georgia,serif;color:#9f804f;
+}
+.booth.bwWelcomeMode .bwPhotoSteps strong{
+ grid-column:2;grid-row:1;
+ font-size:11px;line-height:1.25;font-weight:750;
+}
+.booth.bwWelcomeMode .bwPhotoSteps small{grid-column:2;grid-row:2;margin:0;font-size:10px;line-height:1.3}
+.booth.bwWelcomeMode .bwGuestTools{
+ display:flex;align-items:center;justify-content:space-between;
+ gap:12px;padding-top:11px;
+}
+.booth.bwWelcomeMode .bwChoiceNote{
+ display:flex;align-items:center;gap:8px;flex:1;max-width:620px;
+ margin:0;font-size:11px;line-height:1.45;
+}
+.booth.bwWelcomeMode .bwSoundCheck{
+ display:inline-flex;align-items:center;gap:7px;
+ margin:0;padding:8px 13px;min-height:44px;
+ border:1px solid #d4ba85;border-radius:12px;
+ color:#244836;background:#f8ebca;
+ font:750 12px/1 system-ui,sans-serif;
+}
+.booth.bwWelcomeMode .bwShowcase{
+ justify-self:center;width:100%;max-width:475px;
+ min-height:clamp(352px,50vh,450px);height:auto;
+ padding:18px 19px 14px;
+ border-radius:86px 86px 22px 22px;
+ background:radial-gradient(ellipse at 74% 4%,#8eaa8b55,transparent 50%),#244a3b;
+ box-shadow:0 20px 42px #183c2c25,inset 0 0 0 6px #325846,inset 0 0 0 7px #d4be9655;
+}
+.booth.bwWelcomeMode .bwShowcase::before{inset:17px;border-radius:72px 72px 14px 14px}
+.booth.bwWelcomeMode .bwShowcaseTop{padding:8px 12px 4px}
+.booth.bwWelcomeMode .bwShowcaseTop em{font-size:clamp(19px,2vw,26px)}
+.booth.bwWelcomeMode .bwPaperStack{width:clamp(145px,15vw,208px);margin:7px auto 18px}
+.booth.bwWelcomeMode .bwProofCaption p{font-size:8px}
+.booth.bwWelcomeMode .bwFooter{min-height:47px;padding:9px 0 0}
+.booth.bwWelcomeMode .bwCredit{font-size:10px}
+.booth.bwWelcomeMode .bwUtilities{gap:13px}
+.booth.bwWelcomeMode .bwUtilities button{font-size:11px}
+@media(min-width:851px) and (max-height:760px){
+ .booth.bwWelcomeMode .bwFrame{padding:13px 28px 9px}
+ .booth.bwWelcomeMode .bwStage{padding:11px 0;gap:24px}
+ .booth.bwWelcomeMode .bwEyebrow{margin-bottom:7px}
+ .booth.bwWelcomeMode .bwInvitation h1{font-size:clamp(33px,3.2vw,44px);margin-bottom:9px}
+ .booth.bwWelcomeMode .bwGuestIntro{margin:10px 0}
+ .booth.bwWelcomeMode .bwGuestIntro strong{font-size:25px}
+ .booth.bwWelcomeMode .bwGuestIntro p{font-size:12px;margin-top:3px}
+ .booth.bwWelcomeMode .bwSessionCard{min-height:141px;padding:13px;gap:10px}
+ .booth.bwWelcomeMode .bwSessionIcon{width:41px;height:41px}
+ .booth.bwWelcomeMode .bwSessionWords strong{font-size:30px}
+ .booth.bwWelcomeMode .bwSessionWords small{font-size:11px}
+ .booth.bwWelcomeMode .bwPhotoSteps{margin-top:10px;padding:9px}
+ .booth.bwWelcomeMode .bwGuestTools{padding-top:8px}
+ .booth.bwWelcomeMode .bwShowcase{min-height:338px;padding:13px}
+ .booth.bwWelcomeMode .bwPaperStack{width:139px;margin:4px auto 14px}
+ .booth.bwWelcomeMode .bwShowcaseTop em{font-size:18px}
+}
+@media(min-width:851px) and (max-height:610px){
+ .booth.bwWelcomeMode .bwStage{padding:7px 0}
+ .booth.bwWelcomeMode .bwShowcase{min-height:300px;max-width:340px}
+ .booth.bwWelcomeMode .bwPaperStack{width:120px;margin:4px auto 10px}
+ .booth.bwWelcomeMode .bwSessionCard{min-height:120px;padding:11px}
+ .booth.bwWelcomeMode .bwGuestIntro{margin:6px 0}
+ .booth.bwWelcomeMode .bwGuestIntro p{font-size:11px}
+ .booth.bwWelcomeMode .bwPhotoSteps{margin-top:7px;padding:7px}
+}
+@media(max-width:850px){
+ .booth.bwWelcomeMode .bwFrame{padding:14px 22px 13px}
+ .booth.bwWelcomeMode .bwStage{
+  grid-template-columns:minmax(0,1.3fr) minmax(0,.7fr);
+  gap:20px;padding:19px 0;
+ }
+ .booth.bwWelcomeMode .bwInvitation h1{font-size:clamp(31px,4.5vw,42px)}
+ .booth.bwWelcomeMode .bwGuestIntro strong{font-size:26px}
+ .booth.bwWelcomeMode .bwSessionChoices{grid-template-columns:1fr;gap:11px}
+ .booth.bwWelcomeMode .bwSessionCard{min-height:116px;padding:14px}
+ .booth.bwWelcomeMode .bwSessionWords strong{font-size:30px}
+ .booth.bwWelcomeMode .bwSessionWords small{min-height:0}
+ .booth.bwWelcomeMode .bwShowcase{min-height:345px;padding:16px 12px;border-radius:64px 64px 17px 17px}
+ .booth.bwWelcomeMode .bwShowcase::before{border-radius:54px 54px 12px 12px}
+ .booth.bwWelcomeMode .bwPaperStack{width:min(140px,62%);margin:8px auto 13px}
+ .booth.bwWelcomeMode .bwShowcaseTop em{font-size:19px}
+ .booth.bwWelcomeMode .bwPhotoSteps{gap:6px;padding:8px}
+ .booth.bwWelcomeMode .bwPhotoSteps strong{font-size:10px}
+ .booth.bwWelcomeMode .bwPhotoSteps small{font-size:9px}
+ .booth.bwWelcomeMode .bwGuestTools{flex-wrap:wrap}
+}
+@media(max-width:680px){
+ .booth.bwWelcomeMode .bwFrame{padding:14px 18px max(16px,env(safe-area-inset-bottom))}
+ .booth.bwWelcomeMode .bwHeaderActions{gap:7px}
+ .booth.bwWelcomeMode .bwHeaderActions .bwHelp{
+  min-height:44px;padding:0 11px;font-size:12px;
+ }
+ .booth.bwWelcomeMode .bwStaffShortcut{
+  min-height:44px;padding:8px 11px;font-size:12px;gap:6px;
+ }
+ .booth.bwWelcomeMode .bwStage{display:flex;flex-direction:column;align-items:stretch;gap:22px;padding:19px 0}
+ .booth.bwWelcomeMode .bwInvitation h1{font-size:clamp(32px,7.5vw,42px)}
+ .booth.bwWelcomeMode .bwGuestIntro{margin:12px 0}
+ .booth.bwWelcomeMode .bwGuestIntro strong{font-size:25px}
+ .booth.bwWelcomeMode .bwSessionChoices{grid-template-columns:1fr}
+ .booth.bwWelcomeMode .bwSessionCard{min-height:111px}
+ .booth.bwWelcomeMode .bwSessionIcon{width:42px;height:42px}
+ .booth.bwWelcomeMode .bwSessionWords strong{font-size:31px}
+ .booth.bwWelcomeMode .bwSessionWords small{font-size:11px}
+ .booth.bwWelcomeMode .bwGuestTools{flex-wrap:wrap}
+ .booth.bwWelcomeMode .bwShowcase{width:min(100%,390px);min-height:355px;align-self:center}
+ .booth.bwWelcomeMode .bwPaperStack{width:145px}
+ .booth.bwWelcomeMode .bwFooter{flex-wrap:wrap;gap:8px;font-size:10px}
+ .booth.bwWelcomeMode .bwCredit{display:none}
+}
+@media(max-width:390px){
+ .booth.bwWelcomeMode .bwBrand{gap:7px}
+ .booth.bwWelcomeMode .bwBrand b{letter-spacing:1.2px;font-size:12px}
+ .booth.bwWelcomeMode .bwBrand small{font-size:7px;letter-spacing:0}
+ .booth.bwWelcomeMode .bwStaffShortcut{padding:8px 9px;font-size:11px}
+ .booth.bwWelcomeMode .bwHeaderActions .bwHelp{padding:0!important;width:44px;flex:none}
+ .booth.bwWelcomeMode .bwHeaderActions .bwHelp>span{display:none}
+ .booth.bwWelcomeMode .bwSessionCard{padding:12px;gap:10px}
+ .booth.bwWelcomeMode .bwSessionWords strong{font-size:27px}
+ .booth.bwWelcomeMode .bwPhotoSteps{
+  grid-template-columns:repeat(3,minmax(0,1fr));gap:5px;
+ }
+ .booth.bwWelcomeMode .bwPhotoSteps li{display:block;padding-right:5px}
+ .booth.bwWelcomeMode .bwStepNumber{display:block;margin:0 0 4px}
+ .booth.bwWelcomeMode .bwPhotoSteps strong{display:block;font-size:10px}
+ .booth.bwWelcomeMode .bwPhotoSteps small{display:block;font-size:9px}
+}
+/* Staff confirmation, intentionally explicit without implying password security. */
+.bwStaffGate{
+ position:fixed;inset:0;margin:auto;
+ width:min(480px,calc(100vw - 26px));max-height:calc(100dvh - 30px);
+ border:1px solid #d2b785;border-radius:24px;
+ background:#fffcf3;color:#254435;
+ box-shadow:0 28px 95px #0b251fcc;
+ overflow-y:auto;padding:0;
+}
+.bwStaffGate:not([open]){display:none}
+.bwStaffGate::backdrop{background:rgba(12,32,26,.77);backdrop-filter:blur(4px)}
+.bwStaffGateInner{display:flex;flex-direction:column;align-items:center;gap:11px;padding:31px 26px;text-align:center}
+.bwStaffGateIcon{
+ display:grid;place-items:center;width:58px;height:58px;border-radius:18px;
+ font-size:30px;color:#f9e7c0;background:#285340;
+}
+.bwStaffGateEyebrow{margin:4px 0 0;font-size:10px;letter-spacing:1.7px;font-weight:750;color:#977449}
+.bwStaffGate h2{font:italic 35px/1.12 Georgia,serif;margin:3px 0;color:#204537}
+.bwStaffGate p:not(.bwStaffGateEyebrow){font-size:14px;line-height:1.55;color:#67766b;margin:0}
+.bwStaffGateButtons{display:grid;gap:9px;width:100%;margin-top:11px}
+.bwStaffGateButtons button{width:100%;min-height:52px;border-radius:12px;font:750 15px/1.2 system-ui,sans-serif;cursor:pointer}
+.bwStaffGatePrimary{background:#275744;border:1px solid #275744;color:white}
+.bwStaffGateCancel{background:#f4f3e9;color:#305241;border:1px solid #becdbb}
+.bwStaffGateInner small{font-size:11px;line-height:1.5;color:#7d867d;max-width:380px}
+.bwStaffGate button:focus-visible{outline:3px solid #d5a65e;outline-offset:3px}
+@media(prefers-reduced-motion:reduce){
+ .booth.bwWelcomeMode .bwSessionCard{transition:none;transform:none!important}
+}
+
+
+/* Rotated sample sheets protrude beyond their layout box.
+   Reserve true clearance so the bottom caption can never overlap either sheet. */
+.booth.bwWelcomeMode .bwPaperStack{margin-bottom:44px}
+@media(min-width:851px) and (max-height:760px){
+ .booth.bwWelcomeMode .bwPaperStack{margin-bottom:29px}
+}
+@media(min-width:851px) and (max-height:610px){
+ .booth.bwWelcomeMode .bwPaperStack{margin-bottom:24px}
+}
+@media(max-width:850px){
+ .booth.bwWelcomeMode .bwPaperStack{margin-bottom:32px}
+}
+@media(max-width:680px){
+ .booth.bwWelcomeMode .bwPaperStack{margin-bottom:33px}
+}
