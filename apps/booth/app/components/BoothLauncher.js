@@ -1,5 +1,6 @@
 import {BOOTH_RELEASE,BOOTH_RELEASE_LABEL,freshBoothEntry} from '../lib/booth-launch.mjs';
 import AppUpdate from './AppUpdate';
+import AssignedEventResume from './AssignedEventResume';
 import './booth-launcher.css';
 
 // Server-rendered native links still work if an older iPad cannot hydrate React.
@@ -7,7 +8,7 @@ import './booth-launcher.css';
 export default function BoothLauncher(){
   const stamp=Date.now();
   return <main className="blPage" data-launch-version={BOOTH_RELEASE}>
-    <div className="blWrap">
+    <div className="blWrap"><AssignedEventResume/>
       <header className="blHeader"><span className="blBrand">FRIENDLY<small>THE PHOTO BOOTH EXPERIENCE</small></span><span className="blVersion">Version {BOOTH_RELEASE}</span></header>
       <section className="blCard" aria-labelledby="blTitle">
         <div className="blSmile" aria-hidden="true"><svg viewBox="0 0 64 64" fill="none"><circle cx="32" cy="32" r="27"/><path d="M20 37c5 12 19 12 24 0M22 23v3m20-3v3"/></svg></div>
