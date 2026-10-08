@@ -33,7 +33,7 @@ export function eventMonogram(cfg){
 export function normalizeEventConfig(cfg){
  const type=validType(cfg.type),primary={birthday:'honoree',mitzvah:'honoree',graduation:'graduate',corporate:'company',other:'eventName'}[type];
  if(type!=='wedding'&&cfg.title==='Bryan Wedding'&&!cfg.details?.[primary])return switchEventDraft({...cfg,type:'wedding'},type);
- return {...cfg,type,photoPauseSeconds:normalizeGuestPause(cfg.photoPauseSeconds),defaultPhotoExperience:normalizePhotoPreference(cfg.defaultPhotoExperience)};
+ return {...cfg,type,photoFit:'fill',photoPauseSeconds:normalizeGuestPause(cfg.photoPauseSeconds),defaultPhotoExperience:normalizePhotoPreference(cfg.defaultPhotoExperience)};
 }
 export function finalizeEventSetup(draft){
  const next=composeEventConfig(draft,{...draft.details,date:draft.date}),d=next.details;
@@ -43,5 +43,5 @@ export function finalizeEventSetup(draft){
   next.type==='corporate'?!!(d.company||d.eventName):!!d.eventName;
  if(!complete)throw new Error(next.type==='wedding'?'Enter both names so every keepsake has the right couple.':'Enter the event name or person’s name above.');
  if(!next.date)throw new Error('Add the event date.');
- return {...next,photoPauseSeconds:normalizeGuestPause(draft.photoPauseSeconds),defaultPhotoExperience:normalizePhotoPreference(draft.defaultPhotoExperience),printLayouts:validatePrintLayouts(draft.printLayouts),setupComplete:true,defaultTemplate:['ivory','blush','champagne'].includes(draft.defaultTemplate)?draft.defaultTemplate:'ivory'};
+ return {...next,photoFit:'fill',photoPauseSeconds:normalizeGuestPause(draft.photoPauseSeconds),defaultPhotoExperience:normalizePhotoPreference(draft.defaultPhotoExperience),printLayouts:validatePrintLayouts(draft.printLayouts),setupComplete:true,defaultTemplate:['ivory','blush','champagne'].includes(draft.defaultTemplate)?draft.defaultTemplate:'ivory'};
 }
