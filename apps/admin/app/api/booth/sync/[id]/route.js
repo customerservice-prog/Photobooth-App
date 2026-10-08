@@ -1,5 +1,5 @@
 import {NextResponse} from 'next/server';
-import {prisma} from '../../../../lib/prisma';
+import {prisma} from '../../../../../../../lib/prisma';
 import {checkSyncTicket} from '../../../../lib/event-sync-token.mjs';
 import {buildBoothHandoffPayload} from '../../../../lib/booth-transfer.mjs';
 export const runtime='nodejs',dynamic='force-dynamic';
