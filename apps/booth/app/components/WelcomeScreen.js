@@ -80,7 +80,6 @@ export default function WelcomeScreen({cfg,eventName,online,starting,installed,p
    <div className="bwGuestTools">
     <p className="bwChoiceNote"><Mark name={available?'print':'share'} size={17}/>{available?'One photo makes a 4×6 card. Four photos can become a card or strip.':'Digital photos are available. Ask the attendant about printing.'}</p>
    </div>
-   {(voiceStatus==='blocked'||voiceStatus==='unavailable')&&<p className="bwSoundWarning" role="alert">Sound could not start. Ask an attendant to check iPad volume and Bluetooth in Staff Tools.</p>}
   </div></section><WelcomeProof cfg={cfg} shots={preferred==='one'?1:rules.shotsPerSession}/></div>
   <footer className="bwFooter"><span className={'bwConnection'+(online?'':' bwOffline')} role="status"><i/>{online?'Online':'Offline · booth still works'}</span><span className="bwCredit">Friendly Party Rental · Photo Booth</span><div className="bwUtilities"><AppUpdate disabled={starting}/>{!installed&&<button type="button" onClick={onInstall}>Add to iPad</button>}</div></footer>
  </div>{staffPrompt&&<StaffAccessGate onClose={()=>setStaffPrompt(false)} onConfirm={()=>{setStaffPrompt(false);onOperator?.();}}/>}</div>;

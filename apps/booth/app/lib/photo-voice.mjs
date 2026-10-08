@@ -40,12 +40,17 @@ export async function preparePhotoAudio({Context=globalThis.AudioContext||global
  context ||= new Context();
  // HTML media playback keeps the iPad media audio route open, including when
  // the hardware silent switch would otherwise mute Web Audio.
- let routeReady;
+ let routeReady=Promise.resolve(false);
  if(typeof globalThis.Audio==='function'){
-  mediaRoute ||= new Audio('/audio/media-route.wav');mediaRoute.loop=true;
-  routeReady=Promise.resolve(mediaRoute.play()).catch(()=>{throw new Error('Sound could not start. Ask an attendant to check iPad volume and Bluetooth in Staff Tools.');});
+  try{
+   mediaRoute ||= new Audio('/audio/media-route.wav');mediaRoute.loop=true;
+   // This silent media route helps iPad speakers, but some browsers reject
+   // HTMLAudioElement.play even when Web Audio can play the recorded voice.
+   // Treat that rejection as OPTIONAL rather than cancelling the photo session.
+   routeReady=Promise.resolve(mediaRoute.play()).then(()=>true,()=>false);
+  }catch{routeReady=Promise.resolve(false);}
  }
- // Called directly from the guest tap, before camera permission or any timers.
+ // Resume Web Audio synchronously from the guest's tap, before permissions.
  const resume=context.resume();
  await Promise.all([resume,routeReady]);
  if(context.state!=='running')throw new Error('Sound is blocked. Tap the photo button again to enable voice guidance.');

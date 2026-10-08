@@ -48,3 +48,34 @@ test('opening a guest session primes audio without speaking the same ready greet
  assert.equal(before.length,1);
  guestVoice.stopPhotoAudio();
 });
+
+test('HTML media route rejection does not block the recorded voice countdown',async()=>{
+ const boothVoice=await import('../app/lib/photo-voice.mjs?blocked-media-route');
+ const previousAudio=globalThis.Audio,events=[];
+ globalThis.Audio=class{
+  loop=false;
+  play(){events.push('media-blocked');return Promise.reject(new Error('NotAllowedError: audio denied'));}
+  pause(){}
+ };
+ class Context{
+  state='suspended';destination={};
+  resume(){this.state='running';events.push('web-audio-resumed');return Promise.resolve();}
+  decodeAudioData(){return Promise.resolve({duration:0.85});}
+  createBufferSource(){return {connect(){},disconnect(){},start(){events.push('recorded-voice-played');},stop(){}};}
+ }
+ try{
+  await boothVoice.preparePhotoAudio({Context,fetcher:async()=>({ok:true,arrayBuffer:async()=>new ArrayBuffer(2)}),playConfirmation:false});
+  assert(events.includes('media-blocked'));
+  assert(events.includes('web-audio-resumed'));
+  assert.equal(boothVoice.playPhotoCue('ready'),850);
+  assert(events.includes('recorded-voice-played'));
+ }finally{
+  boothVoice.stopPhotoAudio();
+  if(previousAudio===undefined)delete globalThis.Audio;
+  else globalThis.Audio=previousAudio;
+ }
+});
+test('missing audio context reports optional sound failure for the camera to bypass',async()=>{
+ const boothVoice=await import('../app/lib/photo-voice.mjs?missing-audio-context');
+ await assert.rejects(()=>boothVoice.preparePhotoAudio({Context:null}),/Voice audio is unavailable/);
+});

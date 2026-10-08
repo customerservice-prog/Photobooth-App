@@ -101,19 +101,43 @@ export default function Booth(){
     setCapture({phase:'ready',current:1,total,completed:0,shots:[]});
     setError('');setFilter('original');setTemplate(cfg.defaultTemplate||'ivory');setPhoto(null);setPoses([]);setEditing(false);stopCamera();captureId.current=null;
     try{
-      setVoiceStatus('starting');await preparePhotoAudio({playConfirmation:false});setVoiceStatus('playing');
-      if(id!==run.current||controller.signal.aborted)return;
+      // Audio starts on the guest tap, but cannot delay or prevent camera access.
+      // Use the cheerful recorded voice when it succeeds; otherwise show the
+      // same 3–2–1–Smile visual countdown and still capture every photograph.
+      let audioReady=false;
+      setVoiceStatus('starting');
+      const audioPromise=preparePhotoAudio({playConfirmation:false}).then(()=>{
+        if(id===run.current&&!controller.signal.aborted&&capturePhase.current!=='done'){
+          audioReady=true;setVoiceStatus('playing');
+        }
+      },()=>{
+        if(id===run.current&&!controller.signal.aborted&&capturePhase.current!=='done')
+          setVoiceStatus('unavailable');
+      });
       const s=await navigator.mediaDevices.getUserMedia({video:{facingMode:'user',width:{ideal:1920},height:{ideal:1080}},audio:false});
       if(id!==run.current||controller.signal.aborted){s.getTracks().forEach(t=>t.stop());return;}
       stream.current=s;setStep('camera');const ready=await waitForVideo(s);
       if(id!==run.current||stream.current!==s)return;
       if(!ready)throw new Error('Camera was not ready. Allow camera access, then try again.');
+      // Wait at most one second for optional audio. No network/audio failure
+      // can hold the camera or the guest hostage.
+      await Promise.race([audioPromise,waitForPose(1000,controller.signal)]);
+      if(!audioReady)setVoiceStatus('unavailable');
       await waitForPose(250,controller.signal);setStep('photoSeries');
       const shots=await runPhotoSequence({total,signal:controller.signal,pauseSeconds:normalizeGuestPause(cfg.photoPauseSeconds),
         onPause:({seconds,signal,onTick})=>waitForGuestReady({seconds,signal,onTick,registerReady:ready=>{resumeGuestPause.current=ready;}}),
         capture:options=>takeFreshPhoto(video.current,options),
         onProgress:next=>{if(id===run.current){capturePhase.current=next.phase;setCapture(next);}},
-        onCue:cue=>{if(id!==run.current)return;const duration=playPhotoCue(cue);if(!duration)throw new Error('Voice audio paused. Tap the photo button to start again.');return duration;}
+        onCue:cue=>{
+          if(id!==run.current||!audioReady)return 0;
+          try{
+            const duration=playPhotoCue(cue);
+            if(duration)return duration;
+          }catch{}
+          // A device may suspend sound while a photo series is running.
+          // Continue the visual countdown without interrupting any capture.
+          audioReady=false;setVoiceStatus('unavailable');return 0;
+        }
       });
       stopTalking();const data=total===1?shots[0]:await composePhotoStrip(shots,cfg);if(id!==run.current)return;
       stopCamera();await save(data,shots);if(id!==run.current)return;
@@ -167,7 +191,7 @@ export default function Booth(){
   <main className={`booth theme-${cfg.type||'other'}${step==='welcome'?' bwWelcomeMode':''}`} data-build="smile-sequence-v1" data-capture-mode="photo" data-managed-event={scope.managed?'true':undefined}>
     {!isPreview&&!isCapturing&&step!=='welcome'&&<a className="floatingHelp" href="/help" aria-label="Photo booth help">Help</a>}
     {step==='welcome'&&<WelcomeScreen cfg={cfg} eventName={eventMeta.name} online={online} starting={starting||!initialized} installed={installed} printsUsed={printsUsed} onStartQuick={()=>begin(1)} onStartFour={()=>begin(4)} onInstall={()=>setInstallOpen(true)} onOperator={()=>setOperator(true)} voiceStatus={voiceStatus}/>}
-    {isCapturing&&<PhotoCapture videoRef={video} progress={capture} onCancel={()=>cancelCapture()} onReady={readyForNextPhoto} soundStatus={voiceStatus} onEnableSound={()=>preparePhotoAudio().then(()=>setVoiceStatus('playing')).catch(()=>setVoiceStatus('blocked'))}/>}
+    {isCapturing&&<PhotoCapture videoRef={video} progress={capture} onCancel={()=>cancelCapture()} onReady={readyForNextPhoto} soundStatus={voiceStatus}/>}
     {step==='preview'&&photo&&<PhotoPreview photo={photo} poses={poses} sessionShots={sessionShots} cfg={cfg} filter={filter} filters={filters} template={template} printing={printing} editing={editing} printPackage={normalizePrintPackage(cfg.printPackage)} printsUsed={printsUsed} onEdit={setEditing} onCommitEvent={persistConfig} onSessionActive={setPreviewActive} onTemplate={setTemplate} onFilter={setFilter} onPrint={requestPrint} onRetake={retake} onFinish={finish} onArchive={(scope.managed||scope.imported)?archiveArtifact:undefined}/>}
     {step==='thanks'&&<section className="screen"><div className="check">✓</div><h1 className="hero">Enjoy the celebration.</h1><p className="sub">The booth will be ready for the next guest in a moment.</p></section>}
     {error&&<div className="boothAlert" role="alert"><div className="error">{error}<button onClick={()=>setError('')} aria-label="Dismiss message">×</button></div></div>}
