@@ -174,7 +174,7 @@ export default function StaffDashboard({onClose,onReset,onVoiceTest,onRecover,on
      <button className="operatorDangerText" type="button" onClick={onLoadBryan}>Load sample wedding event (testing only)</button>
     </div>
    </details>}
-   <p className="operatorPrivacy">The display preference is local to this iPad. Staff Tools is a confirmation, not a password-protected area. Use Apple Guided Access and supervise the booth during events.</p>
+   <p className="operatorPrivacy">The display preference is local to this iPad. Staff Tools require staff authorization when event security is enabled. Use Apple Guided Access and supervise the booth during events.</p>
   </div>
  </dialog>;
 }
