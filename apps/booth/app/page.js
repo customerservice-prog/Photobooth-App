@@ -1,6 +1,7 @@
 'use client';
 import {useCallback,useEffect,useRef,useState} from 'react';
 import PhotoPreview from './components/PhotoPreview';
+import GuestReadyPreview from './components/GuestReadyPreview';
 import WelcomeScreen from './components/WelcomeScreen';
 import StaffDashboard from './components/StaffDashboard';
 import PhotoCapture from './components/PhotoCapture';
@@ -206,7 +207,9 @@ export default function Booth(){
     {!isPreview&&!isCapturing&&step!=='welcome'&&<a className="floatingHelp" href="/help" aria-label="Photo booth help">Help</a>}
     {step==='welcome'&&<WelcomeScreen cfg={cfg} eventName={eventMeta.name} online={online} starting={starting||!initialized} installed={installed} printsUsed={printsUsed} onStartQuick={()=>begin(1)} onStartFour={()=>begin(4)} onInstall={()=>setInstallOpen(true)} onOperator={()=>setOperator(true)} voiceStatus={voiceStatus} showGraduationPreview={!scope.managed&&!scope.imported}/>}
     {isCapturing&&<PhotoCapture videoRef={video} progress={capture} onCancel={()=>cancelCapture()} onReady={readyForNextPhoto} soundStatus={voiceStatus}/>}
-    {step==='preview'&&photo&&<PhotoPreview photo={photo} poses={poses} sessionShots={sessionShots} cfg={cfg} filter={filter} filters={filters} template={template} printing={printing} editing={editing} printPackage={normalizePrintPackage(cfg.printPackage)} printsUsed={printsUsed} onEdit={setEditing} onCommitEvent={persistConfig} onSessionActive={setPreviewActive} onTemplate={setTemplate} onFilter={setFilter} onPrint={requestPrint} onPrintOutcome={resolveLatestPrint} onRetake={retake} onFinish={finish} onArchive={(scope.managed||scope.imported)?archiveArtifact:undefined}/>}
+    {step==='preview'&&photo&&((scope.managed||scope.imported||cfg.guestMode==='approved')
+    ?<GuestReadyPreview photo={photo} poses={poses} sessionShots={sessionShots} cfg={cfg} printing={printing} printPackage={normalizePrintPackage(cfg.printPackage)} printsUsed={printsUsed} onSessionActive={setPreviewActive} onPrint={requestPrint} onPrintOutcome={resolveLatestPrint} onRetake={retake} onFinish={finish} onArchive={(scope.managed||scope.imported)?archiveArtifact:undefined}/>
+    :<PhotoPreview photo={photo} poses={poses} sessionShots={sessionShots} cfg={cfg} filter={filter} filters={filters} template={template} printing={printing} editing={editing} printPackage={normalizePrintPackage(cfg.printPackage)} printsUsed={printsUsed} onEdit={setEditing} onCommitEvent={persistConfig} onSessionActive={setPreviewActive} onTemplate={setTemplate} onFilter={setFilter} onPrint={requestPrint} onPrintOutcome={resolveLatestPrint} onRetake={retake} onFinish={finish} onArchive={(scope.managed||scope.imported)?archiveArtifact:undefined}/>)}
     {step==='thanks'&&<section className="screen"><div className="check">✓</div><h1 className="hero">Enjoy the celebration.</h1><p className="sub">The booth will be ready for the next guest in a moment.</p></section>}
     {error&&<div className="boothAlert" role="alert"><div className="error">{error}<button onClick={()=>setError('')} aria-label="Dismiss message">×</button></div></div>}
     {installOpen&&<div className="installPanel" role="dialog" aria-modal="true" aria-label="Install on iPad"><div className="installCard"><h2>Add Friendly Booth to your Home Screen.</h2><div className="installSteps"><div><b>1</b><span>Open this booth in Safari.</span></div><div><b>2</b><span>Open Share, then Add to Home Screen.</span></div><div><b>3</b><span>Open the new Friendly Booth icon.</span></div></div><p>This adds the web app. Device locking is a separate iPad setting.</p><button className="action primary" onClick={()=>setInstallOpen(false)}>Close instructions</button></div></div>}
