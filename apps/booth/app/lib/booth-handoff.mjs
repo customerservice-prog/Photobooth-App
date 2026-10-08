@@ -1,7 +1,7 @@
 // Cross-device handoff contract v1. Only non-sensitive public event display and
 // booth print preferences travel in the URL fragment. No contact details, venue
 // address, private staff notes, photo bytes, passwords or account identifiers.
-import {workspace,usage} from './event-workspace.mjs';
+import {workspace,usage,ownPrintUsage} from './event-workspace.mjs';
 import {normalizePrintPackage} from './print-package.mjs';
 import {normalizePrintLayouts} from './print-layouts.mjs';
 const idRe=/^[A-Za-z0-9_-]{3,90}$/;
@@ -76,6 +76,6 @@ export function applyBoothHandoff(storage,payload){
  // Preserve the previous configuration for recovery. Do not touch capture data.
  if(previousRaw!==null)storage.setItem(scope.previous,previousRaw);
  storage.setItem(scope.config,json);
- if(storage.getItem(scope.usage)===null)storage.setItem(scope.usage,String(used));
+ if(storage.getItem(scope.usage)===null)storage.setItem(scope.usage,String(ownPrintUsage(storage,scope)));
  return {scope,config:next,printsUsed:used,updated:Boolean(previous)};
 }

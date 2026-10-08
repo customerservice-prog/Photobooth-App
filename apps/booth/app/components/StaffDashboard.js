@@ -7,7 +7,13 @@ import './staff-dashboard.css';
 // confirmation is not authentication; the iPad must be supervised/Guided Access.
 export default function StaffDashboard({onClose,onReset,onVoiceTest,onRecover,onSaveConfig,onLoadBryan,
  online,saved,installed,managed,demo,remaining,setupHref,photos=[],cfg,eventTypes,voiceStatus}){
- const ref=useRef(null),closeRef=useRef(onClose);closeRef.current=onClose;
+ const ref=useRef(null),closeRef=useRef(onClose),transferRef=useRef(null);closeRef.current=onClose;
+ function showEventTransfer(){
+  const section=transferRef.current;
+  if(!section)return;
+  section.open=true;
+  requestAnimationFrame(()=>{section.scrollIntoView({block:'center',behavior:'smooth'});section.querySelector('input')?.focus();});
+ }
  const [handoffText,setHandoffText]=useState(''),[handoffError,setHandoffError]=useState('');
  function reviewTransfer(e){
   e.preventDefault();setHandoffError('');
@@ -48,6 +54,7 @@ export default function StaffDashboard({onClose,onReset,onVoiceTest,onRecover,on
    </section>
    <h3 className="operatorSectionTitle">What do you need to do?</h3>
    <nav className="operatorQuickGrid" aria-label="Staff quick actions">
+    <button className="operatorQuickCard operatorGuestCard" type="button" data-testid="operator-load-event" onClick={showEventTransfer}><span aria-hidden="true">⇪</span><strong>Load an event</strong><small>Send admin settings to this iPad</small></button>
     <a className="operatorQuickCard" href={setupHref}><span aria-hidden="true">✎</span><strong>Event setup</strong><small>Names, colors, print layouts</small></a>
     <button className="operatorQuickCard" type="button" data-testid="operator-sound-test" onClick={onVoiceTest}><span aria-hidden="true">♫</span><strong>Test speaker</strong><small>Check countdown audio</small></button>
     <a className="operatorQuickCard" href="/print-test"><span aria-hidden="true">▤</span><strong>Canon test print</strong><small>Check paper and colors</small></a>
@@ -55,7 +62,7 @@ export default function StaffDashboard({onClose,onReset,onVoiceTest,onRecover,on
     <a className="operatorQuickCard" href="/help#guided-access"><span aria-hidden="true">◇</span><strong>iPad help</strong><small>Guided Access & fixes</small></a>
     <button className="operatorQuickCard operatorGuestCard" type="button" data-testid="operator-reset-guest" onClick={onReset}><span aria-hidden="true">⌂</span><strong>Guest welcome screen</strong><small>Ready for the next guest</small></button>
    </nav>
-   <details className="operatorFold" data-testid="staff-load-event">
+   <details ref={transferRef} className="operatorFold" data-testid="staff-load-event">
     <summary>Load an event from Staff dashboard <span>Transfer event link</span></summary>
     <div className="operatorFoldContent">
      <p>Use this inside the <strong>installed Friendly Booth app on the event iPad</strong>. If scanning a QR code opens Safari separately, copy the setup link there and paste it here so the event saves in the app you actually use.</p>

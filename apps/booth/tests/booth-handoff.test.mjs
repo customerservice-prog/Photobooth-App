@@ -16,7 +16,7 @@ function makeBoothHandoffLink(ev){
   +Buffer.from(JSON.stringify(buildBoothHandoffPayload(ev)),'utf8').toString('base64url');
 }
 import {decodeBoothHandoff,configFromBoothHandoff,applyBoothHandoff} from '../app/lib/booth-handoff.mjs';
-import {workspace,EVENT_KEYS,LEGACY_KEYS,usage} from '../app/lib/event-workspace.mjs';
+import {workspace,EVENT_KEYS,LEGACY_KEYS,usage,ownPrintUsage} from '../app/lib/event-workspace.mjs';
 const event={
  id:'efcbaffc-893f-4361-983b-79a38e7d111a',
  name:'October 10 Photo Booth Party',eventType:'Party',
@@ -64,7 +64,7 @@ test('iPad config uses actual admin preferences with default fill and correct pr
  assert.equal(config.printPackage.copiesPerSession,1);
  assert.deepEqual([config.schedule.start,config.schedule.end],['20:00','00:00']);
 });
-test('first transfer creates event-specific keys without modifying October live/demo/legacy events',()=>{
+test('October transfer shares the original live allowance without deleting either photo archive',()=>{
  const storage=store({
   [EVENT_KEYS.config]:'october-config', [EVENT_KEYS.liveUsage]:'35',
   [EVENT_KEYS.demoUsage]:'9',[LEGACY_KEYS.config]:'legacy-config',
@@ -73,14 +73,18 @@ test('first transfer creates event-specific keys without modifying October live/
  const payload=buildBoothHandoffPayload(event);
  const result=applyBoothHandoff(storage,payload);
  assert(result.scope.imported);
- assert.equal(result.printsUsed,0);
- assert.equal(usage(storage,result.scope),0);
+ assert.equal(result.printsUsed,35,'never grant a second October print allowance');
+ assert.equal(usage(storage,result.scope),35);
+ assert.equal(usage(storage,workspace('?event=oct10-2026')),35);
+ assert.equal(ownPrintUsage(storage,result.scope),0);
+ assert.equal(storage.getItem(result.scope.usage),'0');
  assert.equal(storage.getItem(EVENT_KEYS.config),'october-config');
  assert.equal(storage.getItem(EVENT_KEYS.liveUsage),'35');
  assert.equal(storage.getItem(EVENT_KEYS.demoUsage),'9');
  assert.equal(storage.getItem(LEGACY_KEYS.config),'legacy-config');
  assert.equal(storage.getItem(LEGACY_KEYS.usage),'7');
  assert.equal(workspace('?booth_event='+event.id).archive,'transfer:'+event.id);
+ assert.equal(workspace('?event=oct10-2026').archive,'oct10-2026:live');
 });
 test('retransferring updated event preserves existing print usage and original local settings backup',()=>{
  const storage=store();
@@ -117,4 +121,46 @@ test('digital-only event handoff retains zero-print allowance',()=>{
  const config=configFromBoothHandoff(decodeBoothHandoff(Buffer.from(JSON.stringify(payload)).toString('base64url')));
  assert.equal(config.printPackage.includedPrints,0);
  assert.equal(config.printPackage.printingEnabled,false);
+});
+
+test('both October guest entries count against a single allowance, without duplicating counters',()=>{
+ const storage=store({[EVENT_KEYS.liveUsage]:'35',[EVENT_KEYS.demoUsage]:'9'});
+ const transferred=applyBoothHandoff(storage,buildBoothHandoffPayload(event)).scope;
+ const original=workspace('?event=oct10-2026');
+ assert.equal(usage(storage,transferred),35);
+ storage.setItem(transferred.usage,String(ownPrintUsage(storage,transferred)+1));
+ assert.equal(usage(storage,original),36);
+ assert.equal(usage(storage,transferred),36);
+ assert.equal(ownPrintUsage(storage,original),35);
+ assert.equal(ownPrintUsage(storage,transferred),1);
+ storage.setItem(original.usage,String(ownPrintUsage(storage,original)+1));
+ assert.equal(usage(storage,original),37);
+ assert.equal(usage(storage,transferred),37);
+ assert.equal(storage.getItem(EVENT_KEYS.demoUsage),'9');
+ assert.equal(storage.getItem(LEGACY_KEYS.usage),null);
+});
+test('existing transferred October usage is retained when a fresh setup is applied',()=>{
+ const original=workspace('?event=oct10-2026'),transferred=workspace('?booth_event='+event.id);
+ const storage=store({[original.usage]:'60',[transferred.usage]:'12'});
+ assert.equal(usage(storage,original),72);
+ assert.equal(usage(storage,transferred),72);
+ applyBoothHandoff(storage,buildBoothHandoffPayload(event));
+ assert.equal(usage(storage,transferred),72);
+ assert.equal(storage.getItem(transferred.usage),'12');
+});
+test('an unrelated event has independent print usage and its own photo archive',()=>{
+ const other={...event,id:'abc-def-2027',name:'A second celebration'};
+ const storage=store({[EVENT_KEYS.liveUsage]:'35'});
+ const scope=applyBoothHandoff(storage,buildBoothHandoffPayload(other)).scope;
+ assert.equal(scope.linkedOctober,false);
+ assert.equal(usage(storage,scope),0);
+ assert.notEqual(scope.archive,'oct10-2026:live');
+ storage.setItem(scope.usage,'4');
+ assert.equal(usage(storage,scope),4);
+ assert.equal(usage(storage,workspace('?event=oct10-2026')),35);
+});
+test('a damaged October print counter stops import without altering local data',()=>{
+ const storage=store({[EVENT_KEYS.liveUsage]:'not-a-counter'}),before=storage.entries();
+ assert.throws(()=>applyBoothHandoff(storage,buildBoothHandoffPayload(event)),/print counter needs staff review/i);
+ assert.deepEqual(storage.entries(),before);
 });
