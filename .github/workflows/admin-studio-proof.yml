@@ -1,0 +1,37 @@
+name: Photo Booth admin UX proof
+on:
+  push:
+    branches:
+      - main
+      - feature/admin-easy-studio-20261007
+    paths:
+      - 'apps/admin/**'
+      - '.github/workflows/admin-studio-proof.yml'
+  pull_request:
+    paths:
+      - 'apps/admin/**'
+      - '.github/workflows/admin-studio-proof.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  admin-build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      DATABASE_URL: postgresql://booth:booth@127.0.0.1:5432/booth?schema=public
+      NEXT_TELEMETRY_DISABLED: '1'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install admin dependencies
+        working-directory: apps/admin
+        run: npm install --no-audit --no-fund
+      - name: Verify admin settings and readiness logic
+        working-directory: apps/admin
+        run: node --test tests/*.test.mjs
+      - name: Production compile of every admin route
+        working-directory: apps/admin
+        run: npm run build
