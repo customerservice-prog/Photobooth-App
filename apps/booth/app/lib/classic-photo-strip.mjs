@@ -16,7 +16,7 @@ export function renderClassicPhotoStrip({poses,cfg={},template='ivory',stripMode
  const rules=normalizePrintLayouts(cfg.printLayouts),design=getStripDesign(template),copy=eventCopy(cfg);
  const total=[3,4].includes(Number(cfg.printPackage?.shotsPerSession))?Number(cfg.printPackage.shotsPerSession):4;
  const shots=sample&&(!poses||poses.length===0)?null:validateShotSet(poses,total);
- const mode=(stripMode||rules.stripMode)==='double'?'double':'single',columns=mode==='double'?[0,600]:[0],fullWidth=mode==='single',mid=fullWidth?600:300,width=fullWidth?1200:600;
+ const mode=(stripMode||rules.stripMode)==='double'?'double':'single',columns=mode==='double'?[0,600]:[300],fullWidth=false,mid=300,width=600;
  const primary=rules.useEventColors?safeHex(cfg.details?.primaryColor,'#24352f'):'#232824';
  const accent=rules.useEventColors?safeHex(cfg.details?.secondaryColor,'#d8c49b'):'#777777';
  const paper=design.id==='blush'?'#17241f':'#fffdf7',ink=design.id==='blush'?'#fffdf7':primary;
