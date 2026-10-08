@@ -39,6 +39,7 @@ jobs:
           trap 'kill $PID 2>/dev/null || true' EXIT
           node scripts/photo-sequence-proof.mjs
           node scripts/ipad-launch-proof.mjs
+          node scripts/audio-fallback-proof.mjs
       - name: Verify deployed iPad launcher and camera sequence
         if: github.ref == 'refs/heads/main'
         env:
@@ -64,4 +65,5 @@ jobs:
           path: |
             apps/booth/sequence-proof/
             apps/booth/local-sequence-proof/
+            apps/booth/audio-fallback-proof/
           retention-days: 3
