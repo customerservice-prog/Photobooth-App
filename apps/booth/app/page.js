@@ -67,7 +67,7 @@ export default function Booth(){
       const used=usage(localStorage,target);setPrintsUsed(used);
       if(c&&typeof c==='object'){
         setCfg(normalizeEventConfig({...defaultCfg,...c,printPackage:normalizePrintPackage(c.printPackage),runtime:(target.managed||target.imported)?{demo:target.demo,setup:target.setup}:undefined,type:Object.hasOwn(eventTypes,c.type)?c.type:(c.title==='Bryan Wedding'?'wedding':'other')}));
-        if(['ivory','blush','champagne'].includes(c.defaultTemplate))setTemplate(c.defaultTemplate);
+        if(['ivory','blush','champagne'].includes(c.defaultTemplate)||(c.type==='graduation'&&c.defaultTemplate==='grad-gala'))setTemplate(c.defaultTemplate);
       }
       if(target.managed||target.imported){
         // A demo, a transferred event and a real October event never share data.
