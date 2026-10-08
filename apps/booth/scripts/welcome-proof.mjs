@@ -16,10 +16,13 @@ async function open(page){await page.goto(base,{waitUntil:'networkidle'});await 
 async function assertPhotoOnly(page){assert.equal(await page.locator('.bwSessionChoices button').count(),2);assert.equal(await page.getByTestId('welcome-quick-photo').count(),1);assert.equal(await page.getByTestId('welcome-four-photo').count(),1);assert.equal(await page.getByTestId('welcome-video').count(),0);assert.equal(await page.getByTestId('welcome-gif').count(),0);assert.equal(await page.locator('.bwPhotoSteps li').count(),3);assert(!/\b(video|gif|boomerang)\b/i.test(await page.locator('.bwWelcome').innerText()));}
 async function layout(page,name,w,h){
  await page.setViewportSize({width:w,height:h});await open(page);await assertPhotoOnly(page);assert.equal(await page.locator('h1').count(),1);
+ const staffButton=page.getByTestId('welcome-staff-tools'),staffRect=await staffButton.boundingBox();
+ assert(await staffButton.isVisible(),name+' staff tools button visible');
+ assert(staffRect&&staffRect.height>=44&&staffRect.width>=80&&staffRect.y>=0&&staffRect.y+staffRect.height<=h+1,name+' staff tools reachable without scrolling');
  const data=await page.evaluate(()=>{const root=document.querySelector('.bwWelcome'),footer=document.querySelector('.bwFooter').getBoundingClientRect(),proof=document.querySelector('.bwRealProof').getBoundingClientRect(),back=document.querySelector('.bwPaperBack').getBoundingClientRect(),caption=document.querySelector('.bwProofCaption').getBoundingClientRect(),showcase=document.querySelector('.bwShowcase').getBoundingClientRect();return {clientWidth:root.clientWidth,scrollWidth:root.scrollWidth,innerHeight:innerHeight,clientHeight:root.clientHeight,scrollHeight:root.scrollHeight,footerTop:footer.top,proofBottom:Math.max(proof.bottom,back.bottom),captionTop:caption.top,captionBottom:caption.bottom,showcaseBottom:showcase.bottom,buttons:[...document.querySelectorAll('.bwSessionCard')].map(b=>{const r=b.getBoundingClientRect(),top=document.elementFromPoint(r.left+r.width/2,Math.min(r.top+r.height/2,innerHeight-1));return {left:r.left,right:r.right,top:r.top,bottom:r.bottom,width:r.width,height:r.height,covered:r.bottom<=innerHeight&&!b.contains(top)};})};});
  assert(data.scrollWidth<=data.clientWidth+1,name+' no horizontal overflow');assert(data.proofBottom+3<=data.captionTop,name+' proof clear of caption');assert(data.captionBottom<=data.showcaseBottom-8,name+' caption inside panel');
  for(const b of data.buttons){assert(b.left>=-1&&b.right<=w+1);assert(b.height>=44);assert(!b.covered);assert(data.footerTop>=b.bottom-1);if(w>=768&&h>=600)assert(b.top>=0&&b.bottom<=h,name+' primary controls above fold');}
- assert(await page.getByRole('link',{name:'Event setup',exact:true}).isVisible());assert.equal(await page.evaluate(()=>localStorage.getItem('friendly-booth-print-usage-v1')),'7');assert.equal(await page.evaluate(()=>JSON.parse(localStorage.getItem('friendly-booth-event-v1')).printPackage.addOnPrints),108);
+ assert(await page.getByTestId('welcome-staff-tools').isVisible());assert.equal(await page.evaluate(()=>localStorage.getItem('friendly-booth-print-usage-v1')),'7');assert.equal(await page.evaluate(()=>JSON.parse(localStorage.getItem('friendly-booth-event-v1')).printPackage.addOnPrints),108);
  await page.screenshot({path:`${out}/${name}.png`,fullPage:true});if(w<621)await page.locator('.bwShowcase').screenshot({path:`${out}/${name}-keepsake.png`});results.push({test:name,passed:true,viewport:[w,h],layout:data});
 }
 let browser;
@@ -32,8 +35,25 @@ try{
   await page.setViewportSize({width:1366,height:768});await open(page);
   await page.evaluate(()=>{Object.defineProperty(navigator,'onLine',{configurable:true,get:()=>false});window.dispatchEvent(new Event('offline'));});assert((await page.locator('.bwConnection').textContent()).includes('Offline'));results.push({test:engine+'-offline-indicator',passed:true});
   await open(page);await page.getByRole('button',{name:'Add to iPad',exact:true}).click();await page.getByRole('dialog',{name:'Install on iPad'}).waitFor();await page.getByRole('button',{name:'Close instructions'}).click();results.push({test:engine+'-install-dialog',passed:true});
-  const staff=page.getByRole('button',{name:'Operator controls (tap five times)',exact:true});for(let i=0;i<5;i++)await staff.click();await page.getByRole('dialog',{name:'Operator controls',exact:true}).waitFor();assert((await page.locator('.operatorPanel').textContent()).includes('209'));await page.getByRole('button',{name:'Close controls',exact:true}).click();results.push({test:engine+'-operator-and-remaining-allowance',passed:true});
-  await page.getByRole('link',{name:'Event setup',exact:true}).click();await page.waitForURL('**/setup');
+  const staff=page.getByTestId('welcome-staff-tools');
+  await staff.click();await page.getByRole('dialog',{name:'Staff access',exact:true}).waitFor();
+  await page.getByTestId('staff-cancel').click();
+  assert.equal(await page.getByRole('dialog',{name:'Staff access'}).count(),0);
+  await staff.click();await page.keyboard.press('Escape');
+  assert.equal(await page.getByRole('dialog',{name:'Staff access'}).count(),0);
+  await staff.click();await page.getByTestId('staff-confirm').click();
+  await page.getByRole('dialog',{name:'Operator controls',exact:true}).waitFor();
+  assert((await page.locator('.operatorPanel').textContent()).includes('209'));
+  assert.equal(await page.locator('.operatorQuickCard').count(),6);
+  assert(await page.getByTestId('operator-reset-guest').isVisible());
+  assert(await page.getByTestId('operator-sound-test').isVisible());
+  assert.equal(await page.getByRole('link',{name:/Event setup/}).getAttribute('href'),'/setup');
+  await page.screenshot({path:`${out}/${engine}-staff-tools.png`});
+  await page.getByRole('button',{name:'Close controls',exact:true}).click();
+  assert.equal(await page.getByRole('dialog',{name:'Operator controls'}).count(),0);
+  results.push({test:engine+'-one-tap-staff-confirmation-and-working-operator-dashboard',passed:true});
+  await staff.click();await page.getByTestId('staff-confirm').click();
+  await page.getByRole('link',{name:/Event setup/}).click();await page.waitForURL('**/setup');
   await page.getByTestId('premium-event-setup').waitFor();
   assert.equal(await page.getByTestId('setup-one-photo').getAttribute('aria-pressed'),'false');
   await page.getByTestId('setup-pause-seconds').selectOption('9');
