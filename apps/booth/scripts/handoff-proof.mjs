@@ -23,7 +23,14 @@ for(const engine of [chromium,webkit]){
    localStorage.setItem('friendly-booth-oct10-2026-v2-live-usage','31');
    localStorage.setItem('friendly-booth-oct10-2026-v2-demo-usage','7');
   });
-  await page.goto(href(payload),{waitUntil:'networkidle'});
+  // The installed PWA can import within its own storage even if a QR opens
+  // in a separate Safari browser container.
+  await page.getByTestId('welcome-staff-tools').click();
+  await page.getByTestId('staff-confirm').click();
+  await page.getByTestId('staff-load-event').locator('summary').click();
+  await page.getByTestId('staff-event-link').fill(href(payload));
+  await page.getByTestId('staff-review-event').click();
+  await page.waitForURL(u=>u.pathname==='/handoff'&&Boolean(u.hash),{timeout:15000});
   await page.getByTestId('booth-handoff-review').waitFor();
   assert((await page.getByTestId('booth-handoff-review').innerText()).includes('Test Wedding Celebration'));
   assert((await page.getByTestId('booth-handoff-review').innerText()).includes('216 sheets'));
