@@ -16,7 +16,11 @@ export function updateDestination(pathname,search,version,stamp=Date.now()){
   // Only known, same-origin idle screens; never accept a redirect URL.
   const path=['/','/ipad','/launch'].includes(pathname)?pathname:'/launch';
   const source=new URLSearchParams(search),params=new URLSearchParams();
-  if(path==='/'&&source.get('event')==='oct10-2026'){
+  if(path==='/'&&/^[A-Za-z0-9_-]{3,90}$/.test(source.get('booth_event')||'')){
+    // A manual app update must return to this imported event, not the
+    // general guest booth or the unrelated October rehearsal.
+    params.set('booth_event',source.get('booth_event'));
+  }else if(path==='/'&&source.get('event')==='oct10-2026'){
     params.set('event','oct10-2026');
     if(source.get('demo')==='1')params.set('demo','1');
   }

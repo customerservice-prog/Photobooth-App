@@ -1,7 +1,7 @@
 // Keep the installed app identity stable. Navigation never clears or migrates
 // photos, settings, counters, or any other browser storage.
-export const BOOTH_RELEASE='2026.10.07.14';
-export const BOOTH_RELEASE_LABEL='Simpler guest welcome · clear photo choices · one-tap staff tools';
+export const BOOTH_RELEASE='2026.10.07.15';
+export const BOOTH_RELEASE_LABEL='Staff event QR handoff · isolated iPad events · safe reimport';
 const ENTRIES=Object.freeze({
   demo:'/?event=oct10-2026&demo=1',
   preparation:'/event-prep',

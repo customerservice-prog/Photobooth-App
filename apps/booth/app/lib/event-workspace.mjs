@@ -20,7 +20,18 @@ export function octoberPreset(){
 }
 export function workspace(search=''){
   const p=new URLSearchParams(search);
-  if(p.get('event')!==EVENT_ID)return {...LEGACY_KEYS,id:'legacy',demo:false,managed:false,home:'/',setup:'/setup',archive:'legacy'};
+  // Imported bookings are device-local and isolated by a validated event ID.
+  // Existing October live/demo and legacy storage are never overwritten.
+  if(p.has('booth_event')){
+   const id=p.get('booth_event');
+   if(!/^[A-Za-z0-9_-]{3,90}$/.test(id||''))throw new Error('Invalid event link. Ask staff for a fresh booth setup link.');
+   const root='friendly-booth-transfer-v1-'+id;
+   const q='?booth_event='+encodeURIComponent(id);
+   return {id,imported:true,managed:false,demo:false,config:root+'-config',
+    usage:root+'-usage',photos:root+'-recent',previous:root+'-previous',
+    archive:'transfer:'+id,home:'/'+q,setup:'/setup'+q};
+  }
+  if(p.get('event')!==EVENT_ID)return {...LEGACY_KEYS,id:'legacy',imported:false,demo:false,managed:false,home:'/',setup:'/setup',archive:'legacy'};
   const demo=p.get('demo')==='1';
   const query='?event='+EVENT_ID+(demo?'&demo=1':'');
   return {id:EVENT_ID,demo,managed:true,config:EVENT_KEYS.config,usage:demo?EVENT_KEYS.demoUsage:EVENT_KEYS.liveUsage,photos:root+(demo?'-demo-recent':'-live-recent'),archive:EVENT_ID+(demo?':demo':':live'),home:'/'+query,setup:'/event-prep'};

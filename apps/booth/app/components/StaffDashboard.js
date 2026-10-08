@@ -1,5 +1,6 @@
 'use client';
-import {useEffect,useRef} from 'react';
+import {useEffect,useRef,useState} from 'react';
+import {decodeBoothHandoff} from '../lib/booth-handoff.mjs';
 import './staff-dashboard.css';
 
 // A functional staff dashboard shared by demo and live contexts. The staff
@@ -7,6 +8,25 @@ import './staff-dashboard.css';
 export default function StaffDashboard({onClose,onReset,onVoiceTest,onRecover,onSaveConfig,onLoadBryan,
  online,saved,installed,managed,demo,remaining,setupHref,photos=[],cfg,eventTypes,voiceStatus}){
  const ref=useRef(null),closeRef=useRef(onClose);closeRef.current=onClose;
+ const [handoffText,setHandoffText]=useState(''),[handoffError,setHandoffError]=useState('');
+ function reviewTransfer(e){
+  e.preventDefault();setHandoffError('');
+  try{
+   const u=new URL(handoffText.trim());
+   if(!([window.location.origin,'https://photobooth-booth-production.up.railway.app'].includes(u.origin))||u.pathname!=='/handoff'){
+    throw new Error('Paste a Friendly Booth event link from the staff dashboard.');
+   }
+   decodeBoothHandoff(u.hash);
+   window.location.assign('/handoff'+u.hash);
+  }catch(error){setHandoffError(error.message||'This event link is invalid. Copy it again from the dashboard.');}
+ }
+ async function pasteTransfer(){
+  try{
+   const text=await navigator.clipboard.readText();
+   if(!text)throw new Error('Clipboard is empty.');
+   setHandoffText(text);setHandoffError('');
+  }catch{setHandoffError('Long-press the event link field and choose Paste, or type the link.');}
+ }
  useEffect(()=>{
   const node=ref.current,previous=document.activeElement;
   if(node&&!node.open)node.showModal();
@@ -35,6 +55,22 @@ export default function StaffDashboard({onClose,onReset,onVoiceTest,onRecover,on
     <a className="operatorQuickCard" href="/help#guided-access"><span aria-hidden="true">◇</span><strong>iPad help</strong><small>Guided Access & fixes</small></a>
     <button className="operatorQuickCard operatorGuestCard" type="button" data-testid="operator-reset-guest" onClick={onReset}><span aria-hidden="true">⌂</span><strong>Guest welcome screen</strong><small>Ready for the next guest</small></button>
    </nav>
+   <details className="operatorFold" data-testid="staff-load-event">
+    <summary>Load an event from Staff dashboard <span>Transfer event link</span></summary>
+    <div className="operatorFoldContent">
+     <p>Use this inside the <strong>installed Friendly Booth app on the event iPad</strong>. If scanning a QR code opens Safari separately, copy the setup link there and paste it here so the event saves in the app you actually use.</p>
+     <form className="operatorHandoffForm" onSubmit={reviewTransfer}>
+      <label className="formField" htmlFor="staff-event-link">Staff dashboard event link
+       <input id="staff-event-link" className="input" type="url" autoCapitalize="off" autoCorrect="off" autoComplete="off" spellCheck={false} data-testid="staff-event-link" placeholder="https://photobooth-booth-production.up.railway.app/handoff#…" value={handoffText} onChange={e=>setHandoffText(e.target.value)} required/>
+      </label>
+      <div className="operatorHandoffButtons">
+       <button type="button" className="operatorQuickPaste" onClick={pasteTransfer}>Paste from clipboard</button>
+       <button type="submit" className="operatorPrimary" data-testid="staff-review-event">Review event on this iPad →</button>
+      </div>
+      {handoffError&&<p className="operatorNotice" role="alert">{handoffError}</p>}
+     </form>
+    </div>
+   </details>
    {voiceStatus==='blocked'&&<p className="operatorNotice" role="alert">Speaker playback is blocked. Turn up the iPad volume, check Bluetooth, then tap Test speaker again.</p>}
    <details className="operatorFold">
     <summary>Recover a recent photo <span>{photos.length} available</span></summary>
