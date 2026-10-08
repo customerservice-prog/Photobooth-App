@@ -1,2 +1,2 @@
-import Link from "next/link";
-export default function Home(){return <main className="page" style={{minHeight:"100vh",display:"grid",placeItems:"center"}}><div style={{maxWidth:760,textAlign:"center"}}><div style={{width:72,height:72,borderRadius:22,margin:"0 auto 24px",display:"grid",placeItems:"center",fontSize:34,background:"linear-gradient(145deg,#e7ca87,#8f6a2d)",color:"#17120a",boxShadow:"0 20px 70px rgba(197,159,82,.2)"}}>✦</div><div className="eyebrow">Friendly Party Rental</div><h1 className="title" style={{fontSize:56}}>Photo Booth Event Studio</h1><p className="muted" style={{fontSize:17,lineHeight:1.7}}>Create events, prepare elegant print designs, manage booth hardware, and keep every guest experience organized.</p><Link href="/dashboard" className="btn" style={{marginTop:16,padding:"14px 22px"}}>Enter Studio →</Link></div></main>}
+import {redirect} from 'next/navigation';
+export default function Home(){redirect('/dashboard')}
