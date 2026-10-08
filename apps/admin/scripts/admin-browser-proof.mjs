@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import {mkdir} from 'node:fs/promises';
 import {chromium} from 'playwright';
 import {PrismaClient} from '@prisma/client';
-const base=process.env.ADMIN_PROOF_URL||'http://127.0.0.1:3001';
+const base=process.env.ADMIN_PROOF_URL||'http://localhost:3001';
 await mkdir('admin-proof',{recursive:true});
 const browser=await chromium.launch({headless:true,args:['--no-sandbox']});
 const prisma=new PrismaClient();
