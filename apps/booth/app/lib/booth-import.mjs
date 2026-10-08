@@ -24,7 +24,9 @@ export function decodeHandoff(token){
  if(!match(token,/^[A-Za-z0-9_-]{12,5000}$/))throw Error('The setup link is incomplete or invalid.');
  let text;
  try{
-  if(typeof Buffer!=='undefined')text=Buffer.from(token,'base64url').toString('utf8');
+  // Some browser bundles provide a Buffer shim without base64url support.
+  // On the iPad and in desktop browsers, always use native atob + UTF-8.
+  if(typeof window==='undefined'&&typeof Buffer!=='undefined')text=Buffer.from(token,'base64url').toString('utf8');
   else{
    const encoded=token.replace(/-/g,'+').replace(/_/g,'/');
    const raw=atob(encoded.padEnd(Math.ceil(encoded.length/4)*4,'='));
