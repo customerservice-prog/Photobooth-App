@@ -5,6 +5,7 @@ import {workspace} from '../lib/event-workspace.mjs';
 import {backupEnabled,saveBackupToken,syncEventPhotos} from '../lib/backup-sync.mjs';
 import StaffBackupPanel from './StaffBackupPanel';
 import StaffPrintPanel from './StaffPrintPanel';
+import StaffDeviceChecklist from './StaffDeviceChecklist';
 import './staff-dashboard.css';
 
 // A functional staff dashboard shared by demo and live contexts. The staff
@@ -91,6 +92,7 @@ export default function StaffDashboard({onClose,onReset,onVoiceTest,onRecover,on
    </section>
    <StaffBackupPanel/>
    <StaffPrintPanel onReviewPrint={onReviewPrint}/>
+   <StaffDeviceChecklist/>
    <section className="operatorKioskCard" data-testid="operator-kiosk-card" aria-label="iPad guest display">
     <div className="operatorKioskTop">
      <div><span className="operatorOverline">IPAD EVENT MODE</span><h3>Keep guests in the Photo Booth</h3><p>The booth can request an always-on display. iPad Guided Access is required to stop guests switching apps.</p></div>
