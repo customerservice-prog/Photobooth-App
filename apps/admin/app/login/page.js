@@ -1,0 +1,1 @@
+export default function Login(){return <main><h1>Staff sign in</h1><form method="POST" action="/api/auth/login"><label>Owner password <input type="password" name="password" required/></label><button>Sign in</button></form></main>}
