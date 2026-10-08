@@ -333,3 +333,468 @@
 @media(prefers-reduced-motion:reduce){
  .ksDialogSetup .ksEventGrid button{transition:none}
 }
+
+/* WOW SETUP V2 — CSS-only luxury makeover, with real renderer choices.
+   Deliberately limited to the event-setup dialog. No changes to print sheets. */
+.ksDialogSetup{
+ width:min(1390px,calc(100vw - 30px));
+ height:min(890px,calc(100dvh - 24px));
+ border:1px solid #d1b881;
+ box-shadow:0 38px 140px #071b17b3,0 0 0 8px #ddc99c19;
+ border-radius:28px;
+}
+.ksDialogSetup::backdrop{
+ background:radial-gradient(circle at 50% 40%,#193d31b0,#071a18df);
+}
+.ksDialogSetup .ksDialogHead{
+ min-height:126px;
+ padding:24px clamp(20px,3vw,52px);
+ background:
+   radial-gradient(circle at 71% 22%,#eed9ae77,transparent 34%),
+   linear-gradient(105deg,#fffdf8 2%,#fbf4e5 57%,#ebe7d6 100%);
+ border-bottom:1px solid #d7d5c8;
+}
+.ksDialogSetup .ksDialogHead::before{
+ right:15%;top:-66px;font-size:218px;
+ color:#c9a96335;transform:rotate(-21deg);
+}
+.ksDialogSetup .ksDialogHead h2{
+ font-size:clamp(34px,3.15vw,53px);
+ letter-spacing:-1.5px;
+ font-weight:400;
+ text-shadow:0 1px 1px #f9f4e1;
+}
+.ksDialogSetup .ksSetupGrid.ksSetupWow{
+ grid-template-columns:minmax(0,1.14fr) minmax(380px,.86fr);
+ background:#faf8f2;
+}
+.ksDialogSetup .ksSetupWow .ksSetupForm{
+ background:
+   radial-gradient(circle at 100% 0%,#e5ebdf57,transparent 33%),
+   linear-gradient(160deg,#fffdf8 0%,#faf8f2 68%,#f7f2e6);
+ padding:clamp(21px,2.2vw,33px) clamp(20px,3.1vw,47px) 34px;
+}
+.ksDialogSetup .ksSetupWow .ksSteps{margin-bottom:22px}
+.ksDialogSetup .ksSetupWow .ksSteps button.current{
+ color:#2e5946;
+ font-weight:800;
+}
+.ksDialogSetup .ksSetupWow .ksStepConnector{width:38px;background:linear-gradient(90deg,#9aab91,#d8b771)}
+.ksDialogSetup .ksWowLead{margin-bottom:14px}
+.ksDialogSetup .ksWowLead h3{
+ font:400 clamp(28px,2.75vw,39px)/1.11 Georgia,serif;
+ letter-spacing:-1.15px;margin:8px 0 7px;
+}
+.ksDialogSetup .ksWowLead h3 em{
+ font:italic 400 1.03em Georgia,serif;
+ color:#a77f45;
+ white-space:normal;
+}
+.ksDialogSetup .ksWowLead p{font-size:13px;max-width:550px}
+.ksDialogSetup .ksWowEventGrid{
+ grid-template-columns:repeat(3,minmax(0,1fr));
+ gap:11px;margin:16px 0 21px;
+}
+.ksDialogSetup .ksWowEventGrid button{
+ min-height:100px;
+ position:relative;flex-direction:column;align-items:flex-start;justify-content:center;
+ gap:10px;padding:14px 16px;
+ border-radius:17px;
+ border:1px solid #d4d9cb;
+ background:
+   radial-gradient(circle at 100% 10%,#f7e8c755,transparent 64%),
+   linear-gradient(139deg,#fffef9,#f4f4ed);
+ color:#2b4638;
+ box-shadow:0 5px 14px #273d2610;
+ font-size:13px;
+}
+.ksDialogSetup .ksWowEventGrid button:hover{
+ transform:translateY(-2px);
+ border-color:#9fb295;
+ background:#f2f5ec;
+ box-shadow:0 8px 19px #273c281e;
+}
+.ksDialogSetup .ksWowEventGrid button.chosen{
+ border:2px solid #3b6b53;padding:13px 15px;
+ background:linear-gradient(138deg,#e4efe3,#f0f5e9 70%,#dfebdd);
+ box-shadow:0 0 0 4px #4d7e581a,0 6px 14px #254b3320;
+}
+.ksDialogSetup .ksWowEventGrid .ksEventIcon{
+ background:#e8eee3;
+ color:#365d48;
+ width:38px;height:38px;border-radius:12px;
+ border:1px solid #d7e0d0;
+}
+.ksDialogSetup .ksWowEventGrid .ksEventIcon svg{width:23px;height:23px}
+.ksDialogSetup .ksWowEventGrid .ksEventLabel{
+ display:flex;flex-direction:column;gap:3px;
+}
+.ksDialogSetup .ksWowEventGrid .ksEventLabel strong{
+ display:block;font:650 13px/1.2 system-ui,sans-serif;
+}
+.ksDialogSetup .ksWowEventGrid .ksEventLabel small{
+ display:block;font:450 10px/1.3 system-ui,sans-serif;
+ color:#7a897a;
+}
+.ksDialogSetup .ksWowEventGrid .ksEventSelectMark{
+ position:absolute;right:12px;top:10px;
+ font:600 13px/1 system-ui,sans-serif;
+ color:#b9bdad;
+}
+.ksDialogSetup .ksWowEventGrid button.chosen .ksEventSelectMark{
+ display:grid;place-items:center;
+ border-radius:50%;width:20px;height:20px;
+ background:#325f4d;color:white;font-size:12px;
+}
+.ksDialogSetup .ksWowSessionConfig{
+ background:linear-gradient(145deg,#f8f4e7 0%,#edf2e9 72%,#ebeadc 100%);
+ border-color:#d9d4bd;box-shadow:inset 0 1px #fffffff2,0 5px 17px #4a463416;
+ padding:20px 22px;
+}
+.ksDialogSetup .ksWowSessionConfig .ksSessionConfigHead h4{
+ font:italic 400 clamp(23px,2.3vw,29px)/1.15 Georgia,serif;
+}
+.ksDialogSetup .ksWowSessionGrid{gap:14px;margin:16px 0}
+.ksDialogSetup .ksWowSessionGrid button{
+ min-height:117px;
+ border-radius:18px;padding:14px;
+ background:linear-gradient(135deg,#fffdf8,#f7f7ef);
+ box-shadow:0 5px 14px #2742310e;
+}
+.ksDialogSetup .ksWowSessionGrid button.isSelected{
+ padding:13px;background:linear-gradient(143deg,#e5f1e6,#f5f5e9);
+ border-color:#4a765e;
+ box-shadow:0 0 0 4px #7aab7627,0 6px 17px #344b2d1d;
+}
+.ksDialogSetup .ksWowSessionGrid .ksShotArtwork{
+ height:76px;width:71px;background:#d8ded4;
+ border-radius:12px;padding:7px;
+}
+.ksDialogSetup .ksWowSessionGrid .ksShotArtwork i{
+ border-radius:5px;
+ background:linear-gradient(135deg,#eac7a4 1%,#799986 48%,#304c47);
+ border-color:#fff9e6;
+}
+.ksDialogSetup .ksWowSessionGrid .ksShotDetails small{
+ font:700 9px/1.3 system-ui,sans-serif;
+ letter-spacing:.6px;color:#7e865e;
+}
+.ksDialogSetup .ksWowSessionGrid .ksShotDetails strong{
+ font:italic 400 clamp(24px,2.7vw,33px)/1.15 Georgia,serif;
+ color:#264b3d;
+}
+.ksDialogSetup .ksWowSessionGrid .ksShotDetails em{
+ font:450 10px/1.45 system-ui,sans-serif;
+ color:#617366;
+}
+.ksDialogSetup .ksWowSessionGrid .ksShotIndicator{
+ top:12px;right:12px;
+ display:grid;place-items:center;
+ width:23px;height:23px;border:1px solid #adbaa9;
+ border-radius:50%;background:#fffdf8;
+ color:#3d654e;font-size:16px;
+}
+.ksDialogSetup .ksWowSessionGrid .isSelected .ksShotIndicator{
+ color:white;background:#37624c;border-color:#37624c;font-size:12px;
+}
+.ksDialogSetup .ksWowFirstStage .ksSetupActionRail{margin-top:18px}
+.ksDialogSetup .ksWowPreview{
+ background:
+   radial-gradient(ellipse at 50% 40%,#5a796b8b,transparent 58%),
+   radial-gradient(circle at 24% 12%,#cebb7655,transparent 32%),
+   linear-gradient(152deg,#14372e 1%,#244c3d 56%,#0e2b25 100%);
+ border-left:2px solid #ccb57f;
+ padding:26px clamp(18px,2.5vw,37px) 20px;
+ gap:12px;
+}
+.ksDialogSetup .ksWowPreview::before{right:-20px;top:18%;color:#f6d79c25}
+.ksDialogSetup .ksWowPreview::after{left:-25px;bottom:3%;color:#f6d79c21}
+.ksDialogSetup .ksWowPreview .ksPreviewTop .ksEyebrow{
+ color:#f4dc9e;font-weight:750;font-size:11px;letter-spacing:2.5px;
+}
+.ksDialogSetup .ksWowPreview .ksPreviewStar{
+ font-size:32px;color:#f4d69a;text-shadow:0 0 25px #f3daa87f;
+}
+.ksDialogSetup .ksPreviewFormat{
+ position:relative;z-index:5;
+ display:flex;align-items:center;gap:6px;
+ border:1px solid #f7ddb055;
+ border-radius:999px;padding:5px;
+ background:#102f28a0;
+}
+.ksDialogSetup .ksPreviewFormat button{
+ border:0;border-radius:999px;
+ min-height:39px;padding:7px 15px;
+ background:transparent;color:#e2dcc8;
+ font:750 11px system-ui,sans-serif;letter-spacing:.1px;
+}
+.ksDialogSetup .ksPreviewFormat button[aria-pressed=true]{
+ color:#274333;background:#f9e8c0;box-shadow:0 2px 9px #05181145;
+}
+.ksDialogSetup .ksPreviewFormat button:disabled{
+ opacity:.47;cursor:not-allowed;
+}
+.ksDialogSetup .ksWowPreview .ksPreviewPaper{
+ flex:1;min-height:0;
+ display:flex;align-items:center;justify-content:center;
+ position:relative;
+ filter:none;isolation:isolate;
+ padding:2px 6px 13px;
+}
+.ksDialogSetup .ksWowPreview .ksPreviewPaper::before{
+ content:'';
+ position:absolute;
+ width:min(395px,84%);aspect-ratio:1;z-index:-1;
+ border-radius:50%;
+ background:radial-gradient(circle,#e7c89533 0,transparent 70%);
+ filter:blur(13px);
+}
+.ksDialogSetup .ksWowPreview .ksPreviewPaperMount{
+ position:relative;z-index:3;
+ display:grid;place-items:center;
+ height:100%;width:100%;
+}
+.ksDialogSetup .ksWowPreview .ksPreviewPaperMount .luxuryPrint.designPrint{
+ width:min(98%,calc((100dvh - 330px)*.62),325px)!important;
+ height:auto!important;max-height:100%!important;
+ max-width:325px!important;
+ margin:auto;
+ transform:rotate(-2deg);
+ border:7px solid #fff9e7;
+ background:#f7f0df;
+ box-shadow:0 0 0 1px #fbe6b5a8,0 17px 47px #061b15be,9px 4px 0 #dfc79c42;
+ transition:transform .22s ease,box-shadow .22s ease;
+}
+.ksDialogSetup .ksWowPreview .ksPreviewPaperMount:hover .luxuryPrint.designPrint{
+ transform:rotate(0deg) scale(1.025);
+ box-shadow:0 0 0 1px #fbe6b5a8,0 23px 55px #061b15be;
+}
+.ksDialogSetup .ksPreviewFoil{
+ position:absolute;z-index:5;pointer-events:none;
+ color:#f9d994;text-shadow:0 0 12px #f4dfa8bd;
+ font:38px Georgia,serif;
+}
+.ksDialogSetup .ksPreviewFoilOne{left:5%;top:17%}
+.ksDialogSetup .ksPreviewFoilTwo{right:5%;bottom:18%;font-size:23px}
+.ksDialogSetup .ksWowPreview .ksPreviewBottom{
+ background:#08271fae;
+ border-color:#efdeae62;
+ padding:14px 11px 10px;
+}
+.ksDialogSetup .ksWowPreview .ksPreviewBottom strong{
+ font:italic 400 21px Georgia,serif;color:#f9e9c3;
+}
+.ksDialogSetup .ksWowPreview .ksPreviewBottom small{
+ font-size:11px;color:#d8dfce;
+}
+.ksDialogSetup .ksPreviewReady{
+ flex-basis:100%;
+ color:#e2c88f;
+ font:700 9px/1.3 system-ui,sans-serif;
+ letter-spacing:1.7px;
+ padding-top:7px;
+}
+.ksDialogSetup .ksLookbookHeading{
+ display:flex;align-items:center;justify-content:space-between;
+ gap:14px;margin:16px 0 12px;color:#254936;
+}
+.ksDialogSetup .ksLookbookHeading strong{
+ font:700 14px/1.2 system-ui,sans-serif;
+}
+.ksDialogSetup .ksLookbookHeading small{
+ color:#859081;font-size:10px;text-align:right;
+}
+.ksDialogSetup .ksLookbookGrid{
+ display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;
+}
+.ksDialogSetup .ksLookCard{
+ position:relative;min-width:0;
+ display:flex;flex-direction:column;align-items:center;
+ min-height:210px;gap:6px;
+ padding:10px 9px 12px;
+ border:1px solid #d3d8cb;border-radius:15px;
+ background:linear-gradient(150deg,#fffefa,#f2f4ec);
+ color:#31513f;
+ box-shadow:0 5px 15px #1e453015;
+}
+.ksDialogSetup .ksLookCard:hover{border-color:#8da98d;transform:translateY(-2px)}
+.ksDialogSetup .ksLookCard.isSelected{
+ border:2px solid #3f735a;padding:9px 8px 11px;
+ background:#eaf2e9;box-shadow:0 0 0 4px #4f7c5d19;
+}
+.ksDialogSetup .ksLookArt{
+ width:min(100%,116px);
+ aspect-ratio:2/3;
+ min-width:0;display:grid;place-items:center;
+ overflow:hidden;pointer-events:none;
+ box-shadow:0 7px 15px #24413136;
+}
+.ksDialogSetup .ksLookArt .luxuryPrint.designPrint{
+ display:block!important;width:100%!important;
+ height:auto!important;max-width:none!important;
+ border:0!important;margin:0!important;
+ aspect-ratio:2/3;
+ transform:none!important;
+}
+.ksDialogSetup .ksLookName{
+ font:600 12px/1.22 system-ui,sans-serif;
+ color:#315541;text-align:center;overflow-wrap:anywhere;
+}
+.ksDialogSetup .ksLookPick{font:700 10px system-ui,sans-serif;color:#8a927f}
+.ksDialogSetup .ksLookCard.isSelected .ksLookPick{color:#376c52}
+.ksDialogSetup .ksPaletteGallery{margin:19px 0 22px}
+.ksDialogSetup .ksPaletteGrid{
+ display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px;
+}
+.ksDialogSetup .ksPaletteGrid button{
+ display:flex;align-items:center;gap:9px;min-width:0;
+ min-height:52px;
+ border:1px solid #ced6cb;border-radius:12px;
+ padding:7px 8px;
+ background:#fdfcf7;color:#355844;
+ text-align:left;
+ font:650 11px/1.2 system-ui,sans-serif;
+}
+.ksDialogSetup .ksPaletteGrid button[aria-pressed=true]{
+ border:2px solid #437258;padding:6px 7px;background:#e9f1e6;
+}
+.ksDialogSetup .ksPalettePaint{
+ display:flex;gap:0;
+ flex:none;width:46px;height:31px;
+ overflow:hidden;border-radius:8px;
+ box-shadow:0 0 0 1px #273b2533;
+}
+.ksDialogSetup .ksPalettePaint i{display:block;flex:1}
+.ksDialogSetup .ksPaletteGrid button b{
+ margin-left:auto;font-size:13px;color:#3b7450;
+}
+.ksDialogSetup .ksDetailsHead{
+ padding-top:13px;border-top:1px solid #dce1d5;
+}
+.ksDialogSetup .ksAdvancedDetails{
+ margin-top:23px;
+ border:1px solid #d0d8cb;border-radius:13px;
+ background:#f5f7f0;
+ overflow:hidden;
+}
+.ksDialogSetup .ksAdvancedDetails summary{
+ display:flex;align-items:center;justify-content:space-between;
+ padding:12px 15px;min-height:49px;
+ color:#37634b;cursor:pointer;
+ font:750 12px system-ui,sans-serif;
+ list-style:none;
+}
+.ksDialogSetup .ksAdvancedDetails summary::-webkit-details-marker{display:none}
+.ksDialogSetup .ksAdvancedDetails summary span{font-size:17px}
+.ksDialogSetup .ksAdvancedDetails[open] summary span{transform:rotate(180deg)}
+.ksDialogSetup .ksAdvancedDetails .psSettings{
+ border-top:1px solid #d9e0d4;
+ padding:14px;
+}
+.ksDialogSetup .ksWowSaveRail{border-top:1px solid #dce1d5;padding-top:17px}
+@media(max-width:1200px){
+ .ksDialogSetup .ksSetupGrid.ksSetupWow{
+  grid-template-columns:minmax(0,1.05fr) minmax(305px,.95fr);
+ }
+ .ksDialogSetup .ksWowEventGrid button{min-height:88px;padding:11px 12px}
+ .ksDialogSetup .ksWowSessionGrid button{gap:10px;min-height:105px}
+ .ksDialogSetup .ksWowSessionGrid .ksShotArtwork{width:48px;height:66px;padding:5px}
+ .ksDialogSetup .ksWowSessionGrid .ksShotDetails strong{font-size:26px}
+ .ksDialogSetup .ksWowPreview .ksPreviewPaperMount .luxuryPrint.designPrint{
+  width:min(92%,calc((100dvh - 335px)*.62),285px)!important;
+ }
+ .ksDialogSetup .ksLookCard{min-height:180px}
+ .ksDialogSetup .ksLookArt{width:min(100%,93px)}
+}
+@media(max-width:850px){
+ .ksDialogSetup .ksSetupGrid.ksSetupWow{
+  grid-template-columns:minmax(0,1.09fr) minmax(245px,.91fr);
+ }
+ .ksDialogSetup .ksWowEventGrid{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .ksDialogSetup .ksWowEventGrid button{flex-direction:row;min-height:63px}
+ .ksDialogSetup .ksWowEventGrid .ksEventLabel small{display:none}
+ .ksDialogSetup .ksWowSessionGrid{grid-template-columns:1fr}
+ .ksDialogSetup .ksWowSessionGrid button{min-height:85px}
+ .ksDialogSetup .ksWowPreview .ksPreviewPaperMount .luxuryPrint.designPrint{
+  width:min(92%,calc((100dvh - 325px)*.55),225px)!important;
+ }
+ .ksDialogSetup .ksPaletteGrid{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media(max-width:720px){
+ .ksDialogSetup{height:calc(100dvh - 12px);max-height:calc(100dvh - 12px)}
+ .ksDialogSetup .ksDialogHead{min-height:85px}
+ .ksDialogSetup .ksDialogHead h2{font-size:31px}
+ .ksDialogSetup .ksSetupGrid.ksSetupWow{
+  display:flex;flex-direction:column;
+  min-height:0;overflow-y:auto;
+  -webkit-overflow-scrolling:touch;
+ }
+ .ksDialogSetup .ksSetupWow .ksSetupPreview{
+  position:sticky;top:0;
+  order:0;
+  display:grid!important;
+  grid-template-columns:90px minmax(0,1fr);
+  grid-template-rows:30px 64px;
+  align-items:center;
+  gap:4px 13px;
+  min-height:115px;max-height:115px;
+  padding:10px 14px;
+  border-left:0;border-bottom:2px solid #cdb27a;
+  z-index:9;
+ }
+ .ksDialogSetup .ksSetupWow .ksSetupForm{
+  height:auto;flex:none;order:1;overflow:visible;
+  padding:22px 16px 35px;
+ }
+ .ksDialogSetup .ksWowPreview .ksPreviewTop{
+  grid-column:2;grid-row:1;
+ }
+ .ksDialogSetup .ksWowPreview .ksPreviewTop .ksEyebrow{font-size:9px}
+ .ksDialogSetup .ksWowPreview .ksPreviewStar{display:none}
+ .ksDialogSetup .ksWowPreview .ksPreviewFormat{
+  grid-column:2;grid-row:2;
+  justify-self:start;align-self:start;
+ }
+ .ksDialogSetup .ksWowPreview .ksPreviewPaper{
+  grid-column:1;grid-row:1/3;
+  min-height:0;padding:0;overflow:hidden;
+ }
+ .ksDialogSetup .ksWowPreview .ksPreviewPaperMount .luxuryPrint.designPrint{
+  width:56px!important;
+  max-width:56px!important;
+  max-height:86px!important;
+  border:2px solid #fff8df;
+  transform:rotate(-2deg);
+  box-shadow:0 4px 12px #031e1980;
+ }
+ .ksDialogSetup .ksWowPreview .ksPreviewBottom,
+ .ksDialogSetup .ksWowPreview .ksPreviewFoil,
+ .ksDialogSetup .ksWowPreview .ksPreviewPaper::before,
+ .ksDialogSetup .ksWowPreview .ksPreviewPaper::after{display:none}
+ .ksDialogSetup .ksPreviewFormat button{min-height:37px;padding:7px 11px}
+ .ksDialogSetup .ksWowEventGrid{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .ksDialogSetup .ksWowEventGrid button{min-height:77px;padding:12px}
+ .ksDialogSetup .ksLookbookGrid{gap:8px}
+ .ksDialogSetup .ksLookCard{min-height:175px}
+ .ksDialogSetup .ksLookArt{width:min(100%,86px)}
+ .ksDialogSetup .ksLookName{font-size:11px}
+ .ksDialogSetup .ksPaletteGrid{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .ksDialogSetup .ksWowLead h3{font-size:30px}
+ .ksDialogSetup .ksLookbookHeading{align-items:start}
+}
+@media(max-width:390px){
+ .ksDialogSetup .ksWowEventGrid button{gap:5px;padding:9px}
+ .ksDialogSetup .ksWowEventGrid .ksEventLabel strong{font-size:11px}
+ .ksDialogSetup .ksWowSessionGrid button{gap:7px}
+ .ksDialogSetup .ksLookArt{width:70px}
+ .ksDialogSetup .ksLookCard{min-height:150px;padding:6px 5px}
+ .ksDialogSetup .ksPaletteGrid button{font-size:10px;gap:6px}
+ .ksDialogSetup .ksPalettePaint{width:35px}
+}
+@media(prefers-reduced-motion:reduce){
+ .ksDialogSetup .ksWowEventGrid button,
+ .ksDialogSetup .ksLookCard,
+ .ksDialogSetup .ksWowPreview .ksPreviewPaperMount .luxuryPrint.designPrint{
+  transition:none!important;transform:none!important;
+ }
+}
