@@ -81,7 +81,7 @@ try{
   assert.equal(prepared.details.secondaryColor,'#e4b4a1');
   assert.equal(prepared.printLayouts.defaultLayout,'card');
   assert.equal(prepared.photoFit,'fill');
-  assert.equal(prepared.printLayouts.stripMode,'double');
+  assert.equal(prepared.printLayouts.stripMode,'single');
   assert.equal(await page.evaluate(()=>localStorage.getItem('friendly-booth-print-usage-v1')),'7');
   assert.equal(await page.getByTestId('welcome-quick-photo').count(),1);
   assert.equal(await page.getByTestId('welcome-four-photo').count(),1);
