@@ -16,6 +16,19 @@ export default function StaffDashboard({onClose,onReset,onVoiceTest,onRecover,on
   section.open=true;
   requestAnimationFrame(()=>section.scrollIntoView({block:'center',behavior:'smooth'}));
  }
+ async function enablePhotoBackup(){
+  const scope=workspace(window.location.search);
+  if(!(scope.managed||scope.imported)){setBackupState('not-an-event');return;}
+  setBackupState('connecting');
+  try{
+   const response=await fetch('/api/backup/authorize',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({eventId:scope.id})});
+   const data=await response.json();
+   if(!response.ok)throw new Error(data.error||'Backup authorization failed');
+   saveBackupToken(localStorage,scope.id,data.token);
+   setBackupState('enabled');
+   void syncEventPhotos({storage:localStorage,scope:scope.archive,eventId:scope.id});
+  }catch(e){setBackupState(e.message||'Unavailable');}
+ }
  function showEventTransfer(){
   const section=transferRef.current;
   if(!section)return;
