@@ -111,7 +111,7 @@ export default function StaffDashboard({onClose,onReset,onVoiceTest,onRecover,on
     <button className="operatorQuickCard operatorGuestCard" type="button" data-testid="operator-load-event" onClick={showEventTransfer}><span aria-hidden="true">⇪</span><strong>Load an event</strong><small>Send admin settings to this iPad</small></button>
     <a className="operatorQuickCard" href={setupHref}><span aria-hidden="true">✎</span><strong>Event setup</strong><small>Names, colors, print layouts</small></a>
     <button className="operatorQuickCard" type="button" data-testid="operator-sound-test" onClick={onVoiceTest}><span aria-hidden="true">♫</span><strong>Play voice sample</strong><small>Staff-only sound check</small></button>
-    <a className="operatorQuickCard" href="/print-test"><span aria-hidden="true">▤</span><strong>Canon test print</strong><small>Check paper and colors</small></a>
+    <a className="operatorQuickCard" href="/print-test"><span aria-hidden="true">▤</span><strong>Canon wireless printing</strong><small>AirPrint and 4×6 instructions</small></a>
     <a className="operatorQuickCard" href="/delivery-check"><span aria-hidden="true">↗</span><strong>Digital delivery</strong><small>Test sharing and receipts</small></a>
     <a className="operatorQuickCard" href="/help#guided-access"><span aria-hidden="true">◇</span><strong>iPad help</strong><small>Guided Access & fixes</small></a>
     <button className="operatorQuickCard operatorGuestCard" type="button" data-testid="operator-reset-guest" onClick={onReset}><span aria-hidden="true">⌂</span><strong>Guest welcome screen</strong><small>Ready for the next guest</small></button>
