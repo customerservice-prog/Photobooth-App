@@ -3,7 +3,7 @@
 const IDS=['ivory','blush','champagne'];
 function family(type, fields, designs) {
   const templates = designs.map((d, i) => Object.freeze({
-    id: IDS[i], key: type + '/' + d[0], family: type,
+    id: IDS[i]||d[0], key: type + '/' + d[0], family: type,
     name: d[1], description: d[2], layout: d[0],
     paper: d[3], ink: d[4], accent: d[5],
     supportedFields: Object.freeze([...fields]),
@@ -27,7 +27,8 @@ export const TEMPLATE_FAMILIES=Object.freeze({
  graduation:family('graduation',['graduate','classYear','school','date'],[
   ['honors-edit','The Honors Edit','Laurel crest · diploma · graduate signature','#f5efdf','#514a3b','#ae8b4e'],
   ['confetti-graduate','Confetti Celebration','Gold ribbon confetti · brush-stroke signature','#faf5eb','#242725','#b58d45'],
-  ['modern-future','Modern Future','Vertical class year · midnight editorial','#20282b','#f7f0e0','#c5a568']]),
+  ['modern-future','Modern Future','Vertical class year · midnight editorial','#20282b','#f7f0e0','#c5a568'],
+  ['grad-gala','Navy & Gold Grad Party','Full-bleed photos · gold foil · navy and orange balloons','#05182f','#fff1c8','#ff972b']]),
  corporate:family('corporate',['company','eventName','date'],[
   ['executive-modern','Executive Modern','Company masthead · clean ivory geometry','#f5f2ea','#2b4242','#ad9363'],
   ['corporate-gala','Corporate Gala','Gilded marble · formal event invitation','#222a28','#f7ecd5','#c5a15d'],
