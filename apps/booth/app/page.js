@@ -174,7 +174,13 @@ export default function Booth(){
       // allowance, but each increments only its own already-existing counter.
       const ownUsed=ownPrintUsage(localStorage,scope);
       localStorage.setItem(PRINT_USAGE,String(ownUsed+1));setPrintsUsed(used+1);
-      if(scope.demo)return 'demo';
+      if(scope.demo){
+        // Demo prints are physical rehearsal sheets, but NEVER count against
+        // a customer's paid event allowance. Restore the demo usage immediately.
+        localStorage.setItem(PRINT_USAGE,String(ownUsed));setPrintsUsed(used);
+        if(!print())return false;
+        return 'demo';
+      }
       if(!print()){localStorage.setItem(PRINT_USAGE,String(ownUsed));setPrintsUsed(used);return false;}try{logPrintRequest(localStorage,scope);}catch{}return true;
     }catch(e){setError(e.message||'Print counter could not be saved. No print was sent.');return false;}finally{printGuard.current=false;}
   }

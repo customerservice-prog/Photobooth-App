@@ -17,7 +17,7 @@ test('strip headline and footer stay editable and are trimmed only when saved',(
 test('strip layout requires every original pose and handles legacy saved cards honestly',()=>{assert.equal(hasOriginalPoses(poses,4),true);assert.equal(hasOriginalPoses([poses[0]],4),false);assert.equal(initialPrintLayout({defaultLayout:'photo_strip'},[],4),'card');assert.equal(initialPrintLayout({cardEnabled:false},[],4),'photo_strip');assert.throws(()=>strip({poses:[]}));assert.throws(()=>strip({poses:poses.slice(0,3)}));assert.throws(()=>strip({poses:[...poses,'data:image/jpeg;base64,AAAA']}));});
 test('optional double strips have eight photo slots in two columns and a cut guide',()=>{const svg=strip({stripMode:'double'});assert.equal((svg.match(/data-guest-photo="true"/g)||[]).length,8);assert.equal((svg.match(/data-strip-copy=/g)||[]).length,2);assert.match(svg,/translate\(0 0\)/);assert.match(svg,/translate\(600 0\)/);assert.match(svg,/viewBox="0 0 1200 1800"/);assert.match(svg,/data-cut-guide="true"/);assert.equal((svg.match(/CUT HERE/g)||[]).length,2);});
 test('each column contains the same four originals in chronological order',()=>{const images=[...strip({stripMode:'double'}).matchAll(/data-pose="(\d)" href="([^"]+)"/g)];assert.deepEqual(images.map(m=>Number(m[1])),[1,2,3,4,1,2,3,4]);assert.deepEqual(images.map(m=>m[2]),[...poses,...poses]);});
-test('single strip uses four originals centered on the same 4x6 sheet',()=>{const svg=strip({stripMode:'single'});assert.equal((svg.match(/data-guest-photo=/g)||[]).length,4);assert.match(svg,/translate\(300 0\)/);assert.doesNotMatch(svg,/data-cut-guide|CUT HERE/);assert.match(svg,/width="1200" height="1800"/);});
+test('single strip uses four originals centered on the same 4x6 sheet',()=>{const svg=strip({stripMode:'single'});assert.equal((svg.match(/data-guest-photo=/g)||[]).length,4);assert.match(svg,/translate\(0 0\)/);assert.match(svg,/width=\"1144\"/);assert.doesNotMatch(svg,/data-cut-guide|CUT HERE/);assert.match(svg,/width="1200" height="1800"/);});
 test('staff can hide the center cut guide without changing the double-strip sheet',()=>{const svg=strip({stripMode:'double',cfg:{...cfg,printLayouts:{showCutGuide:false}}});assert.equal((svg.match(/data-strip-copy=/g)||[]).length,2);assert.doesNotMatch(svg,/data-cut-guide|CUT HERE/);});
 test('custom strip headline is escaped and rendered across both copies',()=>{const svg=strip({stripMode:'double',cfg:{...cfg,printLayouts:{stripHeadline:'Smile & celebrate'}}});assert((svg.match(/Smile &amp; celebrate/g)||[]).length>=2);assert.equal((svg.match(/data-strip-copy=/g)||[]).length,2);assert.doesNotMatch(strip({stripMode:'double',cfg:{...cfg,printLayouts:{stripHeadline:'<script>bad</script>'}}}),/<script>/);});
 test('three-pose setting makes three poses per strip without duplicate filler',()=>{const svg=strip({stripMode:'double',poses:poses.slice(0,3),cfg:{...cfg,printPackage:{...cfg.printPackage,shotsPerSession:3}}});assert.equal((svg.match(/data-guest-photo=/g)||[]).length,6);assert.doesNotMatch(svg,/data-pose="4"/);});
@@ -25,10 +25,11 @@ test('all photo cells stay inside strip slots and fill them unless whole-photo m
  for(const n of [3,4]){
   const cells=stripPhotoCells(n);
   for(let i=0;i<n;i++){
-   const c=cells[i];assert(c.x>=36&&c.x+c.w<=564&&c.y>=220&&c.y+c.h<=1470);
+   const c=cells[i];assert(c.x>=25&&c.x+c.w<=575&&c.y>=200&&c.y+c.h<=1575);
    if(i)assert(c.y>cells[i-1].y+cells[i-1].h);
   }
  }
+ const wide=stripPhotoCells(4,true);assert.equal(wide.length,4);assert(wide.every(c=>c.x>=0&&c.x+c.w<=1200&&c.w>1100));
  const single=strip(),double=strip({stripMode:'double'});
  assert.equal((single.match(/preserveAspectRatio="xMidYMid slice"/g)||[]).length,4);
  assert.equal((double.match(/preserveAspectRatio="xMidYMid slice"/g)||[]).length,8);
