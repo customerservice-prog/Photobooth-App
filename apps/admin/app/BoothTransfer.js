@@ -56,7 +56,7 @@ export default function BoothTransfer({url,eventName,ready}){
     <div className="transferPrivacy">
      <strong>What gets sent?</strong> Event title, date/time, photo choices, pose break, colors, design style and print allowance. <b>No email address, phone, venue street address, private notes or guest photos.</b> Anyone with this link can read the included event settings.
     </div>
-    <p className="transferNote"><strong>After editing an event:</strong> send its new link again to update the iPad. Existing photos and print usage stay intact. This is a one-click transfer, not a continuous background sync.</p>
+    <p className="transferNote"><strong>Check the actual print design:</strong> the iPad uses its own built-in card and strip artwork; this link does not install an admin-only template. <strong>After changing settings:</strong> send a fresh link. Saved photos and print usage remain intact. This is not continuous background synchronization.</p>
    </div>
   </dialog>}
  </>;
