@@ -37,8 +37,17 @@ try{
    assert.equal(await page.getByRole('dialog',{name:'Operator controls'}).count(),0);assert((await page.locator('.bwEventMeta').innerText()).includes('4 PM–8 PM'));assert.equal(await page.locator('.bwSessionChoices button').count(),2);assert.equal(await page.getByTestId('welcome-quick-photo').count(),1);assert.equal(await page.getByTestId('welcome-four-photo').count(),1);pass(engine+'-demo-navigation-and-new-york-event-time');
   await page.screenshot({path:`${out}/prep-${engine}-office-demo.png`,fullPage:true});
   if(engine==='chromium'){
-   await page.getByTestId('welcome-four-photo').click();await page.locator('.ksStudio').waitFor({timeout:100000});await page.getByRole('button',{name:'Try demo print',exact:true}).click();assert.equal(await page.evaluate(()=>window.__printCalls),0);assert.equal(await page.evaluate(k=>localStorage.getItem(k),EVENT_KEYS.liveUsage),'17');assert.equal(await page.evaluate(k=>localStorage.getItem(k),EVENT_KEYS.demoUsage),'3');assert(await page.getByRole('button',{name:'Demo print complete',exact:true}).isDisabled());pass('chromium-demo-print-is-simulated-and-does-not-use-real-allowance');
-   await page.getByRole('button',{name:'Digital Copy',exact:true}).click();await page.getByRole('dialog',{name:'Get a digital copy.',exact:true}).waitFor();assert((await page.getByRole('dialog',{name:'Get a digital copy.',exact:true}).innerText()).includes('Direct customer messages are disabled'));await page.keyboard.press('Escape');pass('chromium-demo-does-not-offer-direct-customer-messages');
+   await page.getByTestId('welcome-four-photo').click();await page.getByTestId('approved-guest-preview').waitFor({timeout:100000});
+   await page.getByTestId('approved-finished-jpeg').waitFor({timeout:30000});
+   assert.equal(await page.getByRole('button',{name:'Digital Copy',exact:true}).count(),0,'guests cannot send customer pictures directly');
+   assert.equal(await page.getByTestId('layout-strip').count(),0,'approved design is fixed before the event');
+   await page.waitForFunction(()=>document.querySelector('[data-testid="approved-gallery-status"]')?.textContent?.includes('Digital copy saved'),null,{timeout:25000});
+   await page.getByTestId('approved-print').click();
+   assert.equal(await page.evaluate(()=>window.__printCalls),1);
+   assert.equal(await page.evaluate(k=>localStorage.getItem(k),EVENT_KEYS.liveUsage),'17');
+   assert.equal(await page.evaluate(k=>localStorage.getItem(k),EVENT_KEYS.demoUsage),'3');
+   assert.match(await page.getByTestId('approved-print').innerText(),/Print requested/);
+   pass('chromium-demo-opens-AirPrint-without-consuming-customer-allowance-or-offering-guest-designs');
    await page.getByRole('button',{name:/^Done/}).click();await page.waitForSelector('.bwWelcome[data-capture-mode="photo"]',{timeout:10000});
    await page.goto(base+'/oct10-demo',{waitUntil:'networkidle'});await page.waitForURL('**/?event=oct10-2026&demo=1');await page.getByTestId('welcome-four-photo').waitFor();assert.equal(await page.evaluate(k=>localStorage.getItem(k),EVENT_KEYS.liveUsage),'17');assert.equal(await page.evaluate(k=>localStorage.getItem(k),EVENT_KEYS.demoUsage),'3');assert.equal(await page.evaluate(k=>JSON.parse(localStorage.getItem(k)).details.primaryColor,EVENT_KEYS.config),'#334455');pass('chromium-original-demo-link-preserves-edits-and-counters');
    await page.goto(base+'/event-prep',{waitUntil:'networkidle'});await tab('Backups');const zipWait=page.waitForEvent('download');await page.getByRole('button',{name:'Download demo photos',exact:true}).click();const d=await zipWait,b=await readFile(await d.path());inspectZip(b,1);await writeFile(`${out}/demo-export-verified.zip`,b);pass('chromium-all-four-poses-and-finished-keepsake-export-as-valid-zip');
