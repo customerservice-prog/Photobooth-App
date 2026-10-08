@@ -1,7 +1,7 @@
 import {NextResponse} from 'next/server';
-import {prisma} from '../../../../../../../lib/prisma';
-import {checkSyncTicket} from '../../../../lib/event-sync-token.mjs';
-import {buildBoothHandoffPayload} from '../../../../lib/booth-transfer.mjs';
+import {prisma} from '../../../../../lib/prisma';
+import {checkSyncTicket} from '../../../../../lib/event-sync-token.mjs';
+import {buildBoothHandoffPayload} from '../../../../../lib/booth-transfer.mjs';
 export const runtime='nodejs',dynamic='force-dynamic';
 const boothOrigin='https://photobooth-booth-production.up.railway.app';
 const headers={'Access-Control-Allow-Origin':boothOrigin,'Access-Control-Allow-Headers':'Authorization','Access-Control-Allow-Methods':'GET, OPTIONS','Cache-Control':'private, no-store','Vary':'Origin'};
