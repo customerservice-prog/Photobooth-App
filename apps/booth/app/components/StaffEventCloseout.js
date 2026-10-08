@@ -14,9 +14,9 @@ export default function StaffEventCloseout({scope,eventName}){
   if(busy)return;
   setBusy(true);setStatus('Preparing the complete event ZIP…');setVerified(false);setExported(null);
   try{
-   const result=await exportPhotos(scope.archive);
+   const result=await exportPhotos(scope.archive,{allowEmpty:true});
    downloadBlob(result.blob,galleryZipFilename(eventName));
-   setExported({count:result.count,finished:result.finishedKeepsakes,size:result.blob.size});
+   setExported({count:result.count,finished:result.finishedKeepsakes,size:result.blob.size,snapshot:result.snapshot});
    setCount(result.count);
    setStatus('ZIP download requested. Open it in Files/Downloads and verify the photos before clearing the event.');
   }catch(error){setStatus(error.message||'Could not export these photos. Nothing was removed.');}
@@ -24,11 +24,11 @@ export default function StaffEventCloseout({scope,eventName}){
  }
  async function closeEvent(){
   if(!eligible||busy||!exported||!verified||typed!==EVENT_CLOSE_CONFIRMATION)return;
-  setBusy(true);setStatus('Checking that no new photos arrived since export…');
+  setBusy(true);setStatus('Checking that no photos changed since export…');
   try{
    const current=await archiveCount(scope.archive);
    if(current!==exported.count)throw new Error('More photos were taken after the ZIP export. Download an updated ZIP first.');
-   await deleteArchivedEvent(scope.archive,exported.count);
+   await deleteArchivedEvent(scope.archive,exported.count,exported.snapshot);
    clearClosedEventSettings(localStorage,scope);
    setStatus('This event was removed from this iPad. Opening event selection…');
    window.location.replace('/launch');
@@ -45,8 +45,8 @@ export default function StaffEventCloseout({scope,eventName}){
   </div>
   <div className="operatorFoldContent" style={{padding:0}}>
    <p><strong>1. Download all event photos.</strong> Your ZIP includes every original pose and each finished 4×6 JPEG (or a collage for an interrupted session).</p>
-   <button type="button" className="operatorPrimary" disabled={busy||count===null||count===0} onClick={exportGallery} data-testid="staff-export-gallery">{busy?'Working…':'Download complete event gallery ZIP'}</button>
-   {count===0&&<p>There are no captured sessions in this event on this device. No guest photos to export.</p>}
+   <button type="button" className="operatorPrimary" disabled={busy||count===null} onClick={exportGallery} data-testid="staff-export-gallery">{busy?'Working…':count===0?'Download empty-event record ZIP':'Download complete event gallery ZIP'}</button>
+   {count===0&&<p>There are no captured sessions in this event on this device. Download and check the empty-event ZIP before removing its setup.</p>}
    {exported&&<p className="operatorNotice" data-testid="staff-export-result">ZIP requested: {exported.count} photo sessions, {exported.finished} finished keepsakes. Open the ZIP to check that everything is there. {exported.finished<exported.count?'Some sessions only have original captures and a collage.':''}</p>}
    {eligible&&<details className="operatorFold" data-testid="staff-finish-event-fold">
     <summary>2. Remove this completed event from the iPad <span>Only after saving and verifying the gallery</span></summary>

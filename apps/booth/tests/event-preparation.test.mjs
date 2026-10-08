@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {octoberPreset,workspace,demoWorkspace,liveWorkspace,readEventDraft,saveEventDraft,usage,EVENT_KEYS,LEGACY_KEYS,PREP_CHECKS,readyForEvent,validatePreparation,portableSettings,importSettings,scheduleLabel} from '../app/lib/event-workspace.mjs';
 import {finalizeEventSetup} from '../app/lib/event-config.mjs';
-import {crc32,makeZip,saveCapture} from '../app/lib/event-photo-archive.mjs';
+import {crc32,makeZip,saveCapture,archiveSnapshot} from '../app/lib/event-photo-archive.mjs';
 const memory=()=>{const map=new Map();return {map,getItem:k=>map.has(k)?map.get(k):null,setItem:(k,v)=>map.set(k,String(v))};};
 const source=p=>readFileSync(new URL('../app/'+p,import.meta.url),'utf8');
 
@@ -25,7 +25,16 @@ test('invalid date or reversed event hours cannot be saved',()=>{assert.throws((
 test('event editor preserves safe custom colors and print package',()=>{const c=octoberPreset(),next=finalizeEventSetup(c);assert.equal(next.details.primaryColor,'#24352f');assert.equal(next.details.secondaryColor,'#d8c49b');assert.equal(next.printPackage.addOnPrints,108);const bad=finalizeEventSetup({...c,details:{...c.details,primaryColor:'url(https://bad.invalid)'}});assert.equal(bad.details.primaryColor,undefined);});
 test('office demo route never clears or writes event counters',()=>{const s=source('oct10-demo/page.js');assert(!/localStorage|PRINT_USAGE|setItem|clear\(/.test(s));assert(s.includes('demoWorkspace().home'));});
 test('office demo physical print rehearsal never consumes the customer allowance',()=>{const s=source('page.js');assert(s.includes("if(scope.demo){"));assert(s.includes("if(!print())return false;"));assert(s.includes("localStorage.setItem(PRINT_USAGE,String(ownUsed))"));});
-test('archive never automatically deletes guest photos; explicit guarded cleanup is separate',()=>{const s=source('lib/event-photo-archive.mjs');assert(s.includes('s.add(record)'));assert(!s.includes('deleteObjectStore'));assert(s.includes('export async function deleteArchivedEvent(scope,expectedCount)'));assert(s.includes('keys.length!==expectedCount'));assert(s.includes("store.index('scope').getAllKeys(scope)"));});
+test('archive never automatically deletes guest photos; explicit snapshot-guarded cleanup is separate',()=>{const s=source('lib/event-photo-archive.mjs');assert(s.includes('s.add(record)'));assert(!s.includes('deleteObjectStore'));assert(s.includes('export async function deleteArchivedEvent(scope,expectedCount,expectedSnapshot)'));assert(s.includes('records.length!==expectedCount'));assert(s.includes("store.index('scope').getAll(scope)"));});
+test('export snapshot changes when same-sized poses, collage or finished keepsake change',()=>{
+ const buffer=v=>new Uint8Array(v).buffer;
+ const record={key:'event:one',id:'one',scope:'event',createdAt:'2026-10-08T12:00:00Z',revision:'one',collage:buffer([1,2]),poses:[buffer([3,4])],keepsake:buffer([5,6])};
+ const original=archiveSnapshot('event',[record]);
+ for(const field of ['collage','keepsake'])assert.notDeepEqual(archiveSnapshot('event',[{...record,[field]:buffer([8,9])}]),original,field);
+ assert.notDeepEqual(archiveSnapshot('event',[{...record,poses:[buffer([8,9])]}]),original);
+ assert.notDeepEqual(archiveSnapshot('event',[{...record,revision:'new-write'}]),original);
+ assert.deepEqual(archiveSnapshot('event',[record]),original);
+});
 test('ZIP CRC matches the standard check vector',()=>assert.equal(crc32(new TextEncoder().encode('123456789')),0xcbf43926));
 test('ZIP has correct UTF-8 headers, file size, CRC and directory counts',async()=>{const blob=new Blob(['hello']),zip=await makeZip([{name:'test.txt',blob}]),b=new Uint8Array(await zip.arrayBuffer()),v=new DataView(b.buffer);assert.equal(v.getUint32(0,true),0x04034b50);assert.equal(v.getUint32(14,true),crc32(new TextEncoder().encode('hello')));assert.equal(v.getUint32(18,true),5);const off=30+8+5;assert.equal(v.getUint32(off,true),0x02014b50);assert.equal(v.getUint32(b.length-22,true),0x06054b50);assert.equal(v.getUint16(b.length-12,true),1);});
 test('archive rejects unsafe filenames and incomplete captures',async()=>{await assert.rejects(()=>makeZip([{name:'../bad.jpg',blob:new Blob(['bad'])}]));await assert.rejects(()=>saveCapture('test','id','x',[],{}));});

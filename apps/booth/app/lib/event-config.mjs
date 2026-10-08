@@ -27,7 +27,8 @@ export function composeEventConfig(cfg,input){
  next.eventProfiles={...cfg.eventProfiles,[type]:{title,subtitle,details:{...details}}};return next;
 }
 export function eventMonogram(cfg){
- const words=cfg.type==='wedding'&&cfg.details?.partner1&&cfg.details?.partner2?[cfg.details.partner1,cfg.details.partner2]:String(cfg.title||'').split(/\s+/).filter(w=>w&&!['&','and'].includes(w.toLowerCase()));
+ const approvedName=cfg.guestMode==='approved'?value(cfg.approvedPrintName,240):'';
+ const words=approvedName?approvedName.split(/\s+/).filter(w=>w&&!['&','and'].includes(w.toLowerCase())):cfg.type==='wedding'&&cfg.details?.partner1&&cfg.details?.partner2?[cfg.details.partner1,cfg.details.partner2]:String(cfg.title||'').split(/\s+/).filter(w=>w&&!['&','and'].includes(w.toLowerCase()));
  return words.slice(0,2).map(w=>[...w][0]?.toUpperCase()).join('')||'FP';
 }
 export function normalizeEventConfig(cfg){

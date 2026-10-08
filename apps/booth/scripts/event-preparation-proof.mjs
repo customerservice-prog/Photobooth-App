@@ -39,17 +39,18 @@ try{
   if(engine==='chromium'){
    await page.getByTestId('welcome-four-photo').click();await page.getByTestId('approved-guest-preview').waitFor({timeout:100000});
    await page.getByTestId('approved-finished-jpeg').waitFor({timeout:30000});
-   assert.equal(await page.getByRole('button',{name:'Digital Copy',exact:true}).count(),0,'guests cannot send customer pictures directly');
+   assert.equal(await page.getByRole('button',{name:'Digital Copy',exact:true}).count(),1,'guests can download the approved digital picture');
+   assert.equal(await page.locator('.deliveryForm').count(),0,'guest preview has no contact-entry tools');
    assert.equal(await page.getByTestId('layout-strip').count(),0,'approved design is fixed before the event');
    await page.waitForFunction(()=>document.querySelector('[data-testid="approved-gallery-status"]')?.textContent?.includes('Digital copy saved'),null,{timeout:25000});
    await page.getByTestId('approved-print').click();
    assert.equal(await page.evaluate(()=>window.__printCalls),1);
    assert.equal(await page.evaluate(k=>localStorage.getItem(k),EVENT_KEYS.liveUsage),'17');
-   assert.equal(await page.evaluate(k=>localStorage.getItem(k),EVENT_KEYS.demoUsage),'3');
+   assert.equal(await page.evaluate(k=>localStorage.getItem(k),EVENT_KEYS.demoUsage),'2');
    assert.match(await page.getByTestId('approved-print').innerText(),/Print requested/);
    pass('chromium-demo-opens-AirPrint-without-consuming-customer-allowance-or-offering-guest-designs');
    await page.getByRole('button',{name:/^Done/}).click();await page.waitForSelector('.bwWelcome[data-capture-mode="photo"]',{timeout:10000});
-   await page.goto(base+'/oct10-demo',{waitUntil:'networkidle'});await page.waitForURL('**/?event=oct10-2026&demo=1');await page.getByTestId('welcome-four-photo').waitFor();assert.equal(await page.evaluate(k=>localStorage.getItem(k),EVENT_KEYS.liveUsage),'17');assert.equal(await page.evaluate(k=>localStorage.getItem(k),EVENT_KEYS.demoUsage),'3');assert.equal(await page.evaluate(k=>JSON.parse(localStorage.getItem(k)).details.primaryColor,EVENT_KEYS.config),'#334455');pass('chromium-original-demo-link-preserves-edits-and-counters');
+   await page.goto(base+'/oct10-demo',{waitUntil:'networkidle'});await page.waitForURL('**/?event=oct10-2026&demo=1');await page.getByTestId('welcome-four-photo').waitFor();assert.equal(await page.evaluate(k=>localStorage.getItem(k),EVENT_KEYS.liveUsage),'17');assert.equal(await page.evaluate(k=>localStorage.getItem(k),EVENT_KEYS.demoUsage),'2');assert.equal(await page.evaluate(k=>JSON.parse(localStorage.getItem(k)).details.primaryColor,EVENT_KEYS.config),'#334455');pass('chromium-original-demo-link-preserves-edits-and-counters');
    await page.goto(base+'/event-prep',{waitUntil:'networkidle'});await tab('Backups');const zipWait=page.waitForEvent('download');await page.getByRole('button',{name:'Download demo photos',exact:true}).click();const d=await zipWait,b=await readFile(await d.path());inspectZip(b,1);await writeFile(`${out}/demo-export-verified.zip`,b);pass('chromium-all-four-poses-and-finished-keepsake-export-as-valid-zip');
   }
   // Execute the actual archive module in the real browser (no mocked IndexedDB).
@@ -67,7 +68,7 @@ try{
   await page.goto(base+'/event-prep',{waitUntil:'networkidle'});await tab('Event check');await page.getByLabel('These are the customer’s confirmed colors, not just preview colors.').check();for(const label of Object.values(PREP_CHECKS))await page.getByLabel(label,{exact:true}).check();assert(await page.getByRole('button',{name:'Launch actual event',exact:true}).isEnabled());pass(engine+'-manual-approvals-enable-launch-only-when-complete');
   await page.getByRole('button',{name:/^Save changes/}).click();await tab('Details');await page.getByLabel('Printed caption (optional)',{exact:true}).fill('Test wording only');await tab('Event check');assert(await page.getByRole('button',{name:'Launch actual event',exact:true}).isDisabled());pass(engine+'-changed-design-invalidates-old-approvals');
   // Import is a review step, and neither it nor Save changes alters usage or photos.
-  await page.getByTestId('settings-file').setInputFiles({name:'settings.json',mimeType:'application/json',buffer:settingsBuffer});await page.getByRole('button',{name:/^Save changes/}).click();assert(await page.getByRole('button',{name:'Launch actual event',exact:true}).isDisabled());assert.equal(await page.evaluate(k=>localStorage.getItem(k),EVENT_KEYS.liveUsage),'17');assert.equal(await page.evaluate(k=>localStorage.getItem(k),EVENT_KEYS.demoUsage),engine==='chromium'?'3':'2');pass(engine+'-settings-import-preserves-photos-and-counters');
+  await page.getByTestId('settings-file').setInputFiles({name:'settings.json',mimeType:'application/json',buffer:settingsBuffer});await page.getByRole('button',{name:/^Save changes/}).click();assert(await page.getByRole('button',{name:'Launch actual event',exact:true}).isDisabled());assert.equal(await page.evaluate(k=>localStorage.getItem(k),EVENT_KEYS.liveUsage),'17');assert.equal(await page.evaluate(k=>localStorage.getItem(k),EVENT_KEYS.demoUsage),'2');pass(engine+'-settings-import-preserves-photos-and-counters');
   await page.goto(base+'/?event=oct10-2026',{waitUntil:'networkidle'});await page.waitForURL('**/event-prep');pass(engine+'-unreviewed-live-launch-returns-to-preparation');
   assert.deepEqual(errors,[]);pass(engine+'-no-uncaught-browser-errors');await browser.close();browser=null;
  }

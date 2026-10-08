@@ -11,9 +11,9 @@ export function openArchive(){return new Promise((resolve,reject)=>{
  request.onblocked=()=>reject(new Error('Close other booth tabs and reopen the event.'));
 });}
 async function transaction(mode,job){const db=await openArchive();try{return await new Promise((resolve,reject)=>{
- const tx=db.transaction(STORE,mode),store=tx.objectStore(STORE);let result;
- tx.oncomplete=()=>resolve(result);tx.onerror=e=>reject(e.target?.error||tx.error||new Error('Photo storage failed.'));tx.onabort=()=>reject(tx.error||new Error('Photo storage was interrupted.'));
- try{job(store,v=>{result=v;});}catch(e){tx.abort();reject(e);}
+ const tx=db.transaction(STORE,mode),store=tx.objectStore(STORE);let result,failure;
+ tx.oncomplete=()=>resolve(result);tx.onerror=e=>reject(failure||e.target?.error||tx.error||new Error('Photo storage failed.'));tx.onabort=()=>reject(failure||tx.error||new Error('Photo storage was interrupted.'));
+ try{job(store,v=>{result=v;},error=>{failure=error;tx.abort();});}catch(e){tx.abort();reject(e);}
 });}finally{db.close();}}
 function jpeg(data){
  if(!/^data:image\/jpeg;base64,[A-Za-z0-9+/=]+$/.test(data||''))throw new Error('Only captured JPEG photos can be archived.');
@@ -23,7 +23,7 @@ const photoBlob=value=>value instanceof Blob?value:new Blob([value],{type:'image
 function materialize(record){return {...record,collage:photoBlob(record.collage),poses:record.poses.map(photoBlob),keepsake:record.keepsake?photoBlob(record.keepsake):null};}
 export async function saveCapture(scope,id,data,shots,cfg){
  if(!scope||!id||!Array.isArray(shots)||![1,3,4].includes(shots.length))throw new Error('The photo session is incomplete.');
- const record={key:scope+':'+id,id,scope,createdAt:new Date().toISOString(),encoding:'jpeg-arraybuffer',collage:jpeg(data),poses:shots.map(jpeg),keepsake:null,title:String(cfg.title||''),eventDate:String(cfg.date||'')};
+ const record={key:scope+':'+id,id,scope,createdAt:new Date().toISOString(),revision:crypto.randomUUID(),encoding:'jpeg-arraybuffer',collage:jpeg(data),poses:shots.map(jpeg),keepsake:null,title:String(cfg.title||''),eventDate:String(cfg.date||'')};
  await transaction('readwrite',s=>s.add(record));return materialize(record);
 }
 export async function saveKeepsake(scope,id,blob){
@@ -31,15 +31,32 @@ export async function saveKeepsake(scope,id,blob){
  // Resolve asynchronous file reading BEFORE creating the transaction, since
  // Safari can close a transaction while unrelated asynchronous work is pending.
  const bytes=await blob.arrayBuffer();
- await transaction('readwrite',store=>{const req=store.get(scope+':'+id);req.onsuccess=()=>{if(!req.result){store.transaction.abort();return;}store.put({...req.result,keepsake:bytes,updatedAt:new Date().toISOString()});};});
+ await transaction('readwrite',store=>{const req=store.get(scope+':'+id);req.onsuccess=()=>{if(!req.result){store.transaction.abort();return;}store.put({...req.result,keepsake:bytes,revision:crypto.randomUUID(),updatedAt:new Date().toISOString()});};});
 }
-export async function listCaptures(scope){const records=await transaction('readonly',(s,done)=>{const r=s.index('scope').getAll(scope);r.onsuccess=()=>done(r.result);});return records.sort((a,b)=>a.createdAt.localeCompare(b.createdAt)).map(materialize);}
+async function archiveRecords(scope){return transaction('readonly',(s,done)=>{const r=s.index('scope').getAll(scope);r.onsuccess=()=>done(r.result);});}
+export async function listCaptures(scope){const records=await archiveRecords(scope);return records.sort((a,b)=>a.createdAt.localeCompare(b.createdAt)).map(materialize);}
 export async function archiveCount(scope){return transaction('readonly',(s,done)=>{const r=s.index('scope').count(scope);r.onsuccess=()=>done(r.result);});}
 export function blobDataUrl(blob){return new Promise((resolve,reject)=>{const r=new FileReader();r.onload=()=>resolve(r.result);r.onerror=()=>reject(r.error);r.readAsDataURL(blob);});}
 export async function recentCaptures(scope,limit=8){const all=await listCaptures(scope);return Promise.all(all.slice(-limit).reverse().map(async r=>({id:r.id,createdAt:r.createdAt,data:await blobDataUrl(r.collage)})));}
 // JPEG files are already compressed. CRC calculation reads only one file at a time.
 const crcTable=Uint32Array.from({length:256},(_,n)=>{for(let k=0;k<8;k++)n=(n&1)?0xedb88320^(n>>>1):n>>>1;return n>>>0;});
 export function crc32(bytes){let crc=0xffffffff;for(const n of bytes)crc=crcTable[(crc^n)&255]^(crc>>>8);return (crc^0xffffffff)>>>0;}
+function imageFingerprint(value){
+ if(value==null)return null;
+ // Old Blob-backed records remain exportable. All supported writes now use
+ // byte buffers and a new UUID revision, including updates to an old record.
+ if(value instanceof Blob)return ['legacy-blob',value.size,value.type];
+ const bytes=value instanceof ArrayBuffer?new Uint8Array(value):ArrayBuffer.isView(value)?new Uint8Array(value.buffer,value.byteOffset,value.byteLength):null;
+ if(!bytes)throw new Error('A saved photo could not be verified. Keep this event and ask staff to check storage.');
+ return [bytes.length,crc32(bytes)];
+}
+export function archiveSnapshot(scope,records){
+ return {version:1,scope,records:records.map(r=>({
+  key:r.key,id:r.id,scope:r.scope,createdAt:r.createdAt,updatedAt:r.updatedAt||'',revision:r.revision||'',
+  title:r.title||'',eventDate:r.eventDate||'',encoding:r.encoding||'',
+  collage:imageFingerprint(r.collage),poses:r.poses.map(imageFingerprint),keepsake:imageFingerprint(r.keepsake)
+ })).sort((a,b)=>a.key.localeCompare(b.key))};
+}
 export async function makeZip(files){
  if(files.length>65535)throw new Error('Too many files for one archive.');
  const chunks=[],central=[];let offset=0,centralSize=0;
@@ -55,26 +72,34 @@ export async function makeZip(files){
  const end=new Uint8Array(22),e=new DataView(end.buffer);e.setUint32(0,0x06054b50,true);e.setUint16(8,files.length,true);e.setUint16(10,files.length,true);e.setUint32(12,centralSize,true);e.setUint32(16,offset,true);
  return new Blob([...chunks,...central,end],{type:'application/zip'});
 }
-export async function exportPhotos(scope){
- const records=await listCaptures(scope);if(!records.length)throw new Error('No photos have been captured in this event on this device yet.');
+export async function exportPhotos(scope,{allowEmpty=false}={}){
+ const stored=await archiveRecords(scope),snapshot=archiveSnapshot(scope,stored);
+ const records=stored.sort((a,b)=>a.createdAt.localeCompare(b.createdAt)).map(materialize);
+ if(!records.length&&!allowEmpty)throw new Error('No photos have been captured in this event on this device yet.');
  const files=[],manifest={scope,createdAt:new Date().toISOString(),sessions:records.length,finishedKeepsakes:records.filter(r=>r.keepsake).length,note:'Photos stored on this device only. Demonstration and live-event archives are separate. Collages are included for interrupted sessions without a finished keepsake.'};
  files.push({name:'manifest.json',blob:new Blob([JSON.stringify(manifest,null,2)],{type:'application/json'})});
  records.forEach((r,n)=>{const folder='session-'+String(n+1).padStart(4,'0')+'/';r.poses.forEach((blob,i)=>files.push({name:folder+'pose-'+(i+1)+'.jpg',blob}));files.push({name:folder+(r.keepsake?'keepsake.jpg':'collage.jpg'),blob:r.keepsake||r.collage});});
- return {blob:await makeZip(files),count:records.length,finishedKeepsakes:manifest.finishedKeepsakes};
+ return {blob:await makeZip(files),count:records.length,finishedKeepsakes:manifest.finishedKeepsakes,snapshot};
 }
 // Irreversible cleanup for a single, already-exported event only.
-// The count check and deletes share ONE IndexedDB transaction, so a session
-// arriving between ZIP export and cleanup cannot be silently wiped.
-export async function deleteArchivedEvent(scope,expectedCount){
- if(typeof scope!=='string'||scope.length<3||!Number.isSafeInteger(expectedCount)||expectedCount<0)
+// The exact record snapshot and deletes share ONE IndexedDB transaction. A new
+// session OR a changed finished image must force a fresh export before deletion.
+export async function deleteArchivedEvent(scope,expectedCount,expectedSnapshot){
+ if(typeof scope!=='string'||scope.length<3||!Number.isSafeInteger(expectedCount)||expectedCount<0||
+  expectedSnapshot?.version!==1||expectedSnapshot.scope!==scope||!Array.isArray(expectedSnapshot.records)||expectedSnapshot.records.length!==expectedCount)
   throw new Error('Choose one valid event and export it before deleting photos.');
- return transaction('readwrite',(store,done)=>{
-  const request=store.index('scope').getAllKeys(scope);
+ const expected=JSON.stringify(expectedSnapshot);
+ return transaction('readwrite',(store,done,abort)=>{
+  const request=store.index('scope').getAll(scope);
   request.onsuccess=()=>{
-   const keys=request.result||[];
-   if(keys.length!==expectedCount){store.transaction.abort();return;}
-   for(const key of keys)store.delete(key);
-   done(keys.length);
+   const records=request.result||[];
+   try{
+    if(records.length!==expectedCount||JSON.stringify(archiveSnapshot(scope,records))!==expected){
+     abort(new Error('Event photos changed after the ZIP export. Download and verify an updated ZIP first.'));return;
+    }
+    for(const record of records)store.delete(record.key);
+    done(records.length);
+   }catch(error){abort(error);}
   };
  });
 }
