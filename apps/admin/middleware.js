@@ -1,5 +1,6 @@
 import {NextResponse} from 'next/server';
 import {ADMIN_COOKIE,validAdminSession} from './lib/admin-auth.mjs';
+import {validSyncRequest} from './lib/event-sync-edge.mjs';
 export async function middleware(request){
  const token=request.cookies.get(ADMIN_COOKIE)?.value;
  if(!await validAdminSession(token,process.env.PHOTOBOOTH_AUTH_SECRET)){
