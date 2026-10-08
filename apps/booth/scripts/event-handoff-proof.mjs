@@ -42,9 +42,9 @@ for(const [engine,api] of [['chromium',chromium],['webkit',webkit]]){
   assert(await page.getByTestId('welcome-quick-photo').getAttribute('class').then(c=>c.includes('isPreferred')));
   const inBooth=await page.evaluate(()=>{
    const key='friendly-booth-import:admin-efcbaffc-893f-4361-983b-79a38e7d111a:';
-   return {used:localStorage.getItem(key+'used'),cfg:JSON.parse(localStorage.getItem(key+'config'))};
+   return {used:localStorage.getItem('friendly-booth-oct10-2026-v2-live-usage'),cfg:JSON.parse(localStorage.getItem(key+'config'))};
   });
-  assert.equal(inBooth.used,'0');
+  assert.equal(inBooth.used,'87','existing October counter must carry into transferred booth');
   assert.equal(inBooth.cfg.printPackage.includedPrints,216);
   assert.equal(inBooth.cfg.photoPauseSeconds,9);
   assert.equal(inBooth.cfg.printLayouts.stripMode,'double');
@@ -52,14 +52,14 @@ for(const [engine,api] of [['chromium',chromium],['webkit',webkit]]){
   assert.equal(inBooth.cfg.details.primaryColor,'#855665');
   await page.screenshot({path:`${output}/${engine}-loaded-event.png`,fullPage:true});
   // Same event can receive a fresh settings file without resetting prints.
-  await page.evaluate(()=>localStorage.setItem('friendly-booth-import:admin-efcbaffc-893f-4361-983b-79a38e7d111a:used','12'));
+  await page.evaluate(()=>localStorage.setItem('friendly-booth-oct10-2026-v2-live-usage','12'));
   await page.goto(base+'/load-event',{waitUntil:'networkidle'});
   const updated={...fixture,f:4,b:12,n:300,s:1,l:'card'};
   await page.getByTestId('handoff-file').setInputFiles({name:'friendly-event.json',mimeType:'application/json',buffer:Buffer.from(JSON.stringify(updated))});
   await page.getByTestId('handoff-review').waitFor();
   assert((await page.locator('.loadNotice').innerText()).includes('12 print requests'));
   await page.getByTestId('confirm-handoff').click();
-  assert.equal(await page.evaluate(()=>localStorage.getItem('friendly-booth-import:admin-efcbaffc-893f-4361-983b-79a38e7d111a:used')),'12');
+  assert.equal(await page.evaluate(()=>localStorage.getItem('friendly-booth-oct10-2026-v2-live-usage')),'12');
   await page.getByTestId('open-loaded-event').click();
   await page.locator('#bwEventTitle').waitFor();
   assert((await page.getByTestId('welcome-four-photo').getAttribute('class')).includes('isPreferred'));
