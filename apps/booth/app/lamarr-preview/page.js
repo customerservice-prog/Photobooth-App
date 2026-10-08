@@ -21,7 +21,7 @@ export default function LamarrPreview(){
     <Preview title="One large photo" art={one} caption="One guest photo fills the gold-bordered portrait frame."/>
    </div>
    <aside style={{marginTop:20,padding:18,background:'#142b4b',borderRadius:14,border:'1px solid #415b7e'}}>
-    <strong>Event rehearsal • Sample contact: lamarr-demo@example.com</strong>
+    <strong>Event rehearsal • Fictional address: 100 Celebration Lane, Syracuse, NY 13202 • Sample contact: lamarr-demo@example.com</strong>
     <p style={{lineHeight:1.6}}>This is the real app's artwork output, shown side by side on your iPad. It does not use a customer's email or photographs. It is a live design preview, not a confirmation of AirPrint or borderless printing.</p>
     <a href="/print-test" style={{display:'inline-block',background:'#ff942c',color:'#0a2346',padding:'13px 18px',textDecoration:'none',borderRadius:10,fontWeight:700}}>Open physical printer test</a>
    </aside>
