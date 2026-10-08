@@ -41,7 +41,7 @@ export async function updateEvent(id,form){
  const current=await prisma.event.findUnique({where:{id},select:{customerId:true,theme:true,status:true}});
  if(!current)throw new Error('This event no longer exists. Return to Events and try again.');
  // Retain every unrelated JSON field and preserve event lifecycle states.
- const done=!!(customerName&&venueName&&venueAddress&&boothId&&templateId);
+ const done=!!(customerName&&venueName&&venueAddress&&boothId&&(templateId||value(form,'approvedDesign')));
  const status=['ACTIVE','COMPLETED','ARCHIVED','LOADED_TO_BOOTH'].includes(current.status)?current.status:done?'CONFIGURED':'NEEDS_SETUP';
  await prisma.$transaction(async tx=>{
   await tx.event.update({where:{id},data:{
