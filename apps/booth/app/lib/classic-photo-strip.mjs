@@ -16,7 +16,7 @@ export function renderClassicPhotoStrip({poses,cfg={},template='ivory',stripMode
  const rules=normalizePrintLayouts(cfg.printLayouts),design=getStripDesign(template),copy=eventCopy(cfg);
  const total=[3,4].includes(Number(cfg.printPackage?.shotsPerSession))?Number(cfg.printPackage.shotsPerSession):4;
  const shots=sample&&(!poses||poses.length===0)?null:validateShotSet(poses,total);
- const mode=(stripMode||rules.stripMode)==='double'?'double':'single',columns=mode==='double'?[0,600]:[300],fullWidth=false,mid=300,width=600;
+ const mode=(stripMode||rules.stripMode)==='double'?'double':'single',columns=mode==='double'?[0,600]:[150],fullWidth=false,mid=mode==='single'?450:300,width=mode==='single'?900:600;
  const primary=rules.useEventColors?safeHex(cfg.details?.primaryColor,'#24352f'):'#232824';
  const accent=rules.useEventColors?safeHex(cfg.details?.secondaryColor,'#d8c49b'):'#777777';
  const paper=design.id==='blush'?'#17241f':'#fffdf7',ink=design.id==='blush'?'#fffdf7':primary;
@@ -30,7 +30,8 @@ export function renderClassicPhotoStrip({poses,cfg={},template='ivory',stripMode
  column+=`<circle cx="36" cy="50" r="4" fill="${accent}"/><circle cx="${width-36}" cy="50" r="4" fill="${accent}"/>`;
  column+=text(headline,58,width-100,18,design.id==='champagne'?contrast(primary):ink,{tracking:2.4});
  column+=text(title,119,width-90,fullWidth?53:42,design.id==='champagne'?contrast(primary):ink,{face:'serif',lines:2,bounds:[100,190]});
- for(const [i,cell] of stripPhotoCells(total,fullWidth).entries()){
+ for(const [i,baseCell] of stripPhotoCells(total,fullWidth).entries()){
+  const cell=mode==='single'?{...baseCell,w:844}:baseCell;
   column+=rect(cell.x-4,cell.y-4,cell.w+8,cell.h+8,accent)+rect(cell.x,cell.y,cell.w,cell.h,design.id==='blush'?'#243b32':'#e9e8df');
   column+=shots?`<image data-guest-photo="true" data-pose="${i+1}" href="${esc(shots[i])}" x="${cell.x}" y="${cell.y}" width="${cell.w}" height="${cell.h}" preserveAspectRatio="${cfg.photoFit==='fit'?'xMidYMid meet':'xMidYMid slice'}"/>`:
    text(String(i+1).padStart(2,'0'),cell.y+cell.h*.53,cell.w-30,70,'#476051',{face:'serif'})+text('YOUR POSE',cell.y+cell.h*.75,cell.w-30,17,'#476051',{tracking:3});
@@ -40,9 +41,8 @@ export function renderClassicPhotoStrip({poses,cfg={},template='ivory',stripMode
  column+=`<path d="M${mid-110} 1701H${mid+110}" stroke="${accent}" stroke-width="1.5"/>`;
  column+=text(copy.date||cfg.date||'',1732,width-90,24,ink)+text('FRIENDLY PHOTO BOOTH',1774,width-90,13,ink,{tracking:2});
  const art=columns.map((x,i)=>`<g data-strip-copy="${i+1}" transform="translate(${x} 0)">${column}</g>`).join('');
- // The single print is a complete 4×6 keepsake, while its central 2×6 strip
- // is pixel-for-pixel the same column used for the double-strip print.
- // All side ornamentation stays OUTSIDE the detachable classic strip.
+ // Single mode gives guests larger photos on a dedicated 4×6 keepsake.
+ // Double mode preserves the traditional paired 2×6 layout.
  const singleMat=mode==='single'?[
   rect(0,0,1200,1800,paper),
   rect(22,22,1156,1756,'none',accent,3),
@@ -52,7 +52,7 @@ export function renderClassicPhotoStrip({poses,cfg={},template='ivory',stripMode
   '</g>',
   '<g fill="'+accent+'" opacity=".85"><circle cx="150" cy="900" r="9"/><circle cx="1050" cy="900" r="9"/><circle cx="150" cy="870" r="3"/><circle cx="1050" cy="870" r="3"/></g>',
   '<g stroke="'+accent+'" fill="none" stroke-width="3"><path d="M150 260V760 M1050 260V760 M150 1040V1540 M1050 1040V1540"/></g>',
-  '<g fill="'+ink+'" font-family="Georgia,serif" text-anchor="middle" opacity=".82"><text x="150" y="825" font-size="25" transform="rotate(-90 150 825)">A MOMENT TO KEEP</text><text x="1050" y="825" font-size="25" transform="rotate(90 1050 825)">MADE FOR YOU</text></g>',
+  '<g fill="'+ink+'" font-family="Georgia,serif" text-anchor="middle" opacity=".82"><text x="85" y="825" font-size="18" transform="rotate(-90 85 825)">A MOMENT TO KEEP</text><text x="1115" y="825" font-size="18" transform="rotate(90 1115 825)">MADE FOR YOU</text></g>',
   '<g stroke="'+accent+'" stroke-width="2" fill="none"><path d="M100 100h100 M100 100v100 M1100 100h-100 M1100 100v100 M100 1700h100 M100 1700v-100 M1100 1700h-100 M1100 1700v-100"/></g>'
  ].join(''):'';
  const guide=mode==='double'&&rules.showCutGuide?'<path data-cut-guide="true" d="M600 42V1758" stroke="#b9b9ad" stroke-width="1" stroke-dasharray="5 10"/><g aria-hidden="true" fill="#85857c" font-family="Arial,sans-serif" font-size="10" letter-spacing="2"><text x="600" y="28" text-anchor="middle">CUT HERE</text><text x="600" y="1788" text-anchor="middle">CUT HERE</text></g>':'';
