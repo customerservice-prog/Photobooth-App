@@ -14,6 +14,8 @@ export const COLORS=Object.freeze([
 ]);
 export const EVENT_TYPES=Object.freeze(['Wedding','Birthday','Bar / Bat Mitzvah','Graduation','Corporate','Party','Other celebration']);
 const get=(data,key)=>String(typeof data?.get==='function'?data.get(key)??'':data?.[key]??'').trim();
+const cleanPrintName=(v,n=65)=>String(v??'').replace(/[\u0000-\u001f<>]/g,' ').trim().slice(0,n);
+export function approvedDesignFor(type,choice){return /graduation/i.test(String(type||''))&&choice==='grad-gala'?'grad-gala':['ivory','blush','champagne'].includes(choice)?choice:'champagne';}
 export function toLocalDay(value){
  const d=value instanceof Date?value:new Date(value);
  return Number.isFinite(d.getTime())?d.toISOString().slice(0,10):'';
@@ -74,6 +76,9 @@ export function experienceFrom(event){
   paletteId:pal?.id||'champagne',
   primary:validColor(e.primary)||pal?.primary||COLORS[0].primary,
   accent:validColor(e.accent)||pal?.accent||COLORS[0].accent,
+  approvedDesign:approvedDesignFor(event?.eventType,e.approvedDesign),
+  nameOnPrint:cleanPrintName(e.nameOnPrint,65),
+  classYear:/^\d{4}$/.test(e.classYear||'')?e.classYear:'',
  };
 }
 export function mergeExperience(theme,form){
@@ -92,7 +97,11 @@ export function mergeExperience(theme,form){
   ...original,...existing,featured,pauseSeconds:PHOTO_PAUSES.includes(pause)?pause:6,
   format,strips,photoFit,
   paletteId:palette.id,
-  primary:choose('primaryColor',palette.primary),accent:choose('accentColor',palette.accent)
+  primary:choose('primaryColor',palette.primary),accent:choose('accentColor',palette.accent),
+  // One design is approved by staff and becomes both guest output formats.
+  approvedDesign:approvedDesignFor(get(form,'eventType'),get(form,'approvedDesign')||original.approvedDesign),
+  nameOnPrint:cleanPrintName(get(form,'nameOnPrint')||original.nameOnPrint,65),
+  classYear:/^\d{4}$/.test(get(form,'classYear'))?get(form,'classYear'):''
  };
  return {...current,boothExperience:e};
 }
