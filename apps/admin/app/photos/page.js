@@ -1,2 +1,35 @@
-import Link from 'next/link';import {prisma} from '../../lib/prisma';export const dynamic='force-dynamic';
-export default async function PhotosPage(){let sessions=[],jobs=[],error=null;try{[sessions,jobs]=await Promise.all([prisma.photoSession.findMany({include:{event:true,assets:true},orderBy:{startedAt:'desc'},take:60}),prisma.printJob.findMany({include:{event:true},orderBy:{createdAt:'desc'},take:20})])}catch(e){error=e.message}const assets=sessions.flatMap(s=>(s.assets||[]).map(a=>({a,s})));const failed=jobs.filter(j=>j.status==='FAILED').length;return <main className="page"><div style={{display:'flex',justifyContent:'space-between',alignItems:'end',gap:20,flexWrap:'wrap'}}><div><div className="eyebrow">Event media operations</div><h1 className="title">Photos</h1><p className="muted">Captured memories, sync status and print recovery in one place.</p></div><Link className="btn btn2" href="/events">Open Events</Link></div><div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(180px,1fr))',gap:14,marginTop:28}}>{[['Sessions',sessions.length],['Photos',assets.length],['Print jobs',jobs.length],['Print failures',failed]].map(([l,v])=><div className="card" style={{padding:18}} key={l}><div className="eyebrow" style={{color:'#77736b',letterSpacing:1}}>{l}</div><div style={{fontFamily:'Georgia,serif',fontSize:30,marginTop:8}}>{v}</div></div>)}</div>{error&&<div className="card" style={{padding:20,marginTop:20,color:'#e8a3a3'}}>Media database unavailable: {error}</div>}{!error&&<><section className="card" style={{padding:22,marginTop:18}}><div className="eyebrow">Recent captures</div><h2 style={{fontFamily:'Georgia,serif',fontWeight:400}}>Photo library</h2>{assets.length?<div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(180px,1fr))',gap:12}}>{assets.slice(0,40).map(({a,s})=><div key={a.id} style={{border:'1px solid #292923',borderRadius:12,overflow:'hidden',background:'#111'}}>{a.thumbnailUrl||a.originalUrl?<img src={a.thumbnailUrl||a.originalUrl} alt="Event capture" style={{width:'100%',aspectRatio:'1',objectFit:'cover',display:'block'}}/>:<div style={{aspectRatio:'1',display:'grid',placeItems:'center',color:'#655'}}>Image pending</div>}<div style={{padding:11}}><strong style={{fontSize:12}}>{s.event?.name||'Event'}</strong><div className="muted" style={{fontSize:10,marginTop:4}}>{a.syncState||'PENDING'}</div></div></div>)}</div>:<div style={{padding:'35px 0',textAlign:'center'}}><div style={{fontSize:30,color:'#c8a760'}}>▣</div><p className="muted">Server-synced captures will appear here. The iPad booth also keeps emergency local backups during the event.</p></div>}</section><section className="card" style={{padding:22,marginTop:18}}><div className="eyebrow">Printer recovery</div><h2 style={{fontFamily:'Georgia,serif',fontWeight:400}}>Recent print jobs</h2>{jobs.length?jobs.map(j=><div key={j.id} style={{display:'grid',gridTemplateColumns:'1fr auto',gap:16,padding:'13px 0',borderTop:'1px solid #282923'}}><div><strong style={{fontSize:13}}>{j.event?.name||'Event print'}</strong><div className="muted" style={{fontSize:11,marginTop:4}}>{new Date(j.createdAt).toLocaleString()} · {j.copies||1} cop{j.copies===1?'y':'ies'}</div></div><span style={{fontSize:10,letterSpacing:1,color:j.status==='FAILED'?'#e49b9b':'#c8a760'}}>{j.status}</span></div>):<p className="muted">No server print jobs recorded yet.</p>}</section></>}</main>}
+import Link from 'next/link';
+import {prisma} from '../../lib/prisma';
+import {PageHeader,Metric,SectionHeading,DatabaseError,EmptyState} from '../StudioUI';
+import {BOOTH_PREPARATION_URL} from '../../lib/studio-experience.mjs';
+export const dynamic='force-dynamic';
+export default async function PhotosPage(){
+ let sessions=[],jobs=[],error=null;
+ try{[sessions,jobs]=await Promise.all([
+  prisma.photoSession.findMany({include:{event:true,captures:true,renderedPhotos:true},orderBy:{startedAt:'desc'},take:60}),
+  prisma.printJob.findMany({include:{event:true},orderBy:{createdAt:'desc'},take:30})
+ ]);}catch(e){error=e;}
+ const photos=sessions.flatMap(s=>{
+  const rendered=(s.renderedPhotos||[]).map(p=>({id:p.id,url:p.thumbnailUrl||p.finalUrl,kind:'Finished keepsake',session:s}));
+  const originals=(s.captures||[]).map(p=>({id:p.id,url:p.originalUrl,kind:'Original photo',session:s}));
+  return rendered.length?rendered:originals;
+ });
+ const failed=jobs.filter(j=>j.status==='FAILED');
+ return <main className="page">
+  <PageHeader eyebrow="GUEST PHOTOS & PRINTS" title="Photos and printing" subtitle="Find captured photos and review print attempts. This view shows server records; local-only iPad photos may need recovery on the booth device."><Link className="btn btn2" href="/events">Find an event</Link><a className="btn" href={BOOTH_PREPARATION_URL} target="_blank" rel="noopener noreferrer">Check iPad photo backups ↗</a></PageHeader>
+  {error?<DatabaseError topic="photos and prints"/>:<>
+   <div className="metricGrid"><Metric label="Recent guest sessions" value={sessions.length} foot="Up to 60 server records"/><Metric label="Media records" value={photos.length} foot="Images attached to those sessions"/><Metric label="Recent print attempts" value={jobs.length} foot="Up to 30 print jobs"/><Metric label="Print errors" value={failed.length} foot="Needs staff review"/></div>
+   <section className="card cardPad">
+    <SectionHeading eyebrow="RECENT CAPTURES" title="Photo library" subtitle="A missing server photo does not mean it was deleted from the iPad."/>
+    {photos.length?<div className="uiCards">{photos.slice(0,40).map(p=><article key={p.id} className="softCard" style={{border:'1px solid #dce3d8',borderRadius:13,overflow:'hidden'}}>
+      {p.url?<img src={p.url} alt={p.kind+' from '+(p.session.event?.name||'event')} style={{display:'block',width:'100%',aspectRatio:1,objectFit:'cover'}}/>:<div style={{aspectRatio:1,display:'grid',placeItems:'center',color:'#87998a'}}>Image not uploaded</div>}
+      <div style={{padding:13}}><strong className="rowTitle">{p.session.event?.name||'Event'}</strong><p className="rowSubtitle">{p.kind} · {new Date(p.session.startedAt).toLocaleDateString('en-US')}</p></div>
+     </article>)}</div>:<EmptyState title="No server photos yet" description="Capture a session on the actual booth. If the iPad has local photos but they have not synced, check its event backups instead."/>}
+   </section>
+   <section className="card cardPad" style={{marginTop:18}}>
+    <SectionHeading eyebrow="PRINTER ACTIVITY" title="Recent print requests" subtitle="A job handed to the print system is not confirmation that a physical sheet emerged."/>
+    {jobs.length?<div className="rowList">{jobs.map(j=><div className="listRow" key={j.id}><div><strong className="rowTitle">{j.event?.name||'Event print request'}</strong><span className="rowSubtitle">{new Date(j.createdAt).toLocaleString('en-US')} · {j.numberOfCopies||1} requested cop{j.numberOfCopies===1?'y':'ies'}</span>{j.errorMessage&&<div className="errorNote" style={{marginTop:8}}>{j.errorMessage}</div>}</div><span className={'statusChip'+(j.status==='FAILED'?' danger':' neutral')}>{j.status==='SENT_TO_PRINT_SYSTEM'?'Sent to print system':j.status.replaceAll('_',' ')}</span></div>)}</div>:<p className="sectionLead">No server print jobs recorded yet. Test the printer on the actual iPad before the event.</p>}
+   </section>
+  </>}
+ </main>;
+}
