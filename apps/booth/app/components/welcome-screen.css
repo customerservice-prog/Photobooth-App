@@ -54,3 +54,8 @@
 .bwSoundCheck:focus-visible{outline:3px solid #43715b;outline-offset:2px}
 .bwSoundWarning{font-size:12px;line-height:1.5;color:#85421d;margin:5px 0}
 @media(max-width:620px){.bwSoundCheck{margin:7px 0 0;display:inline-flex;align-items:center}}
+
+
+/* A featured session stays a recommendation, never a restriction. */
+.bwSessionCard.isPreferred{box-shadow:0 0 0 3px rgba(206,169,94,.38),0 12px 28px #09231929}
+.bwSessionCard.isPreferred .bwSessionKicker{color:#cda45e;font-weight:800}

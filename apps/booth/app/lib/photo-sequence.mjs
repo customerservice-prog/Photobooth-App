@@ -1,4 +1,5 @@
 // Still photographs only: one countdown and one fresh camera frame per pose.
+import {normalizeGuestPause} from './guest-pause.mjs';
 const cancelled=()=>Object.assign(new Error('Photo session cancelled.'),{name:'AbortError'});
 const check=signal=>{if(signal?.aborted)throw cancelled();};
 export function waitForPose(ms,signal){
@@ -45,13 +46,23 @@ export function takeFreshPhoto(video,{signal,previousTime=-1,previousFrame=-1,ti
   }
  });
 }
-export async function runPhotoSequence({total=4,signal,capture,onProgress=()=>{},onCue=()=>{},wait=waitForPose}){
+export async function runPhotoSequence({total=4,signal,capture,onProgress=()=>{},onCue=()=>{},wait=waitForPose,onPause=null,pauseSeconds=6}){
  if(![1,3,4].includes(total)||typeof capture!=='function')throw new Error('Choose a one-, three-, or four-photo session.');
  const shots=[];let previousTime=-1,previousFrame=-1;
  const emit=(phase,current,count=null)=>{check(signal);onProgress({phase,current,total,count,completed:shots.length,shots:[...shots]});};
  for(let index=0;index<total;index++){
   check(signal);const current=index+1;
-  if(index>0){emit('next',current);const duration=onCue('next'+current,{current,total});await wait(Math.max(3200,Number(duration)||0)+300,signal);}
+  if(index>0){
+   emit('next',current);
+   const duration=onCue('next'+current,{current,total});
+   await wait(Math.max(3200,Number(duration)||0)+300,signal);
+   const seconds=normalizeGuestPause(pauseSeconds);
+   emit('pause',current,seconds);
+   if(typeof onPause==='function'){
+    await onPause({current,total,seconds,signal,onTick:remaining=>emit('pause',current,remaining)});
+   }else await wait(seconds*1000,signal);
+   check(signal);
+  }
   emit('pose',current);const readyDuration=onCue('ready',{current,total});await wait(Math.max(650,Number(readyDuration)||0)+100,signal);
   for(let count=3;count>=1;count--){emit('countdown',current,count);const duration=onCue(String(count),{current,total});await wait(Math.max(1000,Number(duration)||0)+100,signal);}
   emit('smile',current);const smileDuration=onCue('smile',{current,total});await wait(Math.max(300,Number(smileDuration)||0),signal);check(signal);

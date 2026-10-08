@@ -52,3 +52,26 @@ test('spoken countdown waits for a complete voice clip before advancing',async()
   await runPhotoSequence({total:1,wait:async ms=>delays.push(ms),capture:async()=>({data:jpeg,mediaTime:++time}),onCue:cue=>cue==='3'?1550:cue==='2'?750:cue==='1'?1250:0});
   assert.deepEqual(delays.slice(1,4),[1650,1100,1350]);
 });
+
+test('four-photo sessions enter a distinct guest-ready pause before every subsequent countdown',async()=>{
+ const phases=[],calls=[],cues=[];
+ await runPhotoSequence({total:4,wait:async()=>{},capture:async({index})=>({data:jpeg,mediaTime:index+1}),
+  onCue:key=>{cues.push(key);return 0;},
+  onProgress:progress=>phases.push([progress.phase,progress.current,progress.count]),
+  onPause:async({current,seconds,onTick})=>{calls.push([current,seconds]);onTick(2);onTick(1);}
+ });
+ assert.deepEqual(calls,[[2,6],[3,6],[4,6]]);
+ for(const shot of [2,3,4]){
+  const pause=phases.findIndex(([phase,current])=>phase==='pause'&&current===shot);
+  const countdown=phases.findIndex(([phase,current])=>phase==='countdown'&&current===shot);
+  assert(pause>=0&&countdown>pause);
+ }
+ assert.equal(phases.at(-1)[0],'processing');
+});
+test('cancelling during the pose pause never captures the following photo',async()=>{
+ const controller=new AbortController();let captured=0;
+ await assert.rejects(runPhotoSequence({total:4,signal:controller.signal,wait:async()=>{},
+  capture:async()=>({data:jpeg,mediaTime:++captured}),
+  onPause:async()=>{controller.abort();}}),{name:'AbortError'});
+ assert.equal(captured,1);
+});

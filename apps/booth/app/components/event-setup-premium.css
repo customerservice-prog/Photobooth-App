@@ -1,0 +1,335 @@
+/* Friendly Photo Booth - premium guided event setup.
+   Scoped to setup so archived keepsake, printing and sharing views keep their layouts. */
+.ksDialogSetup{
+ --ks-accent:#254f44;
+ --ks-ink:#1e382f;
+ --ks-panel:#faf5eb;
+ --ks-muted:#68786d;
+ --ks-line:#d4d7c9;
+ display:flex;
+ flex-direction:column;
+ width:min(1210px,calc(100vw - 32px));
+ height:min(825px,calc(100dvh - 22px));
+ max-height:calc(100dvh - 22px);
+ overflow:hidden;
+ border:1px solid #e3d2a7;
+ border-radius:26px;
+ background:#f8f5ee;
+ box-shadow:0 20px 100px #051e19a8,0 0 0 7px #f2deb111;
+}
+.ksDialogSetup:not([open]){display:none}
+.ksDialogSetup::backdrop{background:rgba(9,30,26,.68);backdrop-filter:blur(5px)}
+.ksDialogSetup .ksDialogHead{
+ flex:none;
+ min-height:119px;
+ position:relative;
+ overflow:hidden;
+ padding:22px clamp(22px,3vw,43px);
+ border-bottom:1px solid #e5dbc5;
+ background:
+   radial-gradient(circle at 66% 10%,#f5d8ae5e 0,transparent 42%),
+   linear-gradient(116deg,#fcfaf5 0%,#f5ecdd 60%,#e8e9d9 100%);
+}
+.ksDialogSetup .ksDialogHead::before{
+ content:'✦';position:absolute;right:22%;top:-37px;
+ color:#d2a96040;font:145px Georgia,serif;pointer-events:none;
+}
+.ksDialogSetup .ksDialogHead .ksEyebrow{
+ display:inline-block;color:#6b715f;
+ font-size:10px;font-weight:750;letter-spacing:3px;
+}
+.ksDialogSetup .ksDialogHead h2{
+ position:relative;
+ font:italic 400 clamp(29px,3.6vw,45px)/1.03 Georgia,serif;
+ letter-spacing:-1.35px;
+ color:#1b3a30;
+ margin:9px 0 0;
+}
+.ksDialogSetup .ksDialogHead .ksIconButton{
+ position:relative;z-index:3;min-width:50px;min-height:50px;
+ border:1px solid #9aae9b;
+ border-radius:15px;
+ color:#224638;
+ background:#f8f7f0eb;
+ box-shadow:0 4px 12px #14352713;
+}
+.ksDialogSetup .ksSetupGrid{
+ flex:1;min-height:0;
+ display:grid;grid-template-columns:minmax(0,1.18fr) minmax(330px,.82fr);
+ align-items:stretch;
+ overflow:hidden;
+}
+.ksDialogSetup .ksSetupForm{
+ min-width:0;
+ height:100%;
+ overflow-y:auto;
+ overscroll-behavior:contain;
+ scrollbar-gutter:stable;
+ padding:25px clamp(19px,3vw,40px) 28px;
+ background:#fbf9f3;
+}
+.ksDialogSetup .ksSteps{
+ display:flex;align-items:center;gap:14px;
+ position:relative;z-index:2;
+ padding:0 0 19px;
+ border-bottom:1px solid #e0e2d7;
+ margin:0 0 22px;
+}
+.ksDialogSetup .ksSteps button{
+ display:inline-flex;align-items:center;gap:8px;
+ border:0;background:none;color:#819085;
+ padding:5px 1px;
+ font-size:11px;font-weight:750;letter-spacing:1.2px;text-transform:uppercase;
+ cursor:pointer;min-height:38px;
+}
+.ksDialogSetup .ksSteps button.current{color:#224d40;border-bottom:0}
+.ksDialogSetup .ksSteps button span{
+ display:grid;place-items:center;min-width:29px;height:29px;
+ border:1px solid #c0cabe;border-radius:50%;font-size:10px;
+}
+.ksDialogSetup .ksSteps button.current span{background:#2c5848;color:#fff;border-color:#2c5848;box-shadow:0 0 0 4px #bad1bc4a}
+.ksDialogSetup .ksStepConnector{width:25px;height:1px;background:#bdcabf;flex:none}
+.ksDialogSetup .ksSetupSectionLead{margin:0 0 14px}
+.ksDialogSetup .ksSetupOverline{
+ display:block;font-size:10px;letter-spacing:2.1px;font-weight:800;
+ color:#9b8458;
+}
+.ksDialogSetup .ksSetupSectionLead h3{
+ font:italic 400 clamp(25px,2.9vw,36px)/1.08 Georgia,serif;
+ color:#203c31;margin:9px 0 7px;letter-spacing:-.7px;
+}
+.ksDialogSetup .ksSetupSectionLead p,
+.ksDialogSetup .ksSessionConfigHead p{
+ margin:5px 0 0;font-size:13px;line-height:1.45;color:#647568;
+}
+.ksDialogSetup .ksEventGrid{
+ display:grid;grid-template-columns:repeat(3,minmax(0,1fr));
+ gap:9px;
+ margin:17px 0 24px;
+}
+.ksDialogSetup .ksEventGrid button{
+ display:flex;align-items:center;justify-content:flex-start;gap:8px;
+ min-height:71px;min-width:0;padding:11px 9px;
+ border:1px solid #cad2c5;
+ border-radius:15px;
+ background:linear-gradient(140deg,#fffefa,#f1f2eb);
+ color:#30463b;text-align:left;font-size:12px;font-weight:600;
+ box-shadow:0 3px 11px #32463509;
+ transition:border-color .16s ease,background .16s ease,transform .16s ease;
+}
+.ksDialogSetup .ksEventGrid button:hover{border-color:#668d77;background:#f3f7ef}
+.ksDialogSetup .ksEventGrid button.chosen{
+ border:2px solid #315b4c;
+ padding:10px 8px;
+ background:linear-gradient(130deg,#e9f0e5,#dfeadd);
+ box-shadow:0 0 0 3px #315b4c0f;
+}
+.ksDialogSetup .ksEventGrid button:focus-visible{outline:3px solid #d6b66c;outline-offset:2px}
+.ksDialogSetup .ksEventIcon{
+ width:29px;height:29px;flex:none;display:grid;place-items:center;
+ background:#f0f2e7;border-radius:9px;color:#416859;
+}
+.ksDialogSetup .ksEventIcon svg{width:18px;height:18px}
+.ksDialogSetup .ksEventGrid button.chosen .ksEventIcon{background:#d1e0cd}
+.ksDialogSetup .ksEventLabel{min-width:0;overflow-wrap:anywhere;line-height:1.22}
+.ksDialogSetup .ksSelectedCheck{
+ width:20px;height:20px;display:grid;place-items:center;flex:none;
+ margin-left:auto;color:#fff;border-radius:50%;background:#315b4c;
+}
+.ksDialogSetup .ksSessionConfig{
+ padding:20px;
+ border:1px solid #d8d5c3;border-radius:19px;
+ background:
+  radial-gradient(circle at 90% 0%,#f7eac484,transparent 36%),
+  linear-gradient(145deg,#f7f5e9,#eff3ea);
+}
+.ksDialogSetup .ksSessionConfigHead h4{
+ font:italic 400 24px/1.12 Georgia,serif;
+ letter-spacing:-.45px;color:#2a4b3b;margin:7px 0 5px;
+}
+.ksDialogSetup .ksSessionChoiceGrid{
+ display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:16px 0 14px;
+}
+.ksDialogSetup .ksSessionChoiceGrid button{
+ position:relative;display:flex;align-items:center;gap:12px;
+ text-align:left;color:#27473a;
+ background:#fffdf7;
+ border:1px solid #c7d1c5;
+ border-radius:16px;min-height:97px;padding:12px;
+}
+.ksDialogSetup .ksSessionChoiceGrid button.isSelected{
+ border:2px solid #315c4b;padding:11px;
+ background:#e5eee4;
+ box-shadow:0 0 0 3px #3d7b5120;
+}
+.ksDialogSetup .ksSessionChoiceGrid button:focus-visible{outline:3px solid #d3b372;outline-offset:2px}
+.ksDialogSetup .ksShotArtwork{
+ flex:none;width:65px;height:70px;border-radius:10px;
+ display:grid;gap:4px;padding:6px;
+ background:#e9e9e2;box-shadow:inset 0 0 0 1px #d6d4c8;
+}
+.ksDialogSetup .ksShotArtwork i{
+ display:block;border-radius:3px;border:2px solid #fff6e6;
+ background:linear-gradient(135deg,#799584,#c6c1a2);
+ box-shadow:0 1px 4px #18342729;
+}
+.ksDialogSetup .ksShotArtworkOne{grid-template-columns:1fr}
+.ksDialogSetup .ksShotArtworkFour{grid-template-columns:repeat(2,1fr);grid-template-rows:repeat(2,1fr)}
+.ksDialogSetup .ksShotDetails{display:flex;flex-direction:column;gap:3px;min-width:0}
+.ksDialogSetup .ksShotDetails strong{font:italic 26px/1 Georgia,serif;color:#1f4436;white-space:nowrap}
+.ksDialogSetup .ksShotDetails small{font-size:11px;font-weight:700;color:#516b5b}
+.ksDialogSetup .ksShotDetails em{font-size:10px;font-style:normal;color:#738276;line-height:1.25}
+.ksDialogSetup .ksShotIndicator{
+ position:absolute;right:9px;top:8px;font-size:18px;
+ font-weight:700;color:#3c6351;
+}
+.ksDialogSetup .ksPauseSetting{
+ display:flex;align-items:center;gap:11px;
+ border:1px solid #d0d6c9;border-radius:13px;
+ background:#fffef8;padding:10px 12px;
+}
+.ksDialogSetup .ksPauseSymbol{
+ width:39px;height:39px;display:grid;place-items:center;flex:none;
+ font:800 19px system-ui,sans-serif;color:#526e5c;border-radius:12px;background:#e5eee4;
+}
+.ksDialogSetup .ksPauseCopy{min-width:0;flex:1}
+.ksDialogSetup .ksPauseCopy strong{display:block;font-size:12px;color:#2b4b3d}
+.ksDialogSetup .ksPauseCopy small{display:block;font-size:10px;color:#758476;line-height:1.35;margin-top:3px}
+.ksDialogSetup .ksPauseSetting select{
+ flex:none;min-height:44px;max-width:125px;
+ padding:8px 10px;
+ border:1px solid #c0cebf;border-radius:10px;
+ background:#f1f4eb;color:#2c533e;font-size:12px;font-weight:700;
+}
+.ksDialogSetup .ksSetupActionRail{
+ display:flex;align-items:center;justify-content:space-between;
+ gap:12px;margin:18px 0 0;
+}
+.ksDialogSetup .ksSetupActionRail>span{font-size:10px;color:#7a867c;letter-spacing:.3px}
+.ksDialogSetup .ksSetupActionRail .ksButton{
+ width:auto;min-width:205px;min-height:52px;margin:0;
+ padding:12px 19px;border-radius:13px;
+ background:linear-gradient(125deg,#234e41,#406e56);
+ color:#fff9e8;font-size:13px;
+ box-shadow:0 6px 16px #214c3a26;
+}
+.ksDialogSetup .ksSetupActionRail .ksButton:hover{filter:brightness(1.08)}
+.ksDialogSetup .ksSetupPreview{
+ display:flex;min-width:0;min-height:0;position:relative;
+ flex-direction:column;align-items:center;justify-content:space-between;
+ gap:10px;overflow:hidden;
+ border-left:1px solid #d6d8c8;
+ padding:25px 24px 23px;
+ background:
+   radial-gradient(circle at 50% 39%,#627d6840,transparent 50%),
+   radial-gradient(circle at 12% 5%,#f4d7a329,transparent 48%),
+   linear-gradient(160deg,#183a31,#284d40 62%,#1b352d 100%);
+ color:#fff2d4;
+}
+.ksDialogSetup .ksSetupPreview::before,
+.ksDialogSetup .ksSetupPreview::after{
+ content:'✧';position:absolute;pointer-events:none;
+ font:120px Georgia,serif;color:#e9c47b24;
+}
+.ksDialogSetup .ksSetupPreview::before{right:-12px;top:21%}
+.ksDialogSetup .ksSetupPreview::after{left:-35px;bottom:7%;font-size:88px}
+.ksDialogSetup .ksPreviewTop{
+ width:100%;display:flex;align-items:center;justify-content:space-between;
+ position:relative;z-index:2;
+}
+.ksDialogSetup .ksPreviewTop .ksEyebrow{color:#f4e4bd;font-size:10px;letter-spacing:2.5px}
+.ksDialogSetup .ksPreviewStar{font:30px Georgia,serif;color:#f6dda2}
+.ksDialogSetup .ksPreviewPaper{
+ position:relative;display:grid;place-items:center;
+ min-height:0;flex:1;width:100%;
+ filter:drop-shadow(0 16px 18px #081c1880);
+}
+.ksDialogSetup .ksPreviewPaper::after{
+ content:'';position:absolute;width:min(300px,82%);height:30px;
+ bottom:0;left:50%;transform:translateX(-50%);
+ border-radius:50%;background:#0b191a76;filter:blur(18px);z-index:0;
+}
+.ksDialogSetup .ksPreviewPaper .luxuryPrint.designPrint{
+ position:relative;z-index:1;
+ width:min(96%,calc((100dvh - 325px)*.62),335px)!important;
+ max-width:335px!important;max-height:100%!important;
+ height:auto!important;transform:rotate(-1.2deg);
+ border:5px solid #fffaea;
+ box-shadow:0 16px 48px #081e19ab;
+}
+.ksDialogSetup .ksPreviewBottom{
+ position:relative;z-index:2;
+ width:100%;display:flex;flex-wrap:wrap;align-items:center;justify-content:center;
+ gap:4px 9px;text-align:center;
+ padding:10px;
+ border:1px solid #d4dba733;border-radius:12px;
+ background:#102b2488;
+}
+.ksDialogSetup .ksPreviewDot{width:7px;height:7px;background:#eac787;border-radius:50%}
+.ksDialogSetup .ksPreviewBottom strong{font:italic 18px Georgia,serif;color:#fff0ce}
+.ksDialogSetup .ksPreviewBottom small{display:block;width:100%;color:#bfceb9;font-size:10px}
+.ksDialogSetup .ksPersonalizeStage .ksFieldGrid{margin:17px 0;gap:11px}
+.ksDialogSetup .ksFieldGrid label{color:#2b4d3e;font-size:12px}
+.ksDialogSetup .ksFieldGrid input:not([type="color"]),.ksDialogSetup .ksFieldGrid select{
+ border-radius:11px;min-height:46px;background:#fffefb;border-color:#bac9b7;
+}
+.ksDialogSetup .ksFieldGrid input[type="color"]{
+ height:44px;padding:5px;background:#fffdf9;
+ border:1px solid #bac9b7;border-radius:10px;
+}
+.ksDialogSetup .ksDefaultDesign{border-color:#dce0d3}
+.ksDialogSetup .ksDefaultDesign legend{color:#3f6550;font-size:12px}
+.ksDialogSetup .ksDefaultDesign label{font-size:13px;min-height:31px}
+.ksDialogSetup .ksPersonalizeStage .ksSetupActionRail .ksTextButton{
+ flex:none;min-height:46px;font-size:12px;
+}
+.ksDialogSetup .ksPersonalizeStage .ksFine{font-size:11px;color:#718073}
+@media(max-width:1100px){
+ .ksDialogSetup .ksSetupGrid{grid-template-columns:minmax(0,1.08fr) minmax(290px,.92fr)}
+ .ksDialogSetup .ksSetupForm{padding:20px 20px 26px}
+ .ksDialogSetup .ksSetupPreview{padding:20px 14px}
+ .ksDialogSetup .ksEventGrid{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .ksDialogSetup .ksEventGrid button{min-height:63px}
+ .ksDialogSetup .ksShotArtwork{width:46px;height:62px}
+ .ksDialogSetup .ksShotDetails strong{font-size:23px}
+}
+@media(max-width:720px){
+ .ksDialogSetup{
+  width:calc(100vw - 12px);height:calc(100dvh - 12px);
+  max-height:calc(100dvh - 12px);border-radius:17px;
+ }
+ .ksDialogSetup .ksDialogHead{min-height:84px;padding:15px 17px}
+ .ksDialogSetup .ksDialogHead h2{font-size:29px}
+ .ksDialogSetup .ksSetupGrid{display:block;overflow-y:auto;overscroll-behavior:contain}
+ .ksDialogSetup .ksSetupForm{height:auto;overflow:visible;padding:18px 18px 30px}
+ .ksDialogSetup .ksSetupPreview{display:none}
+ .ksDialogSetup .ksSteps{gap:9px;margin-bottom:15px;padding-bottom:12px}
+ .ksDialogSetup .ksSteps button{font-size:9px;letter-spacing:.5px}
+ .ksDialogSetup .ksSteps button span{min-width:25px;height:25px}
+ .ksDialogSetup .ksSetupSectionLead h3{font-size:27px}
+ .ksDialogSetup .ksEventGrid{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+ .ksDialogSetup .ksSessionConfig{padding:14px}
+ .ksDialogSetup .ksSessionChoiceGrid{gap:8px}
+ .ksDialogSetup .ksSessionChoiceGrid button{min-height:84px;padding:9px 8px;gap:8px}
+ .ksDialogSetup .ksShotArtwork{width:38px;height:51px;padding:4px}
+ .ksDialogSetup .ksShotDetails strong{font-size:22px}
+ .ksDialogSetup .ksShotDetails em{font-size:9px}
+ .ksDialogSetup .ksPauseSetting{flex-wrap:wrap}
+ .ksDialogSetup .ksPauseSetting select{margin-left:auto}
+ .ksDialogSetup .ksSetupActionRail{flex-wrap:wrap;justify-content:flex-end}
+ .ksDialogSetup .ksSetupActionRail>span{display:none}
+}
+@media(max-width:380px){
+ .ksDialogSetup .ksSetupForm{padding:15px 11px 25px}
+ .ksDialogSetup .ksEventGrid button{font-size:11px;padding:8px;gap:5px}
+ .ksDialogSetup .ksEventIcon{width:23px;height:27px}
+ .ksDialogSetup .ksEventIcon svg{width:16px}
+ .ksDialogSetup .ksShotDetails small{font-size:9px}
+ .ksDialogSetup .ksSessionChoiceGrid button{gap:6px}
+ .ksDialogSetup .ksShotArtwork{width:31px;height:42px}
+ .ksDialogSetup .ksShotDetails strong{font-size:20px}
+ .ksDialogSetup .ksPauseSymbol{display:none}
+}
+@media(prefers-reduced-motion:reduce){
+ .ksDialogSetup .ksEventGrid button{transition:none}
+}
