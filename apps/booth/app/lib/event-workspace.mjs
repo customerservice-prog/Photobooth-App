@@ -12,7 +12,7 @@ const color=v=>/^#[0-9a-f]{6}$/i.test(String(v||''))?v:undefined;
 export const PREP_CHECKS=Object.freeze({details:'Customer details and event address confirmed in the booking',design:'Customer approved the printed name and colors',camera:'Photo session tested on the actual iPad',printer:'A real Canon test print checked for paper, color and cropping',digital:'Digital copy saved and opened on another device'});
 
 export function octoberPreset(){
-  return {eventId:EVENT_ID,type:'other',title:'October 10 Photo Booth Party',subtitle:'Photo Booth Preview',date:'October 10, 2026',setupComplete:true,defaultTemplate:'champagne',photoFit:'fit',photoPauseSeconds:6,defaultPhotoExperience:'four',
+  return {eventId:EVENT_ID,type:'other',title:'October 10 Photo Booth Party',subtitle:'Photo Booth Preview',date:'October 10, 2026',setupComplete:true,defaultTemplate:'champagne',photoFit:'fill',photoPauseSeconds:6,defaultPhotoExperience:'four',
     details:{eventName:'October 10 Photo Booth Party',honoree:'',subtitle:'',primaryColor:'#24352f',secondaryColor:'#d8c49b'},
     schedule:{date:'2026-10-10',start:'16:00',end:'20:00',timeZone:'America/New_York'},
     preparation:{colorsConfirmed:false,checks:{}},
@@ -60,7 +60,7 @@ export function validatePreparation(draft){
   if(![0,54,108].includes(pp.addOnPrints))throw new Error('Choose one of the listed print packages.');
   const date=new Date(s.date+'T12:00:00Z').toLocaleDateString('en-US',{timeZone:'UTC',month:'long',day:'numeric',year:'numeric'});
   const checks={};for(const k of Object.keys(PREP_CHECKS))checks[k]=draft.preparation?.checks?.[k]===true;
-  return {eventId:EVENT_ID,type:'other',title:text(draft.title),subtitle:text(draft.subtitle),date,setupComplete:true,photoFit:'fit',photoPauseSeconds:normalizeGuestPause(draft.photoPauseSeconds),defaultPhotoExperience:normalizePhotoPreference(draft.defaultPhotoExperience),defaultTemplate:['ivory','blush','champagne'].includes(draft.defaultTemplate)?draft.defaultTemplate:'champagne',
+  return {eventId:EVENT_ID,type:'other',title:text(draft.title),subtitle:text(draft.subtitle),date,setupComplete:true,photoFit:'fill',photoPauseSeconds:normalizeGuestPause(draft.photoPauseSeconds),defaultPhotoExperience:normalizePhotoPreference(draft.defaultPhotoExperience),defaultTemplate:['ivory','blush','champagne'].includes(draft.defaultTemplate)?draft.defaultTemplate:'champagne',
     details:{eventName:text(draft.title),honoree:text(draft.details?.honoree,80),subtitle:text(draft.details?.subtitle,80),primaryColor:color(draft.details?.primaryColor)||base.details.primaryColor,secondaryColor:color(draft.details?.secondaryColor)||base.details.secondaryColor},
     printLayouts:validatePrintLayouts(draft.printLayouts),schedule:{date:s.date,start:s.start,end:s.end,timeZone:'America/New_York'},preparation:{colorsConfirmed:draft.preparation?.colorsConfirmed===true,checks},printPackage:{...pp,includedPrints:108,copiesPerSession:1,printingEnabled:true,digitalEnabled:true}};
 }

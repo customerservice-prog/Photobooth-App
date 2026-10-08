@@ -798,3 +798,62 @@
   transition:none!important;transform:none!important;
  }
 }
+
+
+/* Selecting Photo Strip starts with one; the second option is always available. */
+.ksDialogSetup .ksStripArrangement{
+ position:relative;
+ z-index:6;
+ display:flex;
+ flex-wrap:wrap;
+ justify-content:center;
+ align-items:center;
+ gap:7px;
+ padding:3px;
+ border:1px solid #e9d6a065;
+ border-radius:15px;
+ background:rgba(13,38,31,.66);
+}
+.ksDialogSetup .ksStripArrangement button{
+ min-width:95px;
+ min-height:44px;
+ padding:8px 14px;
+ border:1px solid transparent;
+ border-radius:11px;
+ color:#f3e6c9;
+ background:transparent;
+ font:700 12px/1.2 system-ui,sans-serif;
+}
+.ksDialogSetup .ksStripArrangement button[aria-pressed="true"]{
+ color:#1e473a;
+ border-color:#f4dca8;
+ background:#ffe3a5;
+ box-shadow:0 2px 10px #09251b65;
+}
+.ksDialogSetup .ksStripArrangement button:focus-visible{
+ outline:3px solid #fff9e5;
+ outline-offset:3px;
+}
+@media(max-width:720px){
+ .ksDialogSetup .ksSetupWow .ksWowPreview[data-preview-format="photo_strip"]{
+  min-height:160px;
+  max-height:160px;
+  grid-template-rows:28px 41px 44px;
+  row-gap:6px;
+ }
+ .ksDialogSetup .ksSetupWow .ksWowPreview[data-preview-format="photo_strip"] .ksPreviewPaper{
+  grid-column:1;grid-row:1/4;
+ }
+ .ksDialogSetup .ksSetupWow .ksWowPreview[data-preview-format="photo_strip"] .ksStripArrangement{
+  grid-column:2;grid-row:3;justify-content:flex-start;
+  gap:3px;padding:2px;
+  width:fit-content;
+  align-self:start;
+ }
+ .ksDialogSetup .ksStripArrangement button{
+  min-width:76px;
+  min-height:44px;
+  padding:6px 7px;
+  font-size:10px;
+ }
+}

@@ -44,7 +44,7 @@ export default function EventSetup({cfg,photo='',poses=[],onSave,onClose}){
  const palettes=SETUP_COLOR_STORIES;
  let preview=draft;
  try{if(dirty)preview=composeEventConfig(draft,{...draft.details,date:draft.date});}catch{}
- const designCfg={...preview,photoFit:'fit'};
+ const designCfg={...preview,photoFit:'fill'};
  const monogram=eventMonogram(designCfg);
  function touch(mutator){setDirty(true);setIssue('');setDraft(mutator);}
  function change(name,value){touch(d=>name==='date'?{...d,date:value}:{...d,details:{...d.details,[name]:value}});}
@@ -53,7 +53,11 @@ export default function EventSetup({cfg,photo='',poses=[],onSave,onClose}){
  function chooseLayout(id){
   if(!['card','photo_strip'].includes(id)||preference==='one'||!canShowStrip)return;
   if(id==='card'&&!settings.cardEnabled||id==='photo_strip'&&!settings.stripEnabled)return;
-  touch(d=>({...d,printLayouts:{...normalizePrintLayouts(d.printLayouts),defaultLayout:id}}));
+  touch(d=>({...d,printLayouts:{...normalizePrintLayouts(d.printLayouts),defaultLayout:id,stripMode:'single'}}));
+ }
+ function chooseStripArrangement(next){
+  if(format!=='photo_strip'||!['single','double'].includes(next))return;
+  touch(d=>({...d,printLayouts:{...normalizePrintLayouts(d.printLayouts),stripMode:next}}));
  }
  function save(e){
   e.preventDefault();
@@ -155,12 +159,16 @@ export default function EventSetup({cfg,photo='',poses=[],onSave,onClose}){
      <p className="ksFine">Your setup stays on this device. Saved guest photos and print counts remain untouched.</p>
     </form>}
    </section>
-   <aside className="ksSetupPreview ksWowPreview" aria-label="Interactive keepsake preview">
+   <aside className="ksSetupPreview ksWowPreview" data-preview-format={format} aria-label="Interactive keepsake preview">
     <div className="ksPreviewTop"><span className="ksEyebrow">THE KEEPSAKE STUDIO</span><span className="ksPreviewStar" aria-hidden="true">✦</span></div>
     <div className="ksPreviewFormat" role="group" aria-label="Preview the print format">
      <button type="button" data-testid="setup-preview-card" aria-pressed={format==='card'} onClick={()=>chooseLayout('card')}>4×6 Card</button>
      <button type="button" data-testid="setup-preview-strip" aria-pressed={format==='photo_strip'} disabled={preference==='one'||!settings.stripEnabled||!canShowStrip} onClick={()=>chooseLayout('photo_strip')}>Photo Strip</button>
     </div>
+    {format==='photo_strip'&&<div className="ksStripArrangement" role="group" aria-label="Choose one or two photo strips">
+     <button type="button" data-testid="setup-strip-single" aria-pressed={settings.stripMode==='single'} onClick={()=>chooseStripArrangement('single')}>One strip</button>
+     <button type="button" data-testid="setup-strip-double" aria-pressed={settings.stripMode==='double'} onClick={()=>chooseStripArrangement('double')}>Two strips</button>
+    </div>}
     <div className="ksPreviewPaper">
      <div className="ksPreviewPaperMount">
       <PrintCard photo={previewPhoto} poses={previewPoses} sample={usePlaceholder} layout={format} stripMode={settings.stripMode} cfg={designCfg} monogram={monogram} template={draft.defaultTemplate||'ivory'}/>
