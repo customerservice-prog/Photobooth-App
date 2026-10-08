@@ -14,6 +14,7 @@ import {workspace,readEventDraft,saveEventDraft,usage,ownPrintUsage,readyForEven
 import {saveCapture,saveKeepsake,archiveCount,recentCaptures,openArchive,capturePoses} from './lib/event-photo-archive.mjs';
 import {createScreenAwakeController,readScreenAwakeSetting,saveScreenAwakeSetting} from './lib/screen-awake.mjs';
 import {activeEventDestination} from './lib/active-event.mjs';
+import {backupEnabled,saveBackupToken,syncEventPhotos} from './lib/backup-sync.mjs';
 import './event-prep/preparation.css';
 const RESET_MS=90000;
 const defaultCfg={title:'Our Celebration',subtitle:'Friendly Photo Booth',date:new Date().toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'}),type:'other',printPackage:normalizePrintPackage()};
@@ -29,6 +30,7 @@ export default function Booth(){
   const video=useRef(null),stream=useRef(null),timer=useRef(null),startGuard=useRef(false),run=useRef(0),printCleanup=useRef(()=>{}),captureId=useRef(null),printGuard=useRef(false),captureAbort=useRef(null),capturePhase=useRef('ready'),resumeGuestPause=useRef(null);
   // The staff preference is per iPad, not per guest or transferred event.
   // Keeping the display awake is best-effort; iPad Guided Access is the OS lock.
+  const [backupStatus,setBackupStatus]=useState('not-enabled');
   const [keepScreenAwake,setKeepScreenAwake]=useState(true);
   const [screenAwakeStatus,setScreenAwakeStatus]=useState('requesting');
   const screenAwakeController=useRef(null);
