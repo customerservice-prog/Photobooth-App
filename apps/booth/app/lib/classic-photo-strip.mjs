@@ -40,6 +40,21 @@ export function renderClassicPhotoStrip({poses,cfg={},template='ivory',stripMode
  column+=`<path d="M${mid-110} 1701H${mid+110}" stroke="${accent}" stroke-width="1.5"/>`;
  column+=text(copy.date||cfg.date||'',1732,width-90,24,ink)+text('FRIENDLY PHOTO BOOTH',1774,width-90,13,ink,{tracking:2});
  const art=columns.map((x,i)=>`<g data-strip-copy="${i+1}" transform="translate(${x} 0)">${column}</g>`).join('');
+ // The single print is a complete 4×6 keepsake, while its central 2×6 strip
+ // is pixel-for-pixel the same column used for the double-strip print.
+ // All side ornamentation stays OUTSIDE the detachable classic strip.
+ const singleMat=mode==='single'?[
+  rect(0,0,1200,1800,paper),
+  rect(22,22,1156,1756,'none',accent,3),
+  rect(40,40,1120,1720,'none',accent,1),
+  '<g opacity=".28">',
+  '<path d="M110 130 Q300 60 490 130 M710 130 Q900 60 1090 130 M110 1670 Q300 1740 490 1670 M710 1670 Q900 1740 1090 1670" fill="none" stroke="'+accent+'" stroke-width="4"/>',
+  '</g>',
+  '<g fill="'+accent+'" opacity=".85"><circle cx="150" cy="900" r="9"/><circle cx="1050" cy="900" r="9"/><circle cx="150" cy="870" r="3"/><circle cx="1050" cy="870" r="3"/></g>',
+  '<g stroke="'+accent+'" fill="none" stroke-width="3"><path d="M150 260V760 M1050 260V760 M150 1040V1540 M1050 1040V1540"/></g>',
+  '<g fill="'+ink+'" font-family="Georgia,serif" text-anchor="middle" opacity=".82"><text x="150" y="825" font-size="25" transform="rotate(-90 150 825)">A MOMENT TO KEEP</text><text x="1050" y="825" font-size="25" transform="rotate(90 1050 825)">MADE FOR YOU</text></g>',
+  '<g stroke="'+accent+'" stroke-width="2" fill="none"><path d="M100 100h100 M100 100v100 M1100 100h-100 M1100 100v100 M100 1700h100 M100 1700v-100 M1100 1700h-100 M1100 1700v-100"/></g>'
+ ].join(''):'';
  const guide=mode==='double'&&rules.showCutGuide?'<path data-cut-guide="true" d="M600 42V1758" stroke="#b9b9ad" stroke-width="1" stroke-dasharray="5 10"/><g aria-hidden="true" fill="#85857c" font-family="Arial,sans-serif" font-size="10" letter-spacing="2"><text x="600" y="28" text-anchor="middle">CUT HERE</text><text x="600" y="1788" text-anchor="middle">CUT HERE</text></g>':'';
- return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 1800" width="1200" height="1800" role="img" aria-label="${esc(design.name+' photo strip — '+title)}" data-collection="photo-strips" data-layout="photo_strip" data-strip-mode="${mode}" data-pose-count="${total}" data-design="strip-${design.id}"><title>${esc(title+' — '+(mode==='double'?'two matching photo strips':'single photo strip'))}</title>${rect(0,0,1200,1800,'#ffffff')}${art}${guide}</svg>`;
+ return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 1800" width="1200" height="1800" role="img" aria-label="${esc(design.name+' photo strip — '+title)}" data-collection="photo-strips" data-layout="photo_strip" data-strip-mode="${mode}" data-pose-count="${total}" data-design="strip-${design.id}"><title>${esc(title+' — '+(mode==='double'?'two matching photo strips':'single photo strip'))}</title>${rect(0,0,1200,1800,'#ffffff')}${singleMat}${art}${guide}</svg>`;
 }
