@@ -101,6 +101,6 @@ export default function Help(){
     </section>
     <div className="helpGrid">{sections.map(s=><details id={s.id} className="helpSection" key={s.id} open={s.id==='printer'||s.id==='send'}><summary>{s.title}<span>+</span></summary><ol>{s.steps.map(x=><li key={x}>{x}</li>)}</ol></details>)}</div>
     <section className="ownerCard"><div className="kicker">Owner / attendant end-of-event</div><h2>Before packing up</h2><div className="ownerChecklist"><span>□ End Guided Access</span><span>□ Set preferred screen sleep setting for packing up</span><span>□ Check local photo recovery</span><span>□ Print one final test</span><span>□ Confirm printer, paper, ink, charger</span><span>□ Close booth only after recovery is checked</span></div></section>
-    <div className="helpActions"><a href="/bryan-wedding">← Back to Booth</a><a href="/test">Open Full Rehearsal Test</a></div>
+    <div className="helpActions"><a href="/bryan-wedding">← Back to Booth</a><a href="/test">Open Full Rehearsal Test</a><a href="/privacy">Photo privacy</a></div>
   </div></main>
 }

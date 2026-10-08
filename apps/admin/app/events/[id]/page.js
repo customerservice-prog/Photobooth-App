@@ -64,7 +64,7 @@ export default async function EventDetailPage({params}){
      <h2 className="sectionTitle">Send the event to the iPad</h2>
      <p className="sectionLead">You already entered the event settings here. <strong>Don’t type them again on the iPad.</strong> Scan the QR code with the event iPad or copy its setup link. Review and apply it there once.</p>
      {handoff?<BoothTransfer url={handoff} eventName={event.name} ready={progress.ready}/>:<div className="errorNote">{handoffError} <Link href={'/events/'+event.id+'/edit'}>Review the event →</Link></div>}
-     {event.id===OCTOBER_EVENT&&<p className="inlineInfo" style={{marginTop:13}}>Your older October demo and its saved photos stay separate. Applying this admin event creates its own booth event record and print counter.</p>}
+     {event.id===OCTOBER_EVENT&&<p className="inlineInfo" style={{marginTop:13}}>Your older October demo and its saved photos stay separate. Applying this admin event preserves its own photo archive and shares the October print allowance with the original entry on this iPad.</p>}
     </section>
     <section className="card cardPad" id="test-event">
      <div className="eyebrow">STEP 4 · CHECK THE REAL EQUIPMENT</div>
@@ -73,8 +73,8 @@ export default async function EventDetailPage({params}){
      <div className="stepList">
       {['Open your imported event on the event iPad','Tap Test speaker and listen to the countdown','Take a 1 Photo session and a 4 Photos session','Print a real 4×6 Canon SELPHY test sheet','Check the event title, colors and paper output'].map((label,i)=><div key={label} className="stepItem"><span className="stepIcon">{i+1}</span><strong className="stepItemBody">{label}</strong></div>)}
      </div>
-     <div className="buttonRow"><a href={BOOTH_URL+'/print-test'} className="btn btn2" target="_blank" rel="noopener noreferrer">Open printer test ↗</a><a href={BOOTH_URL} className="btn btn2" target="_blank" rel="noopener noreferrer">Guest booth homepage ↗</a></div>
-     <div className="noticeOnly" style={{marginTop:14}}>Send the event again after later admin changes. This transfer does not continuously update an iPad in the background, and it never clears existing photo backups or print usage.</div>
+     <div className="buttonRow"><Link href={"/events/"+event.id+"/backups"} className="btn btn2">Private photo backups →</Link><a href={BOOTH_URL+'/print-test'} className="btn btn2" target="_blank" rel="noopener noreferrer">Open printer test ↗</a><a href={BOOTH_URL} className="btn btn2" target="_blank" rel="noopener noreferrer">Guest booth homepage ↗</a></div>
+     <div className="noticeOnly" style={{marginTop:14}}>Authorized event iPads check for new admin settings while online. Active photo sessions are never interrupted. If automatic sync is unavailable, send a fresh event link; backups and print counts remain intact.</div>
     </section>
     <details className="card eventMoreDetails">
      <summary>More details: booth, print design, contact and notes <span aria-hidden="true">⌄</span></summary>

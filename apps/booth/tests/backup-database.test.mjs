@@ -1,0 +1,18 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {database,storeBackupImage} from '../app/lib/backup-store.mjs';
+test('PostgreSQL backup is private, event scoped and idempotent',async t=>{
+ if(!process.env.DELIVERY_DATABASE_URL){t.skip('Requires temporary PostgreSQL service');return;}
+ const db=await database(),eventId='test-'+process.pid+'-'+Date.now(),captureId='capture-proof';
+ try{
+  const image=Buffer.from([255,216,42,42,255,217]);
+  assert.equal(await storeBackupImage(eventId,captureId,'pose-1',image),'saved');
+  assert.equal(await storeBackupImage(eventId,captureId,'pose-1',image),'already saved');
+  const result=await db.query('SELECT event_id,kind,octet_length(image) AS size FROM booth_backup_v1.images WHERE event_id=$1',[eventId]);
+  assert.equal(result.rows.length,1);
+  assert.equal(result.rows[0].kind,'pose-1');
+  assert.equal(result.rows[0].size,image.length);
+  const other=await db.query('SELECT count(*)::int AS count FROM booth_backup_v1.images WHERE event_id=$1',['other-event']);
+  assert.equal(other.rows[0].count,0);
+ }finally{await db.query('DELETE FROM booth_backup_v1.images WHERE event_id=$1',[eventId]);await db.end();}
+});

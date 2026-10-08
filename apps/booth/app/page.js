@@ -13,6 +13,9 @@ import {composePhotoStrip} from './lib/photo-strip.mjs';
 import {workspace,readEventDraft,saveEventDraft,usage,ownPrintUsage,readyForEvent} from './lib/event-workspace.mjs';
 import {saveCapture,saveKeepsake,archiveCount,recentCaptures,openArchive,capturePoses} from './lib/event-photo-archive.mjs';
 import {createScreenAwakeController,readScreenAwakeSetting,saveScreenAwakeSetting} from './lib/screen-awake.mjs';
+import {activeEventDestination} from './lib/active-event.mjs';
+import {backupEnabled,saveBackupToken,syncEventPhotos} from './lib/backup-sync.mjs';
+import {logPrintRequest,markPrintOutcome} from './lib/print-ledger.mjs';
 import './event-prep/preparation.css';
 const RESET_MS=90000;
 const defaultCfg={title:'Our Celebration',subtitle:'Friendly Photo Booth',date:new Date().toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'}),type:'other',printPackage:normalizePrintPackage()};
@@ -28,6 +31,7 @@ export default function Booth(){
   const video=useRef(null),stream=useRef(null),timer=useRef(null),startGuard=useRef(false),run=useRef(0),printCleanup=useRef(()=>{}),captureId=useRef(null),printGuard=useRef(false),captureAbort=useRef(null),capturePhase=useRef('ready'),resumeGuestPause=useRef(null);
   // The staff preference is per iPad, not per guest or transferred event.
   // Keeping the display awake is best-effort; iPad Guided Access is the OS lock.
+  const [backupStatus,setBackupStatus]=useState('not-enabled');
   const [keepScreenAwake,setKeepScreenAwake]=useState(true);
   const [screenAwakeStatus,setScreenAwakeStatus]=useState('requesting');
   const screenAwakeController=useRef(null);
@@ -51,6 +55,11 @@ export default function Booth(){
     setOnline(navigator.onLine);setInstalled(navigator.standalone===true||window.matchMedia?.('(display-mode: standalone)').matches===true);
     const f=()=>setOnline(navigator.onLine);addEventListener('online',f);addEventListener('offline',f);
     async function load(){try{
+      const params=new URLSearchParams(window.location.search);
+      if(!params.has('booth_event')&&!params.has('event')){
+        const assigned=activeEventDestination(localStorage);
+        if(assigned){window.location.replace(assigned);return;}
+      }
       const target=workspace(window.location.search);setScope(target);
       const c=target.managed?readEventDraft(localStorage):JSON.parse(localStorage.getItem(target.config)||'null');
       if(target.imported&&!c)throw new Error('This event has not been loaded on this iPad. Scan its Send to Booth QR code from the staff dashboard.');
@@ -142,10 +151,14 @@ export default function Booth(){
       const ownUsed=ownPrintUsage(localStorage,scope);
       localStorage.setItem(PRINT_USAGE,String(ownUsed+1));setPrintsUsed(used+1);
       if(scope.demo)return 'demo';
-      if(!print()){localStorage.setItem(PRINT_USAGE,String(ownUsed));setPrintsUsed(used);return false;}return true;
+      if(!print()){localStorage.setItem(PRINT_USAGE,String(ownUsed));setPrintsUsed(used);return false;}try{logPrintRequest(localStorage,scope);}catch{}return true;
     }catch(e){setError(e.message||'Print counter could not be saved. No print was sent.');return false;}finally{printGuard.current=false;}
   }
   function print(){if(printing)return false;clearTimeout(timer.current);setPrinting(true);let fallback;const release=()=>{clearTimeout(fallback);removeEventListener('afterprint',release);setPrinting(false);printCleanup.current=()=>{};};printCleanup.current=release;addEventListener('afterprint',release);fallback=setTimeout(release,120000);try{window.print();return true;}catch{release();setError('Print options could not open. Please try again.');return false;}}
+  function reviewPrint(id,outcome){
+    try{markPrintOutcome(localStorage,scope,id,outcome);setPrintsUsed(usage(localStorage,scope));return true;}
+    catch(e){setError(e.message||'Print request could not be updated.');return false;}
+  }
   function testSpeaker(){preparePhotoAudio().then(()=>setVoiceStatus('playing')).catch(()=>setVoiceStatus('blocked'));}
   async function recover(p){const token=++run.current;setError('');let originals=[];try{if(scope.managed||scope.imported)originals=await capturePoses(scope.archive,p.id);}catch{setError('The original poses could not be opened. The saved card is still available; retake to create a photo strip.');}if(token!==run.current)return;captureId.current=p.id;setSessionShots(originals.length===1?1:originals.length===3?3:4);setPoses(originals);setPhoto(p.data);setOperator(false);setEditing(false);setStep('preview')}
   const eventMeta=eventTypes[cfg.type]||eventTypes.other;
@@ -160,8 +173,8 @@ export default function Booth(){
     {error&&<div className="boothAlert" role="alert"><div className="error">{error}<button onClick={()=>setError('')} aria-label="Dismiss message">×</button></div></div>}
     {installOpen&&<div className="installPanel" role="dialog" aria-modal="true" aria-label="Install on iPad"><div className="installCard"><h2>Add Friendly Booth to your Home Screen.</h2><div className="installSteps"><div><b>1</b><span>Open this booth in Safari.</span></div><div><b>2</b><span>Open Share, then Add to Home Screen.</span></div><div><b>3</b><span>Open the new Friendly Booth icon.</span></div></div><p>This adds the web app. Device locking is a separate iPad setting.</p><button className="action primary" onClick={()=>setInstallOpen(false)}>Close instructions</button></div></div>}
     {operator&&<StaffDashboard
-     onClose={()=>setOperator(false)}
-     onReset={()=>{setOperator(false);reset();}}
+     onClose={()=>{setOperator(false);void fetch('/api/staff/lock',{method:'POST'}).catch(()=>{});}}
+     onReset={()=>{setOperator(false);reset();void fetch('/api/staff/lock',{method:'POST'}).catch(()=>{});}}
      onVoiceTest={testSpeaker}
      onRecover={recover}
      onSaveConfig={saveConfig}
@@ -181,6 +194,7 @@ export default function Booth(){
      screenAwakeStatus={screenAwakeStatus}
      onToggleScreenAwake={changeKeepScreenAwake}
      onRetryScreenAwake={retryScreenAwake}
+     onReviewPrint={reviewPrint}
     />}
   </main></>;
 }

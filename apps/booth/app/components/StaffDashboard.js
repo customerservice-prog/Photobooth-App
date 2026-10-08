@@ -1,13 +1,16 @@
 'use client';
 import {useEffect,useRef,useState} from 'react';
 import {decodeBoothHandoff} from '../lib/booth-handoff.mjs';
+import StaffBackupPanel from './StaffBackupPanel';
+import StaffPrintPanel from './StaffPrintPanel';
+import StaffDeviceChecklist from './StaffDeviceChecklist';
 import './staff-dashboard.css';
 
 // A functional staff dashboard shared by demo and live contexts. The staff
-// confirmation is not authentication; the iPad must be supervised/Guided Access.
+// Staff PIN authorizes controls; Apple Guided Access locks the actual iPad.
 export default function StaffDashboard({onClose,onReset,onVoiceTest,onRecover,onSaveConfig,onLoadBryan,
  online,saved,installed,managed,demo,remaining,setupHref,photos=[],cfg,eventTypes,voiceStatus,
- keepScreenAwake=true,screenAwakeStatus='requesting',onToggleScreenAwake,onRetryScreenAwake}){
+ keepScreenAwake=true,screenAwakeStatus='requesting',onToggleScreenAwake,onRetryScreenAwake,onReviewPrint}){
  const ref=useRef(null),closeRef=useRef(onClose),transferRef=useRef(null),kioskRef=useRef(null);closeRef.current=onClose;
  function showKioskGuide(){
   const section=kioskRef.current;if(!section)return;
@@ -71,6 +74,9 @@ export default function StaffDashboard({onClose,onReset,onVoiceTest,onRecover,on
     <div><small>PHOTOS</small><strong>{saved}</strong><span>{managed?'Archived sessions':'Recent local photos'}</span></div>
     <div><small>DEVICE</small><strong>{installed?'Installed':'Browser'}</strong><span>{installed?'Home Screen app':'Open on iPad for events'}</span></div>
    </section>
+   <StaffBackupPanel/>
+   <StaffPrintPanel onReviewPrint={onReviewPrint}/>
+   <StaffDeviceChecklist/>
    <section className="operatorKioskCard" data-testid="operator-kiosk-card" aria-label="iPad guest display">
     <div className="operatorKioskTop">
      <div><span className="operatorOverline">IPAD EVENT MODE</span><h3>Keep guests in the Photo Booth</h3><p>The booth can request an always-on display. iPad Guided Access is required to stop guests switching apps.</p></div>
@@ -152,7 +158,7 @@ export default function StaffDashboard({onClose,onReset,onVoiceTest,onRecover,on
      <button className="operatorDangerText" type="button" onClick={onLoadBryan}>Load sample wedding event (testing only)</button>
     </div>
    </details>}
-   <p className="operatorPrivacy">The display preference is local to this iPad. Staff Tools is a confirmation, not a password-protected area. Use Apple Guided Access and supervise the booth during events.</p>
+   <p className="operatorPrivacy">The display preference is local to this iPad. Staff Tools require staff authorization when event security is enabled. Use Apple Guided Access and supervise the booth during events.</p>
   </div>
  </dialog>;
 }

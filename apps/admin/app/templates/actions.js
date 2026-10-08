@@ -1,4 +1,5 @@
 'use server';
+import {requireAdmin} from '../../lib/require-admin.mjs';
 
 import { prisma } from '../../lib/prisma';
 import { getDefaultOrganization } from '../../lib/org';
@@ -15,6 +16,7 @@ const FORMAT_DIMENSIONS = {
 // Phase 1: the layout starts with an empty layers array and a canvas sized
 // for the chosen print format. The full visual editor can fill it in later.
 export async function createTemplate(formData) {
+ await requireAdmin();
     const org = await getDefaultOrganization();
 
   const name = formData.get('name')?.toString().trim();
