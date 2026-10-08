@@ -24,6 +24,20 @@ export function renderClassicPhotoStrip({poses,cfg={},template='ivory',stripMode
  const person=cfg.type==='other'?String(cfg.details?.honoree||''):'';
  const caption=rules.footerText||(cfg.type==='other'?cfg.details?.subtitle:'')||copy.subtitle||'';
  const footer=[person,caption].filter(Boolean).join(' · '),headline=rules.stripHeadline||'A MOMENT TO KEEP';
+ // Classic arcade four-photo keepsake: big photo panels, minimal title/date, no decorative mat.
+ if(mode==='single'){
+  const top=102,bottom=1642,gap=10,photoHeight=(bottom-top-3*gap)/4;
+  const cells=Array.from({length:4},(_,i)=>({x:24,y:top+i*(photoHeight+gap),w:1152,h:photoHeight}));
+  const photoArt=cells.map((cell,i)=>{
+   const backdrop=rect(cell.x,cell.y,cell.w,cell.h,'#e9e9e9');
+   const image=shots?.[i]?`<image data-guest-photo="true" data-pose="${i+1}" href="${esc(shots[i])}" x="${cell.x}" y="${cell.y}" width="${cell.w}" height="${cell.h}" preserveAspectRatio="${cfg.photoFit==='fit'?'xMidYMid meet':'xMidYMid slice'}"/>`:
+    `<text x="600" y="${cell.y+cell.h/2}" text-anchor="middle" font-family="Arial,sans-serif" font-size="32" fill="#777">PHOTO ${i+1}</text>`;
+   return backdrop+image;
+  }).join('');
+  const smallTitle=lettering(title,600,57,1120,47,ink,{face:'serif',lines:1});
+  const date=lettering(copy.date||cfg.date||'',600,1730,1100,25,ink);
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="1800" viewBox="0 0 1200 1800" role="img" aria-label="${esc('Four photo booth pictures — '+title)}" data-collection="photo-strips" data-layout="photo_strip" data-strip-mode="single" data-pose-count="4" data-design="arcade-four"><title>${esc(title+' — four-photo classic keepsake')}</title>${rect(0,0,1200,1800,'#ffffff')}${smallTitle}${photoArt}${date}${lettering('FRIENDLY PHOTO BOOTH',600,1770,1100,15,ink,{tracking:2})}</svg>`;
+ }
  const text=(value,y,maxWidth,size,fill=ink,options={})=>lettering(value,mid,y,maxWidth,size,fill,{face:'sans',...options});
  let column=rect(0,0,width,1800,paper)+rect(10,10,width-20,1780,'none',accent,1.3);
  if(design.id==='champagne')column+=rect(10,10,width-20,164,primary);
