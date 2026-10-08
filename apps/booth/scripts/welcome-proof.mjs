@@ -43,6 +43,12 @@ try{
   await page.getByTestId('setup-preview-strip').click();
   await page.waitForFunction(()=>document.querySelector('.ksPreviewPaper svg')?.getAttribute('data-layout')==='photo_strip');
   assert.equal(await page.getByTestId('setup-preview-strip').getAttribute('aria-pressed'),'true');
+  assert.equal(await page.getByTestId('setup-strip-single').getAttribute('aria-pressed'),'true');
+  assert.equal(await page.locator('.ksPreviewPaper svg').getAttribute('data-strip-mode'),'single');
+  assert.equal(await page.locator('.ksPreviewPaper svg image[preserveAspectRatio="xMidYMid slice"]').count(),4);
+  await page.getByTestId('setup-strip-double').click();
+  assert.equal(await page.getByTestId('setup-strip-double').getAttribute('aria-pressed'),'true');
+  assert.equal(await page.locator('.ksPreviewPaper svg image[data-guest-photo]').count(),8);
   await page.getByTestId('setup-preview-card').click();
   await page.getByTestId('setup-look-blush').click();
   await page.getByTestId('setup-palette-rose').click();
@@ -74,6 +80,8 @@ try{
   assert.equal(prepared.details.primaryColor,'#855665');
   assert.equal(prepared.details.secondaryColor,'#e4b4a1');
   assert.equal(prepared.printLayouts.defaultLayout,'card');
+  assert.equal(prepared.photoFit,'fill');
+  assert.equal(prepared.printLayouts.stripMode,'double');
   assert.equal(await page.evaluate(()=>localStorage.getItem('friendly-booth-print-usage-v1')),'7');
   assert.equal(await page.getByTestId('welcome-quick-photo').count(),1);
   assert.equal(await page.getByTestId('welcome-four-photo').count(),1);
