@@ -28,7 +28,7 @@ export default function Booth(){
   const [scope,setScope]=useState(workspace()),[initialized,setInitialized]=useState(false);
   const {config:CFG,photos:STORE,usage:PRINT_USAGE}=scope;
   const[step,setStep]=useState('welcome'),[photo,setPhoto]=useState(null),[poses,setPoses]=useState([]),[error,setError]=useState(''),[online,setOnline]=useState(true),[saved,setSaved]=useState(0),[operator,setOperator]=useState(false),[printing,setPrinting]=useState(false),[cfg,setCfg]=useState(defaultCfg),[gallery,setGallery]=useState([]),[filter,setFilter]=useState('original'),[template,setTemplate]=useState('ivory'),[installOpen,setInstallOpen]=useState(false),[installed,setInstalled]=useState(false),[editing,setEditing]=useState(false),[starting,setStarting]=useState(false),[previewActive,setPreviewActive]=useState(false),[capture,setCapture]=useState({phase:'ready',current:1,total:4,completed:0,shots:[]}),[sessionShots,setSessionShots]=useState(4),[printsUsed,setPrintsUsed]=useState(0),[voiceStatus,setVoiceStatus]=useState('idle');
-  const video=useRef(null),stream=useRef(null),timer=useRef(null),startGuard=useRef(false),run=useRef(0),printCleanup=useRef(()=>{}),captureId=useRef(null),printGuard=useRef(false),captureAbort=useRef(null),capturePhase=useRef('ready'),resumeGuestPause=useRef(null);
+  const video=useRef(null),stream=useRef(null),timer=useRef(null),startGuard=useRef(false),run=useRef(0),printCleanup=useRef(()=>{}),captureId=useRef(null),printGuard=useRef(false),latestPrintRequest=useRef(null),captureAbort=useRef(null),capturePhase=useRef('ready'),resumeGuestPause=useRef(null);
   // The staff preference is per iPad, not per guest or transferred event.
   // Keeping the display awake is best-effort; iPad Guided Access is the OS lock.
   const [backupStatus,setBackupStatus]=useState('not-enabled');
@@ -166,7 +166,7 @@ export default function Booth(){
   function retake(){setPhoto(null);begin(sessionShots)}
   function finish(){setStep('thanks')}
   useEffect(()=>{if(step!=='thanks')return;const thankTimer=setTimeout(reset,4500);return()=>clearTimeout(thankTimer);},[step]);
-  function reset(){printCleanup.current();setPreviewActive(false);captureAbort.current?.abort();captureAbort.current=null;stopTalking();startGuard.current=false;setStarting(false);run.current++;stopCamera();setPhoto(null);setPoses([]);setError('');setPrinting(false);setFilter('original');setTemplate(cfg.defaultTemplate||'ivory');setCapture({phase:'ready',current:1,total:4,completed:0,shots:[]});setSessionShots(4);setEditing(false);captureId.current=null;setStep('welcome')}
+  function reset(){latestPrintRequest.current=null;printCleanup.current();setPreviewActive(false);captureAbort.current?.abort();captureAbort.current=null;stopTalking();startGuard.current=false;setStarting(false);run.current++;stopCamera();setPhoto(null);setPoses([]);setError('');setPrinting(false);setFilter('original');setTemplate(cfg.defaultTemplate||'ivory');setCapture({phase:'ready',current:1,total:4,completed:0,shots:[]});setSessionShots(4);setEditing(false);captureId.current=null;setStep('welcome')}
   function requestPrint(){
     if(printGuard.current||printing)return false;printGuard.current=true;
     try{const settings=normalizePrintPackage(cfg.printPackage),used=usage(localStorage,scope);if(!canPrint(settings,used,false)){setError(printsRemaining(settings,used)<=0?'The event print allowance has been reached. Digital delivery is still available.':'Printing is disabled for this event.');return false;}
@@ -181,11 +181,19 @@ export default function Booth(){
         if(!print())return false;
         return 'demo';
       }
-      if(!print()){localStorage.setItem(PRINT_USAGE,String(ownUsed));setPrintsUsed(used);return false;}try{logPrintRequest(localStorage,scope);}catch{}return true;
+      if(!print()){localStorage.setItem(PRINT_USAGE,String(ownUsed));setPrintsUsed(used);return false;}try{latestPrintRequest.current=logPrintRequest(localStorage,scope).id;}catch{latestPrintRequest.current=null;setError('Print opened, but the request could not be recorded. Staff should verify the print count.');}return true;
     }catch(e){setError(e.message||'Print counter could not be saved. No print was sent.');return false;}finally{printGuard.current=false;}
   }
-  function print(){if(printing)return false;clearTimeout(timer.current);setPrinting(true);let fallback;const release=()=>{clearTimeout(fallback);removeEventListener('afterprint',release);setPrinting(false);printCleanup.current=()=>{};};printCleanup.current=release;addEventListener('afterprint',release);fallback=setTimeout(release,120000);try{window.print();return true;}catch{release();setError('Print options could not open. Please try again.');return false;}}
-  function reviewPrint(id,outcome){
+  function print(){if(printing)return false;clearTimeout(timer.current);setPrinting(true);let fallback;const release=()=>{clearTimeout(fallback);removeEventListener('afterprint',release);setPrinting(false);printCleanup.current=()=>{};};printCleanup.current=release;addEventListener('afterprint',release);fallback=setTimeout(release,20000);try{window.print();return true;}catch{release();setError('Print options could not open. Please try again.');return false;}}
+  function resolveLatestPrint(outcome){
+     if(scope.demo){printCleanup.current();return true;}
+     const id=latestPrintRequest.current;
+     if(!id){setError('No saved print request to confirm. Ask staff to review the print counter.');return false;}
+     const ok=reviewPrint(id,outcome);
+     if(ok){latestPrintRequest.current=null;printCleanup.current();}
+     return ok;
+   }
+   function reviewPrint(id,outcome){
     try{markPrintOutcome(localStorage,scope,id,outcome);setPrintsUsed(usage(localStorage,scope));return true;}
     catch(e){setError(e.message||'Print request could not be updated.');return false;}
   }
@@ -198,7 +206,7 @@ export default function Booth(){
     {!isPreview&&!isCapturing&&step!=='welcome'&&<a className="floatingHelp" href="/help" aria-label="Photo booth help">Help</a>}
     {step==='welcome'&&<WelcomeScreen cfg={cfg} eventName={eventMeta.name} online={online} starting={starting||!initialized} installed={installed} printsUsed={printsUsed} onStartQuick={()=>begin(1)} onStartFour={()=>begin(4)} onInstall={()=>setInstallOpen(true)} onOperator={()=>setOperator(true)} voiceStatus={voiceStatus}/>}
     {isCapturing&&<PhotoCapture videoRef={video} progress={capture} onCancel={()=>cancelCapture()} onReady={readyForNextPhoto} soundStatus={voiceStatus}/>}
-    {step==='preview'&&photo&&<PhotoPreview photo={photo} poses={poses} sessionShots={sessionShots} cfg={cfg} filter={filter} filters={filters} template={template} printing={printing} editing={editing} printPackage={normalizePrintPackage(cfg.printPackage)} printsUsed={printsUsed} onEdit={setEditing} onCommitEvent={persistConfig} onSessionActive={setPreviewActive} onTemplate={setTemplate} onFilter={setFilter} onPrint={requestPrint} onRetake={retake} onFinish={finish} onArchive={(scope.managed||scope.imported)?archiveArtifact:undefined}/>}
+    {step==='preview'&&photo&&<PhotoPreview photo={photo} poses={poses} sessionShots={sessionShots} cfg={cfg} filter={filter} filters={filters} template={template} printing={printing} editing={editing} printPackage={normalizePrintPackage(cfg.printPackage)} printsUsed={printsUsed} onEdit={setEditing} onCommitEvent={persistConfig} onSessionActive={setPreviewActive} onTemplate={setTemplate} onFilter={setFilter} onPrint={requestPrint} onPrintOutcome={resolveLatestPrint} onRetake={retake} onFinish={finish} onArchive={(scope.managed||scope.imported)?archiveArtifact:undefined}/>}
     {step==='thanks'&&<section className="screen"><div className="check">✓</div><h1 className="hero">Enjoy the celebration.</h1><p className="sub">The booth will be ready for the next guest in a moment.</p></section>}
     {error&&<div className="boothAlert" role="alert"><div className="error">{error}<button onClick={()=>setError('')} aria-label="Dismiss message">×</button></div></div>}
     {installOpen&&<div className="installPanel" role="dialog" aria-modal="true" aria-label="Install on iPad"><div className="installCard"><h2>Add Friendly Booth to your Home Screen.</h2><div className="installSteps"><div><b>1</b><span>Open this booth in Safari.</span></div><div><b>2</b><span>Open Share, then Add to Home Screen.</span></div><div><b>3</b><span>Open the new Friendly Booth icon.</span></div></div><p>This adds the web app. Device locking is a separate iPad setting.</p><button className="action primary" onClick={()=>setInstallOpen(false)}>Close instructions</button></div></div>}
