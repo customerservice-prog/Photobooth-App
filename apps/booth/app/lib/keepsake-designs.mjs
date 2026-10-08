@@ -24,9 +24,10 @@ export function renderKeepsake(input={}){
    :renderLamarrOne(input.photo,input.cfg);
   return applySvgPhotoFinish(art,input.filter,input.id);
  }
- if(input.layout==='photo_strip')return applySvgPhotoFinish(renderClassicPhotoStrip(input),input.filter,input.id);
+ const approvedFour=input.cfg?.guestMode==='approved'&&input.layout==='photo_strip';
+ if(input.layout==='photo_strip'&&!approvedFour)return applySvgPhotoFinish(renderClassicPhotoStrip(input),input.filter,input.id);
  const cfg=input.cfg&&typeof input.cfg==='object'?input.cfg:{};
- const spec=getDesign(cfg.type,input.template),safe={...input,cfg:{...cfg,type:spec.family},template:spec.id};
+ const spec=getDesign(cfg.type,input.template),safe={...input,approvedFour,cfg:{...cfg,type:spec.family},template:spec.id};
  const svg=renderers[spec.family](safe,spec);
  const identified=['wedding','birthday'].includes(spec.family)?svg.replace('data-collection="atelier"',`data-collection="event-families" data-template-key="${spec.key}"`):svg;
  return applyEventPaletteTrim(applySvgPhotoFinish(identified,input.filter,input.id),cfg.details);

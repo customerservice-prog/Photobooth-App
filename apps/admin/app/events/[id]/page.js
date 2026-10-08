@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import {prisma} from '../../../lib/prisma';
-import {deleteEvent} from '../actions';
+import {deleteEvent,completeEvent,archiveEvent} from '../actions';
 import {dateLabel,timeLabel,readiness,experienceFrom,BOOTH_URL,statusText} from '../../../lib/studio-experience.mjs';
 import {makeBoothHandoffLink} from '../../../lib/booth-transfer.mjs';
 import {PageHeader,ProgressCard,ExperienceSummary,DatabaseError,StateTag} from '../../StudioUI';
@@ -16,7 +16,7 @@ export default async function EventDetailPage({params}){
  const progress=readiness(event),e=experienceFrom(event);
  let handoff=null,handoffError='';
  try{handoff=makeBoothHandoffLink(event);}catch(err){handoffError=err.message||'This event link could not be prepared.';}
- const deleteAction=deleteEvent.bind(null,event.id);
+ const deleteAction=deleteEvent.bind(null,event.id),completeAction=completeEvent.bind(null,event.id),archiveAction=archiveEvent.bind(null,event.id);
  return <main className="page">
   <Link href="/events" className="btnPlain" style={{paddingLeft:0}}>← All events</Link>
   <PageHeader eyebrow="YOUR EVENT · FOUR EASY STEPS" title={event.name} subtitle={dateLabel(event.date)+' · '+timeLabel(event.startTime)+'–'+timeLabel(event.endTime)+' · '+(event.venueName||'Venue needed')}>
@@ -28,7 +28,7 @@ export default async function EventDetailPage({params}){
     <span className="journeyNumber">{progress.ready?'✓':'1'}</span><span><strong>Event basics</strong><small>{progress.ready?'Details complete':progress.next?.title+' needs attention'}</small></span>
    </a>
    <a href={'/events/'+event.id+'/edit#experience'} className="journeyStep">
-    <span className="journeyNumber">2</span><span><strong>Customize</strong><small>Photos, strips & colors</small></span>
+    <span className="journeyNumber">2</span><span><strong>Approve one look</strong><small>Set the customer design before the event</small></span>
    </a>
    <a href="#send-to-booth" className="journeyStep journeyCurrent">
     <span className="journeyNumber">3</span><span><strong>Send to Booth</strong><small>Scan once on event iPad</small></span>
@@ -54,10 +54,10 @@ export default async function EventDetailPage({params}){
      <div className="simpleSettingSummary">
       <div><span>Featured photo choice</span><strong>{e.featured==='one'?'1 Photo':'4 Photos'}</strong></div>
       <div><span>Pose break</span><strong>{e.pauseSeconds} seconds</strong></div>
-      <div><span>Print style</span><strong>{e.format==='strip'?(e.strips===1?'One photo strip':'Two matching strips'):'4×6 Card'}</strong></div>
+      <div><span>Approved style</span><strong>{e.approvedDesign==='grad-gala'?'Navy & Gold Grad Party':e.approvedDesign==='ivory'?'Classic White':e.approvedDesign==='blush'?'Midnight':'Celebration'}</strong></div>
       <div><span>Photo framing</span><strong>{e.photoFit==='fit'?'Show whole photo':'Fill the frame'}</strong></div>
      </div>
-     <p className="inlineInfo">Guests still get the option to take either 1 or 4 photos.</p>
+     <p className="inlineInfo">Guests only choose 1 Photo or 4 Photos. Both outputs automatically use this approved style—no guest design, color or frame picker.</p>
     </section>
     <section className="card cardPad transferFeature" id="send-to-booth">
      <div className="eyebrow">STEP 3 · NO MORE DOUBLE ENTRY</div>
@@ -71,7 +71,7 @@ export default async function EventDetailPage({params}){
      <h2 className="sectionTitle">Test it, then start taking photos</h2>
      <p className="sectionLead">After applying the event on the actual iPad, follow these quick checks. They require a real device test; the admin dashboard cannot verify a physical printer.</p>
      <div className="stepList">
-      {['Open your imported event on the event iPad','Tap Test speaker and listen to the countdown','Take a 1 Photo session and a 4 Photos session','Print a real 4×6 Canon SELPHY test sheet','Check the event title, colors and paper output'].map((label,i)=><div key={label} className="stepItem"><span className="stepIcon">{i+1}</span><strong className="stepItemBody">{label}</strong></div>)}
+      {['Open your imported event on the event iPad','Play a staff-only voice sample and listen to the countdown','Take a 1 Photo session and a 4 Photos session','Print a real 4×6 Canon SELPHY test sheet','Check the event title, colors and paper output'].map((label,i)=><div key={label} className="stepItem"><span className="stepIcon">{i+1}</span><strong className="stepItemBody">{label}</strong></div>)}
      </div>
      <div className="buttonRow"><Link href={"/events/"+event.id+"/backups"} className="btn btn2">Private photo backups →</Link><a href={BOOTH_URL+'/print-test'} className="btn btn2" target="_blank" rel="noopener noreferrer">Open printer test ↗</a><a href={BOOTH_URL} className="btn btn2" target="_blank" rel="noopener noreferrer">Guest booth homepage ↗</a></div>
      <div className="noticeOnly" style={{marginTop:14}}>Authorized event iPads check for new admin settings while online. Active photo sessions are never interrupted. If automatic sync is unavailable, send a fresh event link; backups and print counts remain intact.</div>
@@ -98,6 +98,22 @@ export default async function EventDetailPage({params}){
     </section>
    </div>
   </div>
-  <details className="dangerZone"><summary>Advanced: delete event</summary><p className="sectionLead">This permanently deletes the admin event. Save anything you need first.</p><form action={deleteAction}><ConfirmDelete name={event.name}/></form></details>
+  <section className="card cardPad" id="after-event" style={{marginTop:20}}>
+   <div className="eyebrow">AFTER THE RENTAL · SIMPLE CHECKOUT</div>
+   <h2 className="sectionTitle">Send the digital gallery, then set up the next event</h2>
+   <p className="sectionLead">Your iPad stores each event’s photos separately. After the rental, open Staff Tools on that same iPad, download its complete photo ZIP, check it, and send the customer their digital copies. If secure backups were enabled, you can also download them here.</p>
+   <div className="buttonRow">
+    <Link className="btn" href={'/events/'+event.id+'/backups'}>Download backed-up digital gallery ZIP →</Link>
+    <a className="btn btn2" target="_blank" rel="noopener noreferrer" href={BOOTH_URL}>Open event iPad →</a>
+   </div>
+   <p className="inlineInfo">If the backup gallery has no photos, the original photos may still be on the event iPad. Do not erase that iPad before saving its ZIP. Secure cloud backups expire after 30 days.</p>
+   <div className="buttonRow" style={{marginTop:18}}>
+    {!['COMPLETED','ARCHIVED'].includes(event.status)&&<form action={completeAction}><button className="btn btn2" type="submit">Mark event completed</button></form>}
+    {event.status==='COMPLETED'&&<form action={archiveAction}><button className="btn" type="submit">Archive completed event</button></form>}
+    {event.status==='ARCHIVED'&&<span className="noticeOnly"><strong>Archived.</strong> This event is no longer part of your active event workflow. Its admin record remains until you explicitly delete it.</span>}
+   </div>
+  </section>
+  {event.status==='ARCHIVED'?<details className="dangerZone"><summary>Advanced: permanently delete the archived event</summary><p className="sectionLead">Only after saving and delivering the digital photos. This deletes the admin booking and remaining server backups; it cannot be undone.</p><form action={deleteAction}><ConfirmDelete name={event.name}/></form></details>:<details className="dangerZone"><summary>Permanent deletion is locked</summary><p className="sectionLead">Finish the rental and archive it first. Download and check the digital gallery before deleting any customer data.</p></details>}
+
  </main>;
 }

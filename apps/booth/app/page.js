@@ -1,6 +1,7 @@
 'use client';
 import {useCallback,useEffect,useRef,useState} from 'react';
 import PhotoPreview from './components/PhotoPreview';
+import GuestReadyPreview from './components/GuestReadyPreview';
 import WelcomeScreen from './components/WelcomeScreen';
 import StaffDashboard from './components/StaffDashboard';
 import PhotoCapture from './components/PhotoCapture';
@@ -66,7 +67,7 @@ export default function Booth(){
       if(target.managed&&!target.demo&&!readyForEvent(c)){window.location.replace('/event-prep');return;}
       const used=usage(localStorage,target);setPrintsUsed(used);
       if(c&&typeof c==='object'){
-        setCfg(normalizeEventConfig({...defaultCfg,...c,printPackage:normalizePrintPackage(c.printPackage),runtime:(target.managed||target.imported)?{demo:target.demo,setup:target.setup}:undefined,type:Object.hasOwn(eventTypes,c.type)?c.type:(c.title==='Bryan Wedding'?'wedding':'other')}));
+        setCfg(normalizeEventConfig({...defaultCfg,...c,printPackage:normalizePrintPackage(c.printPackage),runtime:(target.managed||target.imported)?{demo:target.demo,setup:target.setup}:undefined,guestMode:(target.managed||target.imported)&&!target.demo?'approved':c.guestMode,type:Object.hasOwn(eventTypes,c.type)?c.type:(c.title==='Bryan Wedding'?'wedding':'other')}));
         if(['ivory','blush','champagne'].includes(c.defaultTemplate)||(c.type==='graduation'&&c.defaultTemplate==='grad-gala'))setTemplate(c.defaultTemplate);
       }
       if(target.managed||target.imported){
@@ -201,12 +202,15 @@ export default function Booth(){
   async function recover(p){const token=++run.current;setError('');let originals=[];try{if(scope.managed||scope.imported)originals=await capturePoses(scope.archive,p.id);}catch{setError('The original poses could not be opened. The saved card is still available; retake to create a photo strip.');}if(token!==run.current)return;captureId.current=p.id;setSessionShots(originals.length===1?1:originals.length===3?3:4);setPoses(originals);setPhoto(p.data);setOperator(false);setEditing(false);setStep('preview')}
   const eventMeta=eventTypes[cfg.type]||eventTypes.other;
   const isPreview=step==='preview',isCapturing=['camera','photoSeries'].includes(step);
-  return <>{(scope.managed||scope.imported)&&<div className="workspaceBanner"><span>{scope.demo?(scope.id==='graduation-showcase'?'SHOWCASE DEMO · test printing only · paid event unchanged':'OFFICE DEMO · rehearsal only · paid event allowance unchanged'):scope.imported?'EVENT FROM STAFF · settings and photos saved on this iPad':'ACTUAL EVENT · photos saved on this device'}</span><a href={scope.imported?scope.setup:'/event-prep'}>{scope.imported?'Edit this booth setup →':'Event preparation →'}</a>{scope.linkedOctober&&<a href="/event-prep">Earlier October photos & backups →</a>}</div>}
-  <main className={`booth theme-${cfg.type||'other'}${step==='welcome'?' bwWelcomeMode':''}`} data-build="smile-sequence-v1" data-capture-mode="photo" data-managed-event={scope.managed?'true':undefined}>
+  const showWorkspaceBanner=(scope.managed||scope.imported)&&scope.demo&&cfg.guestMode!=='approved';
+  return <>{showWorkspaceBanner&&<div className="workspaceBanner"><span>{scope.id==='graduation-showcase'?'SHOWCASE DEMO · test printing only · paid event unchanged':'OFFICE DEMO · rehearsal only · paid event allowance unchanged'}</span><a href={scope.imported?scope.setup:'/event-prep'}>{scope.imported?'Edit this booth setup →':'Event preparation →'}</a></div>}
+  <main className={`booth theme-${cfg.type||'other'}${step==='welcome'?' bwWelcomeMode':''}`} data-build="smile-sequence-v1" data-capture-mode="photo" data-managed-event={showWorkspaceBanner?'true':undefined}>
     {!isPreview&&!isCapturing&&step!=='welcome'&&<a className="floatingHelp" href="/help" aria-label="Photo booth help">Help</a>}
     {step==='welcome'&&<WelcomeScreen cfg={cfg} eventName={eventMeta.name} online={online} starting={starting||!initialized} installed={installed} printsUsed={printsUsed} onStartQuick={()=>begin(1)} onStartFour={()=>begin(4)} onInstall={()=>setInstallOpen(true)} onOperator={()=>setOperator(true)} voiceStatus={voiceStatus} showGraduationPreview={!scope.managed&&!scope.imported}/>}
     {isCapturing&&<PhotoCapture videoRef={video} progress={capture} onCancel={()=>cancelCapture()} onReady={readyForNextPhoto} soundStatus={voiceStatus}/>}
-    {step==='preview'&&photo&&<PhotoPreview photo={photo} poses={poses} sessionShots={sessionShots} cfg={cfg} filter={filter} filters={filters} template={template} printing={printing} editing={editing} printPackage={normalizePrintPackage(cfg.printPackage)} printsUsed={printsUsed} onEdit={setEditing} onCommitEvent={persistConfig} onSessionActive={setPreviewActive} onTemplate={setTemplate} onFilter={setFilter} onPrint={requestPrint} onPrintOutcome={resolveLatestPrint} onRetake={retake} onFinish={finish} onArchive={(scope.managed||scope.imported)?archiveArtifact:undefined}/>}
+    {step==='preview'&&photo&&((scope.managed||scope.imported)
+    ?<GuestReadyPreview photo={photo} poses={poses} sessionShots={sessionShots} cfg={cfg} printing={printing} printPackage={normalizePrintPackage(cfg.printPackage)} printsUsed={printsUsed} onSessionActive={setPreviewActive} onPrint={requestPrint} onPrintOutcome={resolveLatestPrint} onRetake={retake} onFinish={finish} onArchive={(scope.managed||scope.imported)?archiveArtifact:undefined}/>
+    :<PhotoPreview photo={photo} poses={poses} sessionShots={sessionShots} cfg={cfg} filter={filter} filters={filters} template={template} printing={printing} editing={editing} printPackage={normalizePrintPackage(cfg.printPackage)} printsUsed={printsUsed} onEdit={setEditing} onCommitEvent={persistConfig} onSessionActive={setPreviewActive} onTemplate={setTemplate} onFilter={setFilter} onPrint={requestPrint} onPrintOutcome={resolveLatestPrint} onRetake={retake} onFinish={finish} onArchive={(scope.managed||scope.imported)?archiveArtifact:undefined}/>)}
     {step==='thanks'&&<section className="screen"><div className="check">✓</div><h1 className="hero">Enjoy the celebration.</h1><p className="sub">The booth will be ready for the next guest in a moment.</p></section>}
     {error&&<div className="boothAlert" role="alert"><div className="error">{error}<button onClick={()=>setError('')} aria-label="Dismiss message">×</button></div></div>}
     {installOpen&&<div className="installPanel" role="dialog" aria-modal="true" aria-label="Install on iPad"><div className="installCard"><h2>Add Friendly Booth to your Home Screen.</h2><div className="installSteps"><div><b>1</b><span>Open this booth in Safari.</span></div><div><b>2</b><span>Open Share, then Add to Home Screen.</span></div><div><b>3</b><span>Open the new Friendly Booth icon.</span></div></div><p>This adds the web app. Device locking is a separate iPad setting.</p><button className="action primary" onClick={()=>setInstallOpen(false)}>Close instructions</button></div></div>}
@@ -222,6 +226,7 @@ export default function Booth(){
      installed={installed}
      managed={scope.managed}
      demo={scope.demo}
+     eventScope={scope}
      remaining={printsRemaining(normalizePrintPackage(cfg.printPackage),printsUsed)}
      setupHref={scope.setup||'/setup'}
      photos={gallery}

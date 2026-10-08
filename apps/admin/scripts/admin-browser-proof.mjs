@@ -29,8 +29,8 @@ try{
  await page.locator('input[name="maxPrints"]').fill('0');
  await page.locator('input[name="featured"][value="one"]').check();
  await page.locator('select[name="pauseSeconds"]').selectOption('9');
- await page.locator('input[name="format"][value="strip"]').check();
- await page.locator('select[name="strips"]').selectOption('2');
+ await page.locator('input[name="approvedDesign"][value="champagne"]').check();await page.locator('input[name="nameOnPrint"]').fill('Test Celebration');
+ assert.equal(await page.locator('input[name="strips"]').inputValue(),'1');
  await page.locator('input[name="paletteId"][value="rose"]').check();
  await page.screenshot({path:'admin-proof/edit-desktop.png',fullPage:true});
  await page.getByRole('button',{name:/Save event changes/}).click();
@@ -46,7 +46,7 @@ try{
  assert.equal(shareData.limit,0);
  assert.equal(shareData.f,'one');
  assert.equal(shareData.p,9);
- assert.equal(shareData.s,2);
+ assert.equal(shareData.s,1);assert.equal(shareData.design,'champagne');assert.equal(shareData.name,'Test Celebration');assert.equal(shareData.guest,'approved');
  assert(!JSON.stringify(shareData).includes('test@example.invalid'));
  await page.getByTestId('event-handoff-qr').waitFor({timeout:15000});
  await page.screenshot({path:'admin-proof/send-to-booth-qr.png'});
@@ -62,7 +62,7 @@ try{
  assert.equal(event.theme.boothExperience.featured,'one');
  assert.equal(event.theme.boothExperience.pauseSeconds,9);
  assert.equal(event.theme.boothExperience.format,'strip');
- assert.equal(event.theme.boothExperience.strips,2);
+ assert.equal(event.theme.boothExperience.strips,1);assert.equal(event.theme.boothExperience.approvedDesign,'champagne');assert.equal(event.theme.boothExperience.nameOnPrint,'Test Celebration');
  assert.equal(event.theme.boothExperience.primary,'#855665');
  assert.equal(event.theme.boothExperience.accent,'#e4b4a1');
  assert.equal(event.endTime.toISOString(),'2026-10-11T00:00:00.000Z');

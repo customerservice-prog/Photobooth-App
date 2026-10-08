@@ -45,7 +45,7 @@ export default function HandoffPage(){
     <div className="hbInfo">
      <div><small>Guests can choose</small><strong>1 Photo or 4 Photos</strong><p>{p.f==='one'?'1 Photo':'4 Photos'} featured first</p></div>
      <div><small>Four-photo pose break</small><strong>{p.p} seconds</strong><p>Guests can start sooner</p></div>
-     <div><small>Default keepsake</small><strong>{p.mode==='strip'?'Photo strip':'4×6 Card'}</strong><p>{p.s===1?'One centered strip':'Two matching strips'} available</p></div>
+     <div><small>Approved event artwork</small><strong>{p.design==='grad-gala'?'Navy & Gold Grad Party':p.design==='ivory'?'Classic White':p.design==='blush'?'Midnight':'Celebration'}</strong><p>Automatically used for one-photo and four-photo prints</p></div>
      <div><small>Physical print allowance</small><strong>{p.limit} sheets</strong><p>{p.on?'Printing enabled':'Digital only / printing off'}</p></div>
     </div>
     <div className="hbColors"><span>Event colors</span><div className="hbPaint" aria-hidden="true"><i style={{background:p.a}}/><i style={{background:p.b}}/></div><span>Photo framing: {p.fit==='fill'?'fill each slot':'show whole photo'}</span></div>

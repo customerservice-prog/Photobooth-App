@@ -18,6 +18,9 @@ export function eventCopy(cfg={}){const type=Object.hasOwn(EVENT_LABELS,cfg.type
  if(type==='mitzvah'){if(d.honoree)title=clean(d.honoree);eyebrow=clean(d.mitzvahType)||'MITZVAH CELEBRATION';if(d.hebrewName)subtitle=clean(d.hebrewName)+' · Mazel tov';}
  if(type==='graduation'){if(d.graduate)title=clean(d.graduate);eyebrow=d.classYear?'CLASS OF '+clean(d.classYear):'GRADUATION';seal=/^\d{4}$/.test(d.classYear||'')?d.classYear:'';if(d.school)subtitle=clean(d.school);}
  if(type==='corporate'){if(d.company)title=clean(d.company);eyebrow='TOGETHER, IN THE MOMENT';if(d.eventName)subtitle=clean(d.eventName);}
+ // A staff-approved event name wins over older type-specific names retained on the device.
+ const approvedTitle=cfg.guestMode==='approved'?clean(cfg.approvedPrintName):'';
+ if(approvedTitle)title=approvedTitle;
  return {type,title,subtitle,eyebrow,date:clean(cfg.date),seal};}
 const units=t=>[...t].reduce((a,c)=>a+(/[ilI1 .,']/u.test(c)?.3:/[MW@&]/u.test(c)?.95:/[^\u0000-\u024f]/u.test(c)?1:.59),0);
 export function fitText(value,width,size,maxLines=2){const text=clean(value);if(!text)return {lines:[],size};

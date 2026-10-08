@@ -41,7 +41,7 @@ export async function updateEvent(id,form){
  const current=await prisma.event.findUnique({where:{id},select:{customerId:true,theme:true,status:true}});
  if(!current)throw new Error('This event no longer exists. Return to Events and try again.');
  // Retain every unrelated JSON field and preserve event lifecycle states.
- const done=!!(customerName&&venueName&&venueAddress&&boothId&&templateId);
+ const done=!!(customerName&&venueName&&venueAddress&&boothId&&(templateId||value(form,'approvedDesign')));
  const status=['ACTIVE','COMPLETED','ARCHIVED','LOADED_TO_BOOTH'].includes(current.status)?current.status:done?'CONFIGURED':'NEEDS_SETUP';
  await prisma.$transaction(async tx=>{
   await tx.event.update({where:{id},data:{
@@ -56,14 +56,44 @@ export async function updateEvent(id,form){
  revalidatePath('/dashboard');revalidatePath('/events');revalidatePath('/events/'+id);
  redirect('/events/'+id);
 }
-export async function deleteEvent(id){
+export async function completeEvent(id){
  await requireAdmin();
- const event=await prisma.event.findUnique({where:{id}});
+ const event=await prisma.event.findUnique({where:{id},select:{status:true}});
+ if(!event)throw new Error('This event no longer exists.');
+ if(event.status==='ARCHIVED')throw new Error('This event is archived. Reopening requires staff review.');
+ if(event.status!=='COMPLETED')await prisma.event.update({where:{id},data:{status:'COMPLETED'}});
+ revalidatePath('/events');revalidatePath('/events/'+id);
+ redirect('/events/'+id);
+}
+export async function archiveEvent(id){
+ await requireAdmin();
+ const event=await prisma.event.findUnique({where:{id},select:{status:true}});
+ if(!event)throw new Error('This event no longer exists.');
+ if(event.status!=='COMPLETED'&&event.status!=='ARCHIVED')
+  throw new Error('Mark the rental completed and check the digital gallery before archiving.');
+ if(event.status!=='ARCHIVED')await prisma.event.update({where:{id},data:{status:'ARCHIVED'}});
+ revalidatePath('/events');revalidatePath('/events/'+id);
+ redirect('/events/'+id);
+}
+export async function deleteEvent(id,form){
+ await requireAdmin();
+ const event=await prisma.event.findUnique({where:{id},select:{id:true,name:true,status:true,customerId:true}});
  if(!event)redirect('/events');
- await prisma.event.delete({where:{id}});
- if(event.customerId){
-  const n=await prisma.event.count({where:{customerId:event.customerId}});
-  if(!n)await prisma.customer.delete({where:{id:event.customerId}}).catch(()=>{});
- }
- revalidatePath('/dashboard');revalidatePath('/events');redirect('/events');
+ // Intentionally fail closed. "Delete" is NEVER the next-event button.
+ if(event.status!=='ARCHIVED')throw new Error('Archive the completed event before permanent deletion.');
+ if(value(form,'confirmation')!==event.name||value(form,'galleryChecked')!=='yes')
+  throw new Error('Verify the customer gallery and type the full event name before deleting.');
+ await prisma.$transaction(async tx=>{
+  // Backups are in a separate private table. Purge only this archived event's
+  // images in the same transaction as the booking deletion, so a failed
+  // relational delete cannot strand or prematurely destroy the photographs.
+  await tx.$executeRaw`DELETE FROM booth_backup_v1.images WHERE event_id=${id}`;
+  await tx.event.delete({where:{id}});
+  if(event.customerId){
+   const others=await tx.event.count({where:{customerId:event.customerId}});
+   if(!others)await tx.customer.delete({where:{id:event.customerId}});
+  }
+ });
+ revalidatePath('/dashboard');revalidatePath('/events');
+ redirect('/events');
 }

@@ -3,6 +3,7 @@ import {rose} from './generated/atelier-assets.mjs';
 import {lettering} from './atelier-lettering.mjs';
 export {EVENT_LABELS,eventCopy,fitText} from './keepsake-model.mjs';
 import {eventCopy} from './keepsake-model.mjs';
+import {renderApprovedPhotoGrid} from './approved-photo-grid.mjs';
 const collections={
  wedding:[['Rosewater Romance','Painted roses · flowing calligraphy','botanical','#f7f1e7','#655044','#b19565'],['The Vow Edit','Fashion-editorial portrait · sculpted type','editorial','#f8f4ea','#442b35','#9d7a77'],['Black-Tie Heirloom','Ornate champagne frame · calligraphic names','deco','#182c29','#f5ecd7','#c3a671']],
  birthday:[['Champagne Birthday','Satin balloon bouquet · signature birthday seal','balloons','#f6e9dc','#824f52','#c69b60'],['Retro Party Club','Scalloped party ticket · oversized lettering','ticket','#f2d39c','#8d3d47','#aa583f'],['Midnight Disco','Faceted mirror ball · pearl and lilac','disco','#28233d','#f1e7f0','#d3bccf']],
@@ -25,7 +26,7 @@ function balloon(x,y,s,color,id,tilt=0){return `<g transform="translate(${x} ${y
 function mirror(x,y,r,id){return `<g transform="translate(${x} ${y})"><defs><clipPath id="${id}-ball"><circle r="${r}"/></clipPath><radialGradient id="${id}-chrome" cx="28%" cy="20%"><stop stop-color="#ffffff"/><stop offset=".48" stop-color="#d2c1d6"/><stop offset="1" stop-color="#73647e"/></radialGradient></defs><circle r="${r}" fill="url(#${id}-chrome)"/><g clip-path="url(#${id}-ball)">${Array.from({length:15},(_,j)=>Array.from({length:15},(_,i)=>{const a=-r+i*r*2/15,b=-r+j*r*2/15;return rect(a+1,b+1,r*2/15-3,r*2/15-3,(i*13+j*7)%5===0?'#ffffff90':'#ffffff10','#ece9f0',.7,1)}).join('')).join('')}</g></g>`;}
 function stripes(color){return `<g stroke="${color}" fill="none" opacity=".25">${Array.from({length:8},(_,i)=>path(`M${20+i*6} 50V1750M${1180-i*6} 50V1750`,color,1)).join('')}</g>`;}
 function gridAccent(color){return path('M66 360 240 104h720l174 256v930l-174 155H240L66 1290ZM85 359l163-235h704l163 235v925l-163 139H248L85 1284Z',color,2);}
-export function renderKeepsake({photo='',cfg={},monogram='',template='ivory',filter='none',id='card'}={}){
+export function renderKeepsake({photo='',poses,sample=false,approvedFour=false,cfg={},monogram='',template='ivory',filter='none',id='card'}={}){
  const c=eventCopy(cfg),d=getDesign(c.type,template),l=d.layout;id=String(id).replace(/[^a-zA-Z0-9_-]/g,'')||'card';
  if(!/^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+$/.test(photo)&&photo!=='/print-test.svg')photo='';
  if(!['none','brightness(1.08) contrast(.96) saturate(.88)','grayscale(1) contrast(1.08) brightness(1.04)','sepia(.18) saturate(.92) brightness(1.03)'].includes(filter))filter='none';
@@ -55,7 +56,8 @@ export function renderKeepsake({photo='',cfg={},monogram='',template='ivory',fil
  if(l==='disco'){art+=mirror(975,115,225,id)+mirror(62,1460,140,id);for(const [sx,sy,ss]of [[111,120,28],[930,1420,18],[1085,1600,25],[245,148,12]])art+=star(sx,sy,ss,gold);}
  const fit=photo==='/print-test.svg'||cfg.photoFit==='fit'?'xMidYMid meet':'xMidYMid slice';
  const placeholder=rect(x,y,w,h,'#d9d6cd')+path(`M${x} ${y+h}Q${x+w/2} ${y+h*.15} ${x+w} ${y+h}Z`,'none',1,'#b0b6ac')+`<circle cx="${x+w/2}" cy="${y+h*.33}" r="${w*.15}" fill="#c1c6bc"/>`;
- art+=`<g clip-path="url(#${id}-photo)">${rect(x,y,w,h,night?'#364242':'#e8e2d5')}${photo?`<image data-guest-photo="true" href="${esc(photo)}" x="${x}" y="${y}" width="${w}" height="${h}" preserveAspectRatio="${fit}" style="filter:${filter}"/>`:placeholder}</g>`;
+ const media=approvedFour?renderApprovedPhotoGrid({poses,sample,cfg,box:{x,y,w,h,radius:rx},id}):photo?`<image data-guest-photo="true" href="${esc(photo)}" x="${x}" y="${y}" width="${w}" height="${h}" preserveAspectRatio="${fit}" style="filter:${filter}"/>`:placeholder;
+ art+=`<g clip-path="url(#${id}-photo)">${rect(x,y,w,h,night?'#364242':'#e8e2d5')}${media}</g>`;
  if(l!=='editorial'&&l!=='polaroid')art+=rect(x-7,y-7,w+14,h+14,'none',gold,1.7,rx);
  if(l==='botanical')art+=sprig(-99,-32,.69,-9)+sprig(1090,1204,.61,159)+path('M320 1690H880',d.accent,1);
  if(l==='balloons'){for(const [bx,by,bs,bc,bt]of [[104,286,1.0,'pink',-13],[209,202,.9,'gold',12],[1144,1115,.83,'pink',10],[1090,251,.65,'sage',12],[55,396,.58,'sage',-14]])art+=balloon(bx,by,bs,bc,id,bt);}
