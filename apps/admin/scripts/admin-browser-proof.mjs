@@ -12,6 +12,11 @@ try{
  page=await context.newPage();
  const errors=[];
  page.on('pageerror',e=>errors.push(e.message));
+ await page.goto(base+'/login');
+ await page.getByRole('heading',{name:'Staff sign in'}).waitFor();
+ await page.locator('input[name="password"]').fill(process.env.ADMIN_PROOF_PASSWORD||'');
+ await page.getByRole('button',{name:/Sign in/}).click();
+ await page.waitForURL('**/dashboard');
  await page.goto(base+'/events/event-smoke-20261010',{waitUntil:'networkidle'});
  await page.getByRole('heading',{name:'October 10 Test Photo Booth Party'}).waitFor();
  assert(await page.getByText('Needs setup').first().isVisible(),'a missing venue must not appear ready');
