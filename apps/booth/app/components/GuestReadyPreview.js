@@ -76,6 +76,6 @@ export default function GuestReadyPreview({photo,poses=[],sessionShots,cfg,print
    {packageRules.printingEnabled&&<button type="button" className="agButton agPrint" data-testid="approved-print" onClick={printNow} disabled={!printAllowed}>{printing?'Opening AirPrint…':printRequested?'Print requested':remaining<=0?'Print limit reached':'Print 4×6'}</button>}
    <button type="button" className="agButton agDone" data-testid="approved-done" onClick={onFinish} disabled={!prepared||busy||(!archived&&!recoverySaved)}>Done ✓</button>
   </footer>
-  <div className="photoPane ksPrintOnly" aria-hidden="true">{prepared&&<img className="ksExactPrintImage" src={prepared.dataUrl} alt=""/></div>
+  <div className="photoPane ksPrintOnly" aria-hidden="true">{prepared&&<img className="ksExactPrintImage" src={prepared.dataUrl} alt=""/>}</div>
  </section>;
 }
