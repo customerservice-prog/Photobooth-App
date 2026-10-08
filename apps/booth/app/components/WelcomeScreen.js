@@ -1,7 +1,6 @@
 'use client';
 import {memo,useEffect,useState} from 'react';
 import PrintCard from './PrintCard';
-import {isLamarrGraduation,renderLamarrFour,renderLamarrOne} from '../lib/lamarr-graduation.mjs';
 import {normalizePrintLayouts} from '../lib/print-layouts.mjs';
 import AppUpdate from './AppUpdate';
 import {normalizePrintPackage,printsRemaining} from '../lib/print-package.mjs';
@@ -45,30 +44,16 @@ const WelcomeProof=memo(function WelcomeProof({cfg,shots}){
  const view={...cfg,photoFit:'fill'};
  return <aside className="bwShowcase" aria-label="Personalized keepsake design preview"><div className="bwShowcaseTop"><span>YOUR EVENT KEEPSAKE<br/><em>Made for your moment.</em></span><Mark name="sparkle" size={30}/></div><div className="bwPaperStack"><div className="bwPaperBack" aria-hidden="true"/><div className="bwRealProof"><PrintCard photo={sample} layout={normalizePrintLayouts(cfg.printLayouts).defaultLayout} stripMode={normalizePrintLayouts(cfg.printLayouts).stripMode} sample cfg={view} monogram={eventMonogram(cfg)} template={cfg.defaultTemplate||'ivory'}/></div><span className="bwSeal" aria-hidden="true"><Mark name="sparkle" size={17}/><b>MADE<br/>FOR YOU</b></span></div><div className="bwProofCaption"><span className="bwProofRule"/><p>YOUR {shots===1?'ONE PHOTO':shots+' POSES'}. YOUR PERSONALIZED DESIGN.<small>Sample preview · your photos go here</small></p><span className="bwProofRule"/></div></aside>;
 });
-export default function WelcomeScreen({cfg,eventName,online,starting,installed,printsUsed=0,onStartQuick,onStartFour,onInstall,onOperator,voiceStatus='idle'}){
- const [staffPrompt,setStaffPrompt]=useState(false),[lamarrChoice,setLamarrChoice]=useState('four');
+export default function WelcomeScreen({cfg,eventName,online,starting,installed,printsUsed=0,onStartQuick,onStartFour,onInstall,onOperator,voiceStatus='idle',showGraduationPreview=false}){
+ const [staffPrompt,setStaffPrompt]=useState(false);
  const rules=normalizePrintPackage(cfg.printPackage),layouts=normalizePrintLayouts(cfg.printLayouts),available=rules.printingEnabled&&printsRemaining(rules,printsUsed)>0,title=String(cfg.title||'Our Celebration');
  const time=cfg.schedule?scheduleLabel(cfg):(cfg.details?.subtitle!==cfg.subtitle?cfg.details?.subtitle:'');
  const pause=normalizeGuestPause(cfg.photoPauseSeconds),preferred=normalizePhotoPreference(cfg.defaultPhotoExperience);
- const lamarr=isLamarrGraduation(cfg);
- const lamarrArtwork=lamarr?(lamarrChoice==='one'?renderLamarrOne(null,cfg):renderLamarrFour([],cfg)):'';
  return <div className="bwWelcome" data-welcome-version="guest-first-2026-10-07" data-capture-mode="photo"><div className="bwFrame">
-  <header className="bwHeader"><div className="bwBrand"><span className="bwBrandMark"><Mark size={26}/></span><span><b>FRIENDLY</b><small>THE PHOTO BOOTH EXPERIENCE</small></span></div><nav className="bwHeaderActions" aria-label="Booth navigation"><a className="bwHelp" href="/help" aria-label="Help"><Mark name="help" size={18}/><span>Help</span></a><button type="button" className="bwStaffShortcut" data-testid="welcome-staff-tools" onClick={()=>setStaffPrompt(true)}><Mark name="settings" size={18}/><span>Staff tools</span></button></nav></header>
+  <header className="bwHeader"><div className="bwBrand"><span className="bwBrandMark"><Mark size={26}/></span><span><b>FRIENDLY</b><small>THE PHOTO BOOTH EXPERIENCE</small></span></div><nav className="bwHeaderActions" aria-label="Booth navigation">{showGraduationPreview&&<a className="bwGradPreviewLink" data-testid="welcome-graduation-demo" href="/lamarr-preview">Navy &amp; Gold Grad Preview</a>}<a className="bwHelp" href="/help" aria-label="Help"><Mark name="help" size={18}/><span>Help</span></a><button type="button" className="bwStaffShortcut" data-testid="welcome-staff-tools" onClick={()=>setStaffPrompt(true)}><Mark name="settings" size={18}/><span>Staff tools</span></button></nav></header>
   <div className="bwStage"><section className="bwInvitation" aria-labelledby="bwEventTitle"><div className="bwEyebrow"><span/>{eventName||'Celebration'} · You're invited to smile</div><h1 id="bwEventTitle" className={title.length>65?'bwLongTitle':''}>{title}</h1><div className="bwEventMeta">{cfg.date&&<span><Mark name="calendar" size={17}/>{cfg.date}</span>}{time&&<span className="bwTime">{time}</span>}</div><div className="bwGuestIntro"><strong>Ready for your close-up?</strong><p>Choose one photo or the full four-photo experience. The booth will guide you through every shot.</p></div>
 
-  {lamarr&&<div className="lamarrWelcomeFlow" style={{padding:16,background:'#0a1d3a',color:'#fff',borderRadius:16,border:'2px solid #ec8b2f',margin:'15px 0'}} data-testid="lamarr-ready-flow">
-   <h2 style={{fontSize:24,margin:'0 0 8px',color:'#fff'}}>Choose your graduation photo</h2>
-   <p style={{fontSize:14,margin:'0 0 12px',color:'#e7d8b9'}}>See the finished layout before you take a picture. Choose one or four photos, then tap Ready.</p>
-   <div style={{display:'flex',gap:10,marginBottom:12}}>
-    <button type="button" onClick={()=>setLamarrChoice('one')} aria-pressed={lamarrChoice==='one'} style={{flex:1,padding:12,borderRadius:10,border:'2px solid #fa9b38',background:lamarrChoice==='one'?'#fb902f':'#173559',color:lamarrChoice==='one'?'#071b35':'white',fontWeight:800}}>1 Photo</button>
-    <button type="button" onClick={()=>setLamarrChoice('four')} aria-pressed={lamarrChoice==='four'} style={{flex:1,padding:12,borderRadius:10,border:'2px solid #fa9b38',background:lamarrChoice==='four'?'#fb902f':'#173559',color:lamarrChoice==='four'?'#071b35':'white',fontWeight:800}}>4 Photos</button>
-   </div>
-   <div style={{width:'min(100%,235px)',aspectRatio:'2 / 3',margin:'0 auto 12px',background:'#0a223f',overflow:'hidden'}} dangerouslySetInnerHTML={{__html:lamarrArtwork.replace('<svg ','<svg style="width:100%;height:100%;display:block" ')}}/>
-   <p style={{fontSize:12,color:'#e8dac5',textAlign:'center'}}>Preview only — your real photos replace these sample boxes.</p>
-   <button type="button" disabled={starting} onClick={lamarrChoice==='one'?onStartQuick:onStartFour} style={{width:'100%',padding:'18px',fontSize:20,fontWeight:800,background:'#fa912a',border:0,borderRadius:12,color:'#071b35'}}>Ready — Take {lamarrChoice==='one'?'1 Photo':'4 Photos'} →</button>
-   <p style={{fontSize:12,color:'#e7d8b9',textAlign:'center'}}>Review your final print, then request one sheet or save a digital copy.</p>
-  </div>}
-  {lamarr?null:<div className="bwExperience" aria-label="Choose your photo session">
+  <div className="bwExperience" aria-label="Choose your photo session">
    <div className="bwSessionChoices">
     <button type="button" className={'bwSessionCard bwQuickSession'+(preferred==='one'?' isPreferred':'')} data-testid="welcome-quick-photo" disabled={starting} onClick={onStartQuick}>
      <span className="bwSessionIcon"><Mark size={30}/></span>
@@ -95,7 +80,7 @@ export default function WelcomeScreen({cfg,eventName,online,starting,installed,p
    <div className="bwGuestTools">
     <p className="bwChoiceNote"><Mark name={available?'print':'share'} size={17}/>{available?'One photo makes a 4×6 card. Four photos can become a card or strip.':'Digital photos are available. Ask the attendant about printing.'}</p>
    </div>
-  </div>}</section>{lamarr?null:<WelcomeProof cfg={cfg} shots={preferred==='one'?1:rules.shotsPerSession}/>}</div>
+  </div></section><WelcomeProof cfg={cfg} shots={preferred==='one'?1:rules.shotsPerSession}/></div>
   <footer className="bwFooter"><span className={'bwConnection'+(online?'':' bwOffline')} role="status"><i/>{online?'Online':'Offline · booth still works'}</span><span className="bwCredit">Friendly Party Rental · Photo Booth</span><div className="bwUtilities"><AppUpdate disabled={starting}/>{!installed&&<button type="button" onClick={onInstall}>Add to iPad</button>}</div></footer>
  </div>{staffPrompt&&<StaffAccessGate onClose={()=>setStaffPrompt(false)} onConfirm={()=>{setStaffPrompt(false);onOperator?.();}}/>}</div>;
 }
