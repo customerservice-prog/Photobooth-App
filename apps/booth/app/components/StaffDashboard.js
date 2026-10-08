@@ -4,13 +4,14 @@ import {decodeBoothHandoff} from '../lib/booth-handoff.mjs';
 import {workspace} from '../lib/event-workspace.mjs';
 import {backupEnabled,saveBackupToken,syncEventPhotos} from '../lib/backup-sync.mjs';
 import StaffBackupPanel from './StaffBackupPanel';
+import StaffPrintPanel from './StaffPrintPanel';
 import './staff-dashboard.css';
 
 // A functional staff dashboard shared by demo and live contexts. The staff
 // confirmation is not authentication; the iPad must be supervised/Guided Access.
 export default function StaffDashboard({onClose,onReset,onVoiceTest,onRecover,onSaveConfig,onLoadBryan,
  online,saved,installed,managed,demo,remaining,setupHref,photos=[],cfg,eventTypes,voiceStatus,
- keepScreenAwake=true,screenAwakeStatus='requesting',onToggleScreenAwake,onRetryScreenAwake}){
+ keepScreenAwake=true,screenAwakeStatus='requesting',onToggleScreenAwake,onRetryScreenAwake,onReviewPrint}){
  const ref=useRef(null),closeRef=useRef(onClose),transferRef=useRef(null),kioskRef=useRef(null);closeRef.current=onClose;
  function showKioskGuide(){
   const section=kioskRef.current;if(!section)return;
@@ -89,6 +90,7 @@ export default function StaffDashboard({onClose,onReset,onVoiceTest,onRecover,on
     <div><small>DEVICE</small><strong>{installed?'Installed':'Browser'}</strong><span>{installed?'Home Screen app':'Open on iPad for events'}</span></div>
    </section>
    <StaffBackupPanel/>
+   <StaffPrintPanel onReviewPrint={onReviewPrint}/>
    <section className="operatorKioskCard" data-testid="operator-kiosk-card" aria-label="iPad guest display">
     <div className="operatorKioskTop">
      <div><span className="operatorOverline">IPAD EVENT MODE</span><h3>Keep guests in the Photo Booth</h3><p>The booth can request an always-on display. iPad Guided Access is required to stop guests switching apps.</p></div>
