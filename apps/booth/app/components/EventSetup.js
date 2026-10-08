@@ -53,7 +53,7 @@ export default function EventSetup({cfg,photo='',poses=[],onSave,onClose}){
  function chooseLayout(id){
   if(!['card','photo_strip'].includes(id)||preference==='one'||!canShowStrip)return;
   if(id==='card'&&!settings.cardEnabled||id==='photo_strip'&&!settings.stripEnabled)return;
-  touch(d=>({...d,printLayouts:{...normalizePrintLayouts(d.printLayouts),defaultLayout:id,stripMode:id==='photo_strip'?'single':normalizePrintLayouts(d.printLayouts).stripMode}}));
+  touch(d=>({...d,printLayouts:{...normalizePrintLayouts(d.printLayouts),defaultLayout:id,stripMode:'single'}}));
  }
  function chooseStripArrangement(next){
   if(format!=='photo_strip'||!['single','double'].includes(next))return;
