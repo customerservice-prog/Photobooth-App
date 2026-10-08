@@ -43,7 +43,7 @@ export default function BoothTransfer({url,eventName,ready}){
     </div>
     <div className="transferQR">
      {qr?<img data-testid="event-handoff-qr" src={qr} width="260" height="260" alt="QR code to open this event on the iPad" />:<div className="transferQRWait" role="status">Preparing scannable code…</div>}
-     <div className="transferQRHelp"><strong>Scan from the event iPad</strong><p>Open the Camera app, scan this code, open the Friendly Booth link, and tap <b>Apply event</b>.</p></div>
+     <div className="transferQRHelp"><strong>Scan from the event iPad</strong><p>Open the Camera app, scan this code, open the Friendly Booth link, and tap <b>Apply event</b>.</p><p><strong>Using the installed Home Screen app?</strong> If the QR opens Safari instead of Friendly Booth, copy the link, then open the installed booth app → Staff tools → Load an event → Paste. This keeps photos and counters in the correct app.</p></div>
     </div>
     <label className="formField" htmlFor="booth-transfer-link">Or copy the iPad link
      <input id="booth-transfer-link" data-testid="event-handoff-url" className="input transferLink" ref={linkInput} type="text" readOnly value={url} onClick={e=>e.currentTarget.select()}/>
