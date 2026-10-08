@@ -31,8 +31,9 @@ export default function Booth(){
     const f=()=>setOnline(navigator.onLine);addEventListener('online',f);addEventListener('offline',f);
     async function load(){try{
       const target=workspace(window.location.search);setScope(target);
-      const c=target.managed?readEventDraft(localStorage):JSON.parse(localStorage.getItem(target.config)||'null');
-      if(target.managed&&!target.demo&&!readyForEvent(c)){window.location.replace('/event-prep');return;}
+      const c=target.specialOctober?readEventDraft(localStorage):JSON.parse(localStorage.getItem(target.config)||'null');
+       if(target.transferred&&!c)throw new Error('This event has not been loaded on this iPad. Open Staff tools → Load event, then choose the setup link or file.');
+      if(target.specialOctober&&!target.demo&&!readyForEvent(c)){window.location.replace('/event-prep');return;}
       const used=usage(localStorage,target);setPrintsUsed(used);
       if(c&&typeof c==='object'){
         setCfg(normalizeEventConfig({...defaultCfg,...c,printPackage:normalizePrintPackage(c.printPackage),runtime:target.managed?{demo:target.demo,setup:target.setup}:undefined,type:Object.hasOwn(eventTypes,c.type)?c.type:(c.title==='Bryan Wedding'?'wedding':'other')}));
@@ -40,7 +41,7 @@ export default function Booth(){
       }
       if(target.managed){
         // A demo and a real event never share a counter or photo archive.
-        if(localStorage.getItem(target.config)===null)saveEventDraft(localStorage,c);
+        if(target.specialOctober&&localStorage.getItem(target.config)===null)saveEventDraft(localStorage,c);
         if(localStorage.getItem(target.usage)===null)localStorage.setItem(target.usage,String(used));
         const db=await openArchive();db.close();
         const [n,recent]=await Promise.all([archiveCount(target.archive),recentCaptures(target.archive)]);
@@ -104,7 +105,7 @@ export default function Booth(){
     if(scope.managed){try{await saveCapture(scope.archive,id,data,shots,cfg);setSaved(n=>n+1);setGallery(old=>[{id,createdAt:new Date().toISOString(),data},...old].slice(0,8));}catch{setError('Photo captured, but the event archive could not save it. Download this photo now and ask staff to check storage before continuing.');}return;}
     try{let a=JSON.parse(localStorage.getItem(STORE)||'[]');a.unshift({id,createdAt:new Date().toISOString(),data});a=a.slice(0,20);localStorage.setItem(STORE,JSON.stringify(a));setSaved(a.length);setGallery(a)}catch{setError('Photo captured, but the local backup could not be saved. Please save this photo before leaving.')}
   }
-  function persistConfig(next){try{const plain={...next};delete plain.runtime;if(scope.managed){plain.preparation={...plain.preparation,checks:{},colorsConfirmed:false};saveEventDraft(localStorage,plain);}else localStorage.setItem(CFG,JSON.stringify(plain));setCfg({...plain,runtime:cfg.runtime});setError('');return true}catch{setError('Event details could not be saved on this device. Keep the booth open and ask the attendant for help.');return false}}
+  function persistConfig(next){try{const plain={...next};delete plain.runtime;if(scope.specialOctober){plain.preparation={...plain.preparation,checks:{},colorsConfirmed:false};saveEventDraft(localStorage,plain);}else localStorage.setItem(CFG,JSON.stringify(plain));setCfg({...plain,runtime:cfg.runtime});setError('');return true}catch{setError('Event details could not be saved on this device. Keep the booth open and ask the attendant for help.');return false}}
   function saveConfig(e){e.preventDefault();const f=new FormData(e.currentTarget),currentPrint=normalizePrintPackage(cfg.printPackage),next={...cfg,title:f.get('title')?.toString().trim()||defaultCfg.title,subtitle:f.get('subtitle')?.toString().trim()||defaultCfg.subtitle,date:f.get('date')?.toString().trim()||defaultCfg.date,type:f.get('type')?.toString()||'other',printPackage:normalizePrintPackage({...currentPrint,includedPrints:f.get('includedPrints'),addOnPrints:f.get('addOnPrints'),shotsPerSession:f.get('shotsPerSession')})};if(next.type!==cfg.type||next.title!==cfg.title||next.subtitle!==cfg.subtitle)next.details={...cfg.details};if(persistConfig(next))setOperator(false)}
   function loadBryan(){if(persistConfig(bryanCfg)){setOperator(false);reset()}}
   function stopCamera(){stream.current?.getTracks().forEach(t=>t.stop());stream.current=null}
@@ -125,7 +126,7 @@ export default function Booth(){
   async function recover(p){const token=++run.current;setError('');let originals=[];try{if(scope.managed)originals=await capturePoses(scope.archive,p.id);}catch{setError('The original poses could not be opened. The saved card is still available; retake to create a photo strip.');}if(token!==run.current)return;captureId.current=p.id;setSessionShots(originals.length===1?1:originals.length===3?3:4);setPoses(originals);setPhoto(p.data);setOperator(false);setEditing(false);setStep('preview')}
   const eventMeta=eventTypes[cfg.type]||eventTypes.other;
   const isPreview=step==='preview',isCapturing=['camera','photoSeries'].includes(step);
-  return <>{scope.managed&&<div className="workspaceBanner"><span>{scope.demo?'OFFICE DEMO · no physical prints · event allowance unchanged':'ACTUAL EVENT · photos saved on this device'}</span><a href="/event-prep">Event preparation →</a></div>}
+  return <>{scope.managed&&<div className="workspaceBanner"><span>{scope.demo?'OFFICE DEMO · no physical prints · event allowance unchanged':scope.transferred?'LOADED ADMIN EVENT · settings and photos belong to this iPad':'ACTUAL EVENT · photos saved on this device'}</span><a href={scope.setup}>{scope.transferred?'Event setup →':'Event preparation →'}</a></div>}
   <main className={`booth theme-${cfg.type||'other'}${step==='welcome'?' bwWelcomeMode':''}`} data-build="smile-sequence-v1" data-capture-mode="photo" data-managed-event={scope.managed?'true':undefined}>
     {!isPreview&&!isCapturing&&step!=='welcome'&&<a className="floatingHelp" href="/help" aria-label="Photo booth help">Help</a>}
     {step==='welcome'&&<WelcomeScreen cfg={cfg} eventName={eventMeta.name} online={online} starting={starting||!initialized} installed={installed} printsUsed={printsUsed} onStartQuick={()=>begin(1)} onStartFour={()=>begin(4)} onInstall={()=>setInstallOpen(true)} onOperator={()=>setOperator(true)} voiceStatus={voiceStatus} onVoiceTest={testSpeaker}/>}
