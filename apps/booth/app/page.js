@@ -129,8 +129,13 @@ export default function Booth(){
         onProgress:next=>{if(id===run.current){capturePhase.current=next.phase;setCapture(next);}},
         onCue:cue=>{
           if(id!==run.current||!audioReady)return 0;
-          try{return playPhotoCue(cue)||0;}
-          catch{audioReady=false;setVoiceStatus('unavailable');return 0;}
+          try{
+            const duration=playPhotoCue(cue);
+            if(duration)return duration;
+          }catch{}
+          // A device may suspend sound while a photo series is running.
+          // Continue the visual countdown without interrupting any capture.
+          audioReady=false;setVoiceStatus('unavailable');return 0;
         }
       });
       stopTalking();const data=total===1?shots[0]:await composePhotoStrip(shots,cfg);if(id!==run.current)return;
