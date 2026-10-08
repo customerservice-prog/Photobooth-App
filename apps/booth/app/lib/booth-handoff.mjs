@@ -51,7 +51,7 @@ export function configFromBoothHandoff(payload,existing={}){
    defaultLayout,stripMode:payload.s===2?'double':'single'},
   printPackage:{...previousPackage,includedPrints:payload.limit,addOnPrints:0,
    shotsPerSession:4,copiesPerSession:1,printingEnabled:payload.on&&payload.limit>0},
-  setupComplete:true,
+  setupComplete:true,qrSharingEnabled:payload.qr,
   adminHandoff:{version:1,revision:payload.rev,transferredAt:new Date().toISOString()}
  };
 }
