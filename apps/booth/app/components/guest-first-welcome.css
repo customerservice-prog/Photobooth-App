@@ -234,7 +234,8 @@
  .booth.bwWelcomeMode .bwBrand b{letter-spacing:1.2px;font-size:12px}
  .booth.bwWelcomeMode .bwBrand small{font-size:7px;letter-spacing:0}
  .booth.bwWelcomeMode .bwStaffShortcut{padding:8px 9px;font-size:11px}
- .booth.bwWelcomeMode .bwHeaderActions .bwHelp{padding:0 9px}
+ .booth.bwWelcomeMode .bwHeaderActions .bwHelp{padding:0!important;width:44px;flex:none}
+ .booth.bwWelcomeMode .bwHeaderActions .bwHelp>span{display:none}
  .booth.bwWelcomeMode .bwSessionCard{padding:12px;gap:10px}
  .booth.bwWelcomeMode .bwSessionWords strong{font-size:27px}
  .booth.bwWelcomeMode .bwPhotoSteps{
