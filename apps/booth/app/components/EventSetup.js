@@ -1,5 +1,5 @@
 'use client';
-import {useMemo,useState} from 'react';
+import {useEffect,useState} from 'react';
 import StudioDialog from './StudioDialog';
 import Icon from './StudioIcons';
 import PrintCard from './PrintCard';
@@ -9,6 +9,7 @@ import {normalizeGuestPause,normalizePhotoPreference,GUEST_PAUSE_OPTIONS} from '
 import {EVENT_LABELS,getDesigns} from '../lib/keepsake-designs.mjs';
 import {composeEventConfig,switchEventDraft,eventMonogram,finalizeEventSetup} from '../lib/event-config.mjs';
 import {SETUP_COLOR_STORIES,paletteSelected} from '../lib/setup-lookbook.mjs';
+import {createIllustrativePreviewPhotos} from '../lib/setup-preview-art.mjs';
 import './studio-experience.css';
 import './event-setup-premium.css';
 
@@ -22,28 +23,35 @@ const fields={
  corporate:[['company','Company or organization',''],['eventName','Event name','Annual celebration']],
  other:[['eventName','What is the event called?','Anniversary celebration'],['honoree','Guest of honor (optional)',''],['subtitle','Short caption (optional)','Celebrating together']]
 };
-const showTemplate=({name,description})=><><strong>{name}</strong><small>{description}</small></>;
 
 export default function EventSetup({cfg,photo='',poses=[],onSave,onClose}){
- const [draft,setDraft]=useState(cfg),[stage,setStage]=useState(0),[dirty,setDirty]=useState(false),[issue,setIssue]=useState(''),[advanced,setAdvanced]=useState(false);
+ const [draft,setDraft]=useState(cfg),[stage,setStage]=useState(0),[dirty,setDirty]=useState(false),[issue,setIssue]=useState(''),[advanced,setAdvanced]=useState(false),[illustrations,setIllustrations]=useState([]);
  const type=Object.hasOwn(EVENT_LABELS,draft.type)?draft.type:'other';
  const preference=normalizePhotoPreference(draft.defaultPhotoExperience),pause=normalizeGuestPause(draft.photoPauseSeconds);
  const settings=normalizePrintLayouts(draft.printLayouts);
- const format=preference==='one'?'card':settings.defaultLayout;
+ const hasCapture=Boolean(photo)||poses.length>0;
+ const requiredPoses=[3,4].includes(Number(draft.printPackage?.shotsPerSession))?Number(draft.printPackage.shotsPerSession):4;
+ const canShowStrip=!hasCapture||poses.length===requiredPoses;
+ const format=preference==='one'||!canShowStrip?'card':settings.defaultLayout;
+ useEffect(()=>{
+  setIllustrations(createIllustrativePreviewPhotos(draft.details?.primaryColor,draft.details?.secondaryColor));
+ },[draft.details?.primaryColor,draft.details?.secondaryColor]);
+ const previewPhoto=hasCapture?photo:illustrations[0]||'';
+ const previewPoses=hasCapture?poses:illustrations.slice(0,requiredPoses);
+ const usePlaceholder=!hasCapture&&previewPoses.length===0;
  const designs=format==='photo_strip'?STRIP_DESIGNS:getDesigns(type);
  const activeTemplate=designs.find(d=>d.id===(draft.defaultTemplate||'ivory'))||designs[0];
  const palettes=SETUP_COLOR_STORIES;
  let preview=draft;
  try{if(dirty)preview=composeEventConfig(draft,{...draft.details,date:draft.date});}catch{}
  const designCfg={...preview,photoFit:'fit'};
- const hasCapture=Boolean(photo)||poses.length>0;
  const monogram=eventMonogram(designCfg);
  function touch(mutator){setDirty(true);setIssue('');setDraft(mutator);}
  function change(name,value){touch(d=>name==='date'?{...d,date:value}:{...d,details:{...d.details,[name]:value}});}
  function chooseTemplate(id){touch(d=>({...d,defaultTemplate:id}));}
  function choosePalette(p){touch(d=>({...d,details:{...d.details,primaryColor:p.primary,secondaryColor:p.secondary}}));}
  function chooseLayout(id){
-  if(!['card','photo_strip'].includes(id)||preference==='one')return;
+  if(!['card','photo_strip'].includes(id)||preference==='one'||!canShowStrip)return;
   if(id==='card'&&!settings.cardEnabled||id==='photo_strip'&&!settings.stripEnabled)return;
   touch(d=>({...d,printLayouts:{...normalizePrintLayouts(d.printLayouts),defaultLayout:id}}));
  }
@@ -113,7 +121,7 @@ export default function EventSetup({cfg,photo='',poses=[],onSave,onClose}){
       <div className="ksLookbookHeading"><strong>01 · Choose your design</strong><small>Every design includes your event details</small></div>
       <div className="ksLookbookGrid" role="group" aria-label="Design styles">
        {designs.map(d=><button type="button" key={d.id} className={'ksLookCard'+(activeTemplate.id===d.id?' isSelected':'')} data-testid={'setup-look-'+d.id} aria-label={'Use design '+d.name} aria-pressed={activeTemplate.id===d.id} onClick={()=>chooseTemplate(d.id)}>
-        <span className="ksLookArt"><PrintCard mini sample={!hasCapture} photo={photo} poses={poses} cfg={designCfg} monogram={monogram} template={d.id} layout={format} stripMode={settings.stripMode}/></span>
+        <span className="ksLookArt"><PrintCard mini sample={usePlaceholder} photo={previewPhoto} poses={previewPoses} cfg={designCfg} monogram={monogram} template={d.id} layout={format} stripMode={settings.stripMode}/></span>
         <span className="ksLookName">{d.name}</span>
         <span className="ksLookPick">{activeTemplate.id===d.id?'✓ Selected':'Choose style'}</span>
        </button>)}
@@ -151,11 +159,11 @@ export default function EventSetup({cfg,photo='',poses=[],onSave,onClose}){
     <div className="ksPreviewTop"><span className="ksEyebrow">THE KEEPSAKE STUDIO</span><span className="ksPreviewStar" aria-hidden="true">✦</span></div>
     <div className="ksPreviewFormat" role="group" aria-label="Preview the print format">
      <button type="button" data-testid="setup-preview-card" aria-pressed={format==='card'} onClick={()=>chooseLayout('card')}>4×6 Card</button>
-     <button type="button" data-testid="setup-preview-strip" aria-pressed={format==='photo_strip'} disabled={preference==='one'||!settings.stripEnabled} onClick={()=>chooseLayout('photo_strip')}>Photo Strip</button>
+     <button type="button" data-testid="setup-preview-strip" aria-pressed={format==='photo_strip'} disabled={preference==='one'||!settings.stripEnabled||!canShowStrip} onClick={()=>chooseLayout('photo_strip')}>Photo Strip</button>
     </div>
     <div className="ksPreviewPaper">
      <div className="ksPreviewPaperMount">
-      <PrintCard photo={photo} poses={poses} sample={!hasCapture} layout={format} stripMode={settings.stripMode} cfg={designCfg} monogram={monogram} template={draft.defaultTemplate||'ivory'}/>
+      <PrintCard photo={previewPhoto} poses={previewPoses} sample={usePlaceholder} layout={format} stripMode={settings.stripMode} cfg={designCfg} monogram={monogram} template={draft.defaultTemplate||'ivory'}/>
      </div>
      <span className="ksPreviewFoil ksPreviewFoilOne" aria-hidden="true">✧</span><span className="ksPreviewFoil ksPreviewFoilTwo" aria-hidden="true">✦</span>
     </div>
