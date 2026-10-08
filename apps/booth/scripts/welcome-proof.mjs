@@ -60,11 +60,24 @@ try{
   assert(await page.getByTestId('staff-event-link').isVisible());
   assert(await page.getByTestId('operator-reset-guest').isVisible());
   assert(await page.getByTestId('operator-sound-test').isVisible());
+  assert((await page.getByTestId('operator-sound-test').innerText()).includes('Play voice sample'));
   assert.equal(await page.getByRole('link',{name:/Event setup/}).getAttribute('href'),'/setup');
   await page.screenshot({path:`${out}/${engine}-staff-tools.png`});
   await page.getByRole('button',{name:'Close controls',exact:true}).click();
   assert.equal(await page.getByRole('dialog',{name:'Operator controls'}).count(),0);
   results.push({test:engine+'-one-tap-staff-confirmation-and-working-operator-dashboard',passed:true});
+  // Simulate security enabled without configuring a real production credential.
+  await page.route('**/api/staff/unlock',route=>route.fulfill({json:{required:true}}));
+  await staff.click();
+  await page.getByTestId('staff-pin-form').waitFor();
+  const staffPinInput=page.locator('#bwStaffPin');
+  assert.equal(await staffPinInput.getAttribute('maxlength'),'4');
+  assert.equal(await staffPinInput.getAttribute('minlength'),'4');
+  await staffPinInput.fill('4826'); // Test-only number, not the owner's PIN.
+  assert(await page.getByTestId('staff-confirm').isEnabled());
+  await page.getByTestId('staff-cancel').click();
+  await page.unroute('**/api/staff/unlock');
+  results.push({test:engine+'-four-digit-staff-gate-without-exposing-credential',passed:true});
   await staff.click();await page.getByTestId('staff-confirm').click();
   await page.getByRole('link',{name:/Event setup/}).click();await page.waitForURL('**/setup');
   await page.getByTestId('premium-event-setup').waitFor();

@@ -43,3 +43,33 @@ export async function readAppVersion({fetcher=globalThis.fetch,signal,timeoutMs=
     throw new Error('Could not check for updates. Keep the booth open, connect to Wi-Fi, and try again.');
   }finally{clearTimeout(timer);signal?.removeEventListener('abort',abort);}
 }
+
+
+// Only called after staff/guest deliberately taps "Load latest version" on an idle screen.
+// Safely wakes an installed PWA's waiting worker without deleting IndexedDB,
+// event preferences, photo archives, print counts or device settings.
+export async function refreshInstalledWorkerOnManualUpdate({serviceWorker=globalThis.navigator?.serviceWorker,timeoutMs=1800}={}){
+ if(!serviceWorker?.getRegistration)return 'not-installed';
+ const limit=promise=>Promise.race([Promise.resolve(promise),new Promise(resolve=>setTimeout(()=>resolve(null),timeoutMs))]);
+ try{
+  const registration=await limit(serviceWorker.getRegistration());
+  if(!registration)return 'not-installed';
+  if(typeof registration.update==='function')await limit(registration.update());
+  const pending=registration.waiting;
+  if(!pending?.postMessage)return 'checked';
+  const waitForControl=new Promise(resolve=>{
+   let settled=false,timer;
+   const complete=()=>{
+    if(settled)return;
+    settled=true;clearTimeout(timer);
+    serviceWorker.removeEventListener?.('controllerchange',complete);
+    resolve();
+   };
+   serviceWorker.addEventListener?.('controllerchange',complete);
+   timer=setTimeout(complete,timeoutMs);
+   try{pending.postMessage({type:'ACTIVATE_UPDATED_BOOTH'});}catch{complete();}
+  });
+  await waitForControl;
+  return 'requested';
+ }catch{return 'unavailable';}
+}

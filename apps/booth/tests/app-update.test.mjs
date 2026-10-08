@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
-import {validateAppVersion,compareReleases,updateDestination,readAppVersion} from '../app/lib/app-update.mjs';
+import {validateAppVersion,compareReleases,updateDestination,readAppVersion,refreshInstalledWorkerOnManualUpdate} from '../app/lib/app-update.mjs';
 import {BOOTH_RELEASE} from '../app/lib/booth-launch.mjs';
 const version={app:'friendly-photo-booth',schema:1,version:BOOTH_RELEASE,label:'Smile countdown'};
 const response=body=>new Response(JSON.stringify(body),{headers:{'content-type':'application/json'}});
@@ -51,10 +51,14 @@ test('a stalled version request is aborted with a timeout',async()=>{
 test('an in-flight caller cancellation propagates and releases its listeners',async()=>{
  const c=new AbortController();const promise=readAppVersion({signal:c.signal,fetcher:async(_u,{signal})=>new Promise((_resolve,reject)=>signal.addEventListener('abort',()=>reject(new Error('aborted')),{once:true}))});c.abort();await assert.rejects(()=>promise,e=>e.name==='AbortError');
 });
-test('updater never resets browser storage or registers a service worker',async()=>{
- const [helper,component]=await Promise.all(['../app/lib/app-update.mjs','../app/components/AppUpdate.js'].map(p=>readFile(new URL(p,import.meta.url),'utf8')));
- for(const src of [helper,component])assert.doesNotMatch(src,/localStorage|indexedDB|sessionStorage|caches\.|serviceWorker\.|document\.cookie|Clear-Site-Data/);
- assert.match(component,/if\(reload\)/);assert.match(component,/controller\.signal\.aborted/);
+test('updater never clears event data or registers a worker; refresh requires a user tap',async()=>{
+  const [helper,component]=await Promise.all(['../app/lib/app-update.mjs','../app/components/AppUpdate.js'].map(p=>readFile(new URL(p,import.meta.url),'utf8')));
+  for(const src of [helper,component])assert.doesNotMatch(src,/localStorage|indexedDB|sessionStorage|caches\.|document\.cookie|Clear-Site-Data/);
+  assert.doesNotMatch(helper+component,/serviceWorker\.register\(|\.unregister\(/);
+  assert.match(helper,/refreshInstalledWorkerOnManualUpdate/);
+  assert.match(component,/if\(reload\)/);
+  assert.match(component,/await refreshInstalledWorkerOnManualUpdate\(\)/);
+  assert.match(component,/controller\.signal\.aborted/);
 });
 test('update is offered only at safe welcome and launcher screens',async()=>{
  const read=p=>readFile(new URL(p,import.meta.url),'utf8');assert.match(await read('../app/components/WelcomeScreen.js'),/<AppUpdate disabled=\{starting\}/);assert.match(await read('../app/components/BoothLauncher.js'),/<AppUpdate\/>/);
@@ -73,4 +77,19 @@ test('updating an imported event returns to that event without loading unrelated
  assert.equal(u.searchParams.get('boothv'),BOOTH_RELEASE);
  assert.equal(u.searchParams.get('refresh'),'123');
  assert.equal(u.searchParams.size,3);
+});
+
+test('manual iPad app update explicitly activates the waiting service worker',async()=>{
+ const listeners=new Map(),sent=[];
+ const serviceWorker={
+  addEventListener:(name,listener)=>listeners.set(name,listener),
+  removeEventListener:name=>listeners.delete(name),
+  getRegistration:async()=>({update:async()=>{},waiting:{postMessage(message){sent.push(message);listeners.get('controllerchange')?.();}}})
+ };
+ assert.equal(await refreshInstalledWorkerOnManualUpdate({serviceWorker,timeoutMs:150}),'requested');
+ assert.deepEqual(sent,[{type:'ACTIVATE_UPDATED_BOOTH'}]);
+ assert.equal(listeners.size,0);
+});
+test('manual app update safely skips browsers without service workers',async()=>{
+ assert.equal(await refreshInstalledWorkerOnManualUpdate({serviceWorker:null}),'not-installed');
 });
