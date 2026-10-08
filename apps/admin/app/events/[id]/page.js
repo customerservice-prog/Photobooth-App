@@ -1,17 +1,17 @@
 import Link from 'next/link';
 import {prisma} from '../../../lib/prisma';
 import {deleteEvent} from '../actions';
-import {dateLabel,timeLabel,readiness,experienceFrom,BOOTH_SETUP_URL,BOOTH_PREPARATION_URL,guestHandoffMessage,statusText} from '../../../lib/studio-experience.mjs';
+import {dateLabel,timeLabel,readiness,experienceFrom,statusText} from '../../../lib/studio-experience.mjs';
 import {PageHeader,ProgressCard,ExperienceSummary,StateTag,DatabaseError} from '../../StudioUI';
 import ConfirmDelete from '../../ConfirmDelete';
+import BoothHandoff from '../../BoothHandoff';
 export const dynamic='force-dynamic';
-const OCTOBER_EVENT='efcbaffc-893f-4361-983b-79a38e7d111a';
 export default async function EventDetailPage({params}){
  let event=null,error=null;
  try{event=await prisma.event.findUnique({where:{id:params.id},include:{customer:true,booth:true,template:true}})}catch(e){error=e}
  if(error)return <main className="page"><DatabaseError topic="event details"/><Link className="btn btn2" href="/events">Back to events</Link></main>;
  if(!event)return <main className="page"><h1 className="title">Event not found</h1><p className="muted">It may have been deleted or the link may have changed.</p><Link className="btn" href="/events">All events →</Link></main>;
- const progress=readiness(event),experience=experienceFrom(event),handoff=event.id===OCTOBER_EVENT?BOOTH_PREPARATION_URL:BOOTH_SETUP_URL;
+ const progress=readiness(event),experience=experienceFrom(event);
  const deleteAction=deleteEvent.bind(null,event.id);
  return <main className="page">
   <Link className="btnPlain" style={{paddingLeft:0}} href="/events">← All events</Link>
@@ -19,6 +19,7 @@ export default async function EventDetailPage({params}){
    <StateTag ready={progress.ready}/>
    <Link className="btn" href={'/events/'+event.id+'/edit'}>Edit event →</Link>
   </PageHeader>
+  <nav className="formNav" aria-label="Event setup steps"><Link href={'/events/'+event.id+'/edit'}>1 · Prepare</Link><a href="#handoff">2 · Send to Booth</a><a href="#device-check">3 · Test</a><a href="#device-check">4 · Start</a></nav>
   {!progress.ready&&<div className="warningNote" role="status" style={{marginBottom:18}}><strong>Before this event can be considered ready:</strong> {progress.next.title.toLowerCase()} needs attention. <Link href={'/events/'+event.id+'/edit#'+progress.next.href}>Complete this step →</Link></div>}
   <div className="uiGrid">
    <div className="uiStack">
@@ -38,13 +39,13 @@ export default async function EventDetailPage({params}){
      <div className="sectionHeader"><div><div className="eyebrow">GUEST EXPERIENCE</div><h2 className="sectionTitle">How the booth is set up</h2></div><Link href={'/events/'+event.id+'/edit#experience'} className="btn btn2 btnSm">Change choices</Link></div>
      <p className="sectionLead">Staff can feature 1 Photo or 4 Photos. Guests still have both choices. The standard four-photo experience has a pose break and can print cards or strips.</p>
      <ExperienceSummary event={event}/>
-     <div className="themePreview" style={{'--primary':experience.primary,'--paper':experience.accent}}><div className="themePreviewArtwork" aria-hidden="true">✦</div><div><strong>Event colors and keepsake options</strong><p>Preview-style colors shown here are admin choices. The actual printed art is configured on the event iPad.</p><Link href={'/events/'+event.id+'/edit#style'} className="btnPlain" style={{paddingLeft:0}}>Customize colors →</Link></div></div>
+     <div className="themePreview" style={{'--primary':experience.primary,'--paper':experience.accent}}><div className="themePreviewArtwork" aria-hidden="true">✦</div><div><strong>Event colors and keepsake options</strong><p>The built-in print design, colors and layout will transfer to the booth for review and loading.</p><Link href={'/events/'+event.id+'/edit#style'} className="btnPlain" style={{paddingLeft:0}}>Customize colors →</Link></div></div>
     </section>
-    <section className="card cardPad">
-     <div className="eyebrow">BEFORE GUESTS ARRIVE</div><h2 className="sectionTitle">Apply to the iPad & test</h2>
-     <p className="sectionLead">{guestHandoffMessage()}</p>
-     <div className="buttonRow"><a className="btn" href={handoff} target="_blank" rel="noopener noreferrer">Open iPad event setup ↗</a><Link className="btn btn2" href="/booths">Check assigned booth →</Link></div>
-     <div className="stepList" style={{marginTop:16}}>{['Match these guest and print settings on the iPad','Test one-photo and four-photo capture with the real camera','Test the cheerful speaker countdown and pose break','Make a physical Canon SELPHY 4×6 test print','Confirm the correct event names and colors on paper'].map((x,i)=><div className="stepItem" key={x}><span className="stepIcon" aria-hidden="true">{i+1}</span><span className="stepItemBody"><strong>{x}</strong></span></div>)}</div>
+    <BoothHandoff event={event}/>
+    <section className="card cardPad" id="device-check">
+     <div className="eyebrow">STEP 03 OF 04 · TEST THE IPAD</div><h2 className="sectionTitle">Test & start</h2>
+     <p className="sectionLead">After confirming the imported setup, test the real camera and printer on the event iPad. This page cannot certify these tests remotely.</p>
+     <div className="stepList">{['Take one photo and save the card','Take four photos with pose pauses','Listen to the voice countdown','Print and inspect a real Canon 4×6 sheet','Leave the booth on the guest welcome screen'].map((x,i)=><div className="stepItem" key={x}><span className="stepIcon" aria-hidden="true">{i+1}</span><span className="stepItemBody"><strong>{x}</strong></span></div>)}</div>
     </section>
    </div>
    <div className="uiStack">
