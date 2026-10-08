@@ -8,7 +8,7 @@ test('owner cookie is signed and refuses tampering',async()=>{
  assert.equal(await validAdminSession(value,secret+'x',now),false);
  assert.equal(await validAdminSession(value,secret,now+28801000),false);
  assert.equal(await validAdminSession('not-a-session',secret,now),false);
- assert.equal(await validAdminSession(value.slice(0,-1)+'0',secret,now),false);
+ assert.equal(await validAdminSession(value.slice(0,-1)+(value.endsWith('0')?'1':'0'),secret,now),false);
 });
 test('owner authentication fails closed without a secret',async()=>{
  await assert.rejects(createAdminSession(''));
