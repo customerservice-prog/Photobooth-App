@@ -1,7 +1,7 @@
 // Keep the installed app identity stable. Navigation never clears or migrates
 // photos, settings, counters, or any other browser storage.
-export const BOOTH_RELEASE='2026.10.08.15';
-export const BOOTH_RELEASE_LABEL='LaMarr side by side event rehearsal and print designs';
+export const BOOTH_RELEASE='2026.10.08.16';
+export const BOOTH_RELEASE_LABEL='Show LaMarr designs directly in guest keepsake gallery';
 const ENTRIES=Object.freeze({
   demo:'/?event=oct10-2026&demo=1',
   preparation:'/event-prep',
