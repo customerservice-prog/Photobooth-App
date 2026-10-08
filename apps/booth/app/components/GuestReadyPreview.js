@@ -16,7 +16,7 @@ export default function GuestReadyPreview({photo,poses=[],sessionShots,cfg,print
  const input={photo,poses,layout,stripMode:'single',cfg,monogram:eventMonogram(cfg),template,filter:'none'};
  const key=exportKey(input),pipeline=useRef(latestOnly()),archiveKey=useRef(null);
  const [artifact,setArtifact]=useState(null),[exportError,setExportError]=useState(''),[status,setStatus]=useState('');
- const [archiveBusy,setArchiveBusy]=useState(false),[archiveError,setArchiveError]=useState('');
+ const [archiveBusy,setArchiveBusy]=useState(false),[archived,setArchived]=useState(false),[archiveError,setArchiveError]=useState('');
  const [printRequested,setPrintRequested]=useState(false),[recoverySaved,setRecoverySaved]=useState(false),[retry,setRetry]=useState(0);
  const prepared=artifact?.key===key?artifact:null;
  const packageRules=normalizePrintPackage(printPackage||cfg.printPackage),remaining=printsRemaining(packageRules,printsUsed);
@@ -30,8 +30,8 @@ export default function GuestReadyPreview({photo,poses=[],sessionShots,cfg,print
  useEffect(()=>{
   if(!prepared||!onArchive||archiveKey.current===prepared.key)return;
   archiveKey.current=prepared.key;
-  let active=true;setArchiveBusy(true);setArchiveError('');
-  Promise.resolve(onArchive(prepared)).catch(()=>{
+  let active=true;setArchiveBusy(true);setArchived(false);setArchiveError('');
+  Promise.resolve(onArchive(prepared)).then(()=>{if(active)setArchived(true);}).catch(()=>{
    if(active)setArchiveError('Could not save the finished picture in the event archive. Download a digital copy now and ask staff to check storage.');
   }).finally(()=>{if(active)setArchiveBusy(false);});
   return()=>{active=false;};
@@ -69,12 +69,12 @@ export default function GuestReadyPreview({photo,poses=[],sessionShots,cfg,print
     {prepared?<img data-testid="approved-finished-jpeg" src={prepared.dataUrl} alt={'Finished approved '+(four?'four-photo':'single-photo')+' keepsake for '+(cfg.title||'this event')}/>:<div className="agPreparing" role="status">{exportError||'Preparing your finished photo…'}</div>}
    </div>
   </div>
-  <p className="agSaved" data-testid="approved-gallery-status">{archiveBusy?'Saving your photos…':archiveError?'Digital archive needs staff attention':prepared?'✓ Digital copy saved to the event gallery':'Preparing your keepsake…'}</p>
+  <p className="agSaved" data-testid="approved-gallery-status">{archiveBusy?'Saving your photos…':archiveError?'Digital archive needs staff attention':archived?'✓ Digital copy saved to the event gallery':prepared?'Finishing digital archive…':'Preparing your keepsake…'}</p>
   {(archiveError||status||exportError)&&<p className={'agStatus'+(archiveError||exportError?' agWarning':'')} role={archiveError||exportError?'alert':'status'}>{archiveError||exportError||status}{archiveError&&prepared&&<button type="button" onClick={saveRecovery}>Save recovery JPEG</button>}{exportError&&<button type="button" onClick={()=>setRetry(n=>n+1)}>Retry photo</button>}</p>}
   <footer className="agDock" aria-label="Finished photo actions">
    <button type="button" className="agButton agRetake" data-testid="approved-retake" onClick={onRetake} disabled={busy||printRequested}>↶ Retake</button>
    {packageRules.printingEnabled&&<button type="button" className="agButton agPrint" data-testid="approved-print" onClick={printNow} disabled={!printAllowed}>{printing?'Opening AirPrint…':printRequested?'Print requested':remaining<=0?'Print limit reached':'Print 4×6'}</button>}
-   <button type="button" className="agButton agDone" data-testid="approved-done" onClick={onFinish} disabled={!prepared||busy||(Boolean(archiveError)&&!recoverySaved)}>Done ✓</button>
+   <button type="button" className="agButton agDone" data-testid="approved-done" onClick={onFinish} disabled={!prepared||busy||(!archived&&!recoverySaved)}>Done ✓</button>
   </footer>
   <div className="photoPane ksPrintOnly" aria-hidden="true">{prepared&&<img className="ksExactPrintImage" src={prepared.dataUrl} alt=""/></div>
  </section>;
