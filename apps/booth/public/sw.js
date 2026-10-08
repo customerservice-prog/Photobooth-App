@@ -1,6 +1,6 @@
 /* Friendly Booth: only public app-shell assets are cached. Never cache API data,
    handoff URLs, recipients or personal JPEGs. Photos remain in IndexedDB. */
-const CACHE='friendly-booth-shell-20261008-1',SHELL=['/','/launch','/help','/icon.svg','/manifest.webmanifest'];
+const CACHE='friendly-booth-shell-20261008-1',SHELL=['/','/launch','/help','/privacy','/icon.svg','/manifest.webmanifest'];
 const safeAsset=url=>url.origin===self.location.origin&&
  (/^\/_next\/static\//.test(url.pathname)||/^\/(audio\/|icon\.svg$|print-test\.svg$|manifest\.webmanifest$)/.test(url.pathname));
 self.addEventListener('install',event=>{
@@ -45,7 +45,7 @@ self.addEventListener('fetch',event=>{
   })());
   return;
  }
- if(req.mode==='navigate'&&['/','/launch','/help'].includes(url.pathname)){
+ if(req.mode==='navigate'&&['/','/launch','/help','/privacy'].includes(url.pathname)){
   event.respondWith((async()=>{
    try{
     const controller=new AbortController();
