@@ -1,6 +1,7 @@
 'use client';
 import {useEffect,useRef,useState} from 'react';
 import {rememberOfflineStaffPin,verifyOfflineStaffPin} from '../lib/staff-offline-pin.mjs';
+import {STAFF_PIN_LENGTH,isValidStaffPin,normalizeStaffPinInput} from '../lib/staff-pin.mjs';
 
 // Staff authorization is separate from Apple's device lock. Guided Access is still required.
 export default function StaffAccessGate({onClose,onConfirm}){
@@ -17,7 +18,7 @@ export default function StaffAccessGate({onClose,onConfirm}){
   return()=>{alive=false;if(node?.open)node.close();previous?.focus?.();};
  },[]);
  async function unlock(e){
-  e.preventDefault();if(busy||!/^\d{8}$/.test(pin))return;
+  e.preventDefault();if(busy||!isValidStaffPin(pin))return;
   setBusy(true);setError('');
   try{
    if(navigator.onLine===false){
@@ -45,10 +46,10 @@ export default function StaffAccessGate({onClose,onConfirm}){
    <p>{required?'Enter the staff PIN to manage this event, recover photos or change printer settings.':'Open staff tools to check the printer, sound and event setup.'}</p>
    {ready?(required?
     <form onSubmit={unlock} className="bwStaffPinForm" data-testid="staff-pin-form">
-     <label htmlFor="bwStaffPin">8-digit staff PIN</label>
-     <input id="bwStaffPin" type="password" inputMode="numeric" autoComplete="off" maxLength={8} minLength={8} pattern="[0-9]{8}" value={pin} onChange={e=>setPin(e.target.value.replace(/\D/g,'').slice(0,8))} placeholder="●●●●●●●●" required autoFocus/>
+     <label htmlFor="bwStaffPin">4-digit staff PIN</label>
+     <input id="bwStaffPin" type="password" inputMode="numeric" autoComplete="off" maxLength={STAFF_PIN_LENGTH} minLength={STAFF_PIN_LENGTH} pattern="[0-9]{4}" value={pin} onChange={e=>setPin(normalizeStaffPinInput(e.target.value))} placeholder="●●●●" required autoFocus/>
      {error&&<p role="alert">{error}</p>}
-     <button className="bwStaffGatePrimary" data-testid="staff-confirm" disabled={busy||pin.length!==8}>{busy?'Checking…':'Unlock staff tools →'}</button>
+     <button className="bwStaffGatePrimary" data-testid="staff-confirm" disabled={busy||!isValidStaffPin(pin)}>{busy?'Checking…':'Unlock staff tools →'}</button>
      <button type="button" className="bwStaffGateCancel" data-testid="staff-cancel" onClick={onClose}>Back to guest screen</button>
     </form>:
     <div className="bwStaffGateButtons">
