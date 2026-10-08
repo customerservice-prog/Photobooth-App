@@ -45,12 +45,34 @@ function name(v,y){
  return `<g data-text-role="name">${text(v,600,y,sz,'url(#lmGold)','font-family="Georgia, serif" font-style="italic" font-weight="bold" paint-order="stroke" stroke="#703108" stroke-width="2"'+' textLength="'+width+'" lengthAdjust="spacingAndGlyphs"')}</g>`+
  path(`M196 ${y+27}Q600 ${y+51} 1004 ${y+27}`,'none','#fa8723',10);
 }
+function sampleGradPhoto(i,x,y,w,h){
+ // Only for the unfilled preview, never an invented guest capture.
+ // An illustrated graduation silhouette over silver sequin-style bokeh.
+ const scale=Math.min(w/480,h/470),cx=x+w/2,cy=y+h/2;
+ const sparkle=Array.from({length:90},(_,n)=>{
+  const px=x+((n*179+41*i)%997)/997*w;
+  const py=y+((n*317+67*i)%991)/991*h;
+  const r=2+(n*7%11);
+  return `<circle cx="${px.toFixed(1)}" cy="${py.toFixed(1)}" r="${r}" fill="${n%3?'#fbfbfd':'#b8cadb'}" opacity="${n%4===0?'.92':'.40'}"/>`;
+ }).join('');
+ const costume=`<g transform="translate(${cx} ${cy}) scale(${scale})">
+  <path d="M-230 226Q-212 80-98 42L98 42Q212 80 230 226Z" fill="#0d2952" stroke="#6785ac" stroke-width="5"/>
+  <path d="M-88 45L-9 235L-39 235L-126 67Z" fill="#f18b23"/>
+  <path d="M88 45L9 235L39 235L126 67Z" fill="#ffaf51"/>
+  <rect x="-71" y="-97" width="142" height="170" rx="69" fill="#b98e75"/>
+  <path d="M-110-116L0-161L110-116L0-70Z" fill="#091c3e" stroke="#d39a41" stroke-width="6"/>
+  <path d="M-74-90V-65Q0-28 74-65V-90" fill="#0a1e40" stroke="#162e52" stroke-width="3"/>
+  <path d="M102-115V20" stroke="#f59e27" stroke-width="6"/>
+  <path d="M93 23L110 60L125 23Z" fill="#ffa73c"/>
+ </g>`;
+ return rect(x,y,w,h,'#9ba7b1')+rect(x,y,w,h,'url(#lmBlueGlow)')+sparkle+costume+
+ `<rect x="${x+10}" y="${y+h-45}" width="${w-20}" height="36" fill="#061d3b" opacity=".8"/>`+
+ text('YOUR PHOTO '+(i+1),x+w/2,y+h-19,20,'#fff8e6','font-family="Arial,sans-serif" font-weight="bold" letter-spacing="3"');
+}
 function photo(src,i,x,y,w,h,fit='fill'){
  const safe=imageAllowed(src)?src:null;
  const frame=rect(x-16,y-16,w+32,h+32,'url(#lmGlitter)')+rect(x-5,y-5,w+10,h+10,'#fb9b30');
- const inside=safe?`<image data-guest-photo="true" data-pose="${i+1}" href="${esc(safe)}" x="${x}" y="${y}" width="${w}" height="${h}" preserveAspectRatio="${fit==='fit'?'xMidYMid meet':'xMidYMid slice'}"/>`:rect(x,y,w,h,'#2a3f57')+
- `<g fill="#d5dbe1" opacity=".8"><circle cx="${x+w/2}" cy="${y+h*.38}" r="${Math.min(h*.13,w*.09)}"/><path d="M${x+w*.33} ${y+h*.84}Q${x+w*.5} ${y+h*.52} ${x+w*.67} ${y+h*.84}Z"/></g>`+
- text('PHOTO '+(i+1),x+w/2,y+h*.92,25,'#fff2c2','font-family="Arial,sans-serif" letter-spacing="3"');
+ const inside=safe?`<image data-guest-photo="true" data-pose="${i+1}" href="${esc(safe)}" x="${x}" y="${y}" width="${w}" height="${h}" preserveAspectRatio="${fit==='fit'?'xMidYMid meet':'xMidYMid slice'}"/>`:sampleGradPhoto(i,x,y,w,h);
  return frame+inside;
 }
 function base(){return defs()+rect(0,0,1200,1800,'url(#lmBg)')+rect(0,0,1200,1800,'url(#lmBlueGlow)')+confetti()+
