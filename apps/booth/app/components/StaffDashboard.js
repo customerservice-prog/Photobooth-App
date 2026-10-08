@@ -110,7 +110,7 @@ export default function StaffDashboard({onClose,onReset,onVoiceTest,onRecover,on
     <button className="operatorQuickCard operatorGuestCard" type="button" data-testid="operator-lock-ipad" onClick={showKioskGuide}><span aria-hidden="true">▣</span><strong>Lock iPad for guests</strong><small>Guided Access setup steps</small></button>
     <button className="operatorQuickCard operatorGuestCard" type="button" data-testid="operator-load-event" onClick={showEventTransfer}><span aria-hidden="true">⇪</span><strong>Load an event</strong><small>Send admin settings to this iPad</small></button>
     <a className="operatorQuickCard" href={setupHref}><span aria-hidden="true">✎</span><strong>Event setup</strong><small>Names, colors, print layouts</small></a>
-    <button className="operatorQuickCard" type="button" data-testid="operator-sound-test" onClick={onVoiceTest}><span aria-hidden="true">♫</span><strong>Test speaker</strong><small>Check countdown audio</small></button>
+    <button className="operatorQuickCard" type="button" data-testid="operator-sound-test" onClick={onVoiceTest}><span aria-hidden="true">♫</span><strong>Play voice sample</strong><small>Staff-only sound check</small></button>
     <a className="operatorQuickCard" href="/print-test"><span aria-hidden="true">▤</span><strong>Canon test print</strong><small>Check paper and colors</small></a>
     <a className="operatorQuickCard" href="/delivery-check"><span aria-hidden="true">↗</span><strong>Digital delivery</strong><small>Test sharing and receipts</small></a>
     <a className="operatorQuickCard" href="/help#guided-access"><span aria-hidden="true">◇</span><strong>iPad help</strong><small>Guided Access & fixes</small></a>
@@ -132,7 +132,7 @@ export default function StaffDashboard({onClose,onReset,onVoiceTest,onRecover,on
      </form>
     </div>
    </details>
-   {voiceStatus==='blocked'&&<p className="operatorNotice" role="alert">Speaker playback is blocked. Turn up the iPad volume, check Bluetooth, then tap Test speaker again.</p>}
+   {voiceStatus==='blocked'&&<p className="operatorNotice" role="alert">Speaker playback is blocked. Turn up the iPad volume, check Bluetooth, then play the voice sample again.</p>}
    <details className="operatorFold">
     <summary>Recover a recent photo <span>{photos.length} available</span></summary>
     <div className="operatorFoldContent">
