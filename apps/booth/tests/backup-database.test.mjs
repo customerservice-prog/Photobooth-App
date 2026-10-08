@@ -2,7 +2,12 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {database,storeBackupImage} from '../app/lib/backup-store.mjs';
 test('PostgreSQL backup is private, event scoped and idempotent',async t=>{
- if(!process.env.DELIVERY_DATABASE_URL){t.skip('Requires temporary PostgreSQL service');return;}
+ // Railway's isolated build has a DATABASE_URL but cannot resolve the private
+ // runtime-only postgres. Run this destructive integration test only against
+ // an explicitly selected disposable test database.
+ if(process.env.RUN_LIVE_BACKUP_DB_TEST!=='true'||!process.env.DELIVERY_DATABASE_URL){
+  t.skip('Requires RUN_LIVE_BACKUP_DB_TEST=true and a temporary reachable PostgreSQL service');return;
+ }
  const db=await database(),eventId='test-'+process.pid+'-'+Date.now(),captureId='capture-proof';
  try{
   const image=Buffer.from([255,216,42,42,255,217]);
