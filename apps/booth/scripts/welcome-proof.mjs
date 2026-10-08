@@ -44,7 +44,17 @@ try{
   await staff.click();await page.getByTestId('staff-confirm').click();
   await page.getByRole('dialog',{name:'Operator controls',exact:true}).waitFor();
   assert((await page.locator('.operatorPanel').textContent()).includes('209'));
-  assert.equal(await page.locator('.operatorQuickCard').count(),7);
+  assert.equal(await page.locator('.operatorQuickCard').count(),8);
+  const awakeToggle=page.getByTestId('operator-awake-toggle');
+  assert(await awakeToggle.isChecked(),'guest display stays awake by default');
+  await awakeToggle.uncheck();
+  assert.equal(await page.evaluate(()=>localStorage.getItem('friendly-booth-screen-awake-v1')),'off');
+  assert((await page.getByTestId('operator-awake-status').innerText()).includes('Off by staff choice'));
+  await awakeToggle.check();
+  assert.equal(await page.evaluate(()=>localStorage.getItem('friendly-booth-screen-awake-v1')),'on');
+  await page.getByTestId('operator-lock-ipad').click();
+  assert.equal(await page.getByTestId('operator-guided-access').getAttribute('open'),'');
+  assert((await page.getByTestId('operator-guided-access').innerText()).includes('Display Auto-Lock'));
   await page.getByTestId('operator-load-event').click();
   assert.equal(await page.getByTestId('staff-load-event').getAttribute('open'),'','one tap expands the transfer form');
   assert(await page.getByTestId('staff-event-link').isVisible());
