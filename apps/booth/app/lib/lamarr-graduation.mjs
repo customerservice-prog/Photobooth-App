@@ -40,8 +40,9 @@ function balloons(){return balloon(67,153,.9,true,-16)+balloon(246,152,.93,false
 function cap(x,y,scale){return `<g transform="translate(${x} ${y}) scale(${scale})"><path d="M-110 -4L0 -50 110 -4 0 40Z" fill="#031126" stroke="url(#lmGold)" stroke-width="7"/><path d="M-74 20V60Q0 103 74 60V20" fill="#051d41" stroke="url(#lmGold)" stroke-width="6"/><path d="M108 1V80" stroke="url(#lmGold)" stroke-width="6"/><path d="M102 83l-14 44h40l-14 -44Z" fill="url(#lmGold)"/></g>`;}
 function text(v,x,y,size,fill,options=''){return `<text x="${x}" y="${y}" text-anchor="middle" fill="${fill}" font-size="${size}" ${options}>${esc(v)}</text>`;}
 function name(v,y){
- const sz=v.length>22?88:v.length>14?110:155;
- return `<g data-text-role="name">${text(v,600,y,sz,'url(#lmGold)','font-family="Georgia, serif" font-style="italic" font-weight="bold" paint-order="stroke" stroke="#703108" stroke-width="2"'+(v.length>14?' textLength="990" lengthAdjust="spacingAndGlyphs"':''))}</g>`+
+ const sz=v.length>22?78:v.length>14?105:v.length>8?147:183;
+ const width=v.length>18?990:v.length>12?960:v.length>8?920:870;
+ return `<g data-text-role="name">${text(v,600,y,sz,'url(#lmGold)','font-family="Georgia, serif" font-style="italic" font-weight="bold" paint-order="stroke" stroke="#703108" stroke-width="2"'+' textLength="'+width+'" lengthAdjust="spacingAndGlyphs"')}</g>`+
  path(`M196 ${y+27}Q600 ${y+51} 1004 ${y+27}`,'none','#fa8723',10);
 }
 function photo(src,i,x,y,w,h,fit='fill'){
