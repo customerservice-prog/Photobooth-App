@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
-import {validateAppVersion,compareReleases,updateDestination,readAppVersion} from '../app/lib/app-update.mjs';
+import {validateAppVersion,compareReleases,updateDestination,readAppVersion,refreshInstalledWorkerOnManualUpdate} from '../app/lib/app-update.mjs';
 import {BOOTH_RELEASE} from '../app/lib/booth-launch.mjs';
 const version={app:'friendly-photo-booth',schema:1,version:BOOTH_RELEASE,label:'Smile countdown'};
 const response=body=>new Response(JSON.stringify(body),{headers:{'content-type':'application/json'}});
@@ -73,4 +73,19 @@ test('updating an imported event returns to that event without loading unrelated
  assert.equal(u.searchParams.get('boothv'),BOOTH_RELEASE);
  assert.equal(u.searchParams.get('refresh'),'123');
  assert.equal(u.searchParams.size,3);
+});
+
+test('manual iPad app update explicitly activates the waiting service worker',async()=>{
+ const listeners=new Map(),sent=[];
+ const serviceWorker={
+  addEventListener:(name,listener)=>listeners.set(name,listener),
+  removeEventListener:name=>listeners.delete(name),
+  getRegistration:async()=>({update:async()=>{},waiting:{postMessage(message){sent.push(message);listeners.get('controllerchange')?.();}}})
+ };
+ assert.equal(await refreshInstalledWorkerOnManualUpdate({serviceWorker,timeoutMs:150}),'requested');
+ assert.deepEqual(sent,[{type:'ACTIVATE_UPDATED_BOOTH'}]);
+ assert.equal(listeners.size,0);
+});
+test('manual app update safely skips browsers without service workers',async()=>{
+ assert.equal(await refreshInstalledWorkerOnManualUpdate({serviceWorker:null}),'not-installed');
 });
