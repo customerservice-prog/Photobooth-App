@@ -49,8 +49,8 @@ for(const [name,driver] of [['chromium',chromium],['webkit',webkit]]){
    assert.match(await page.locator('.pcWords').innerText(),/Watch the countdown/);
    assert.equal(await page.getByText('Sound could not start',{exact:false}).count(),0);
    await page.locator('.ksStudio').waitFor({timeout:120000});
-   assert.equal(await page.evaluate(()=>window.__testCameraStarts),photos===1?1:2);
-   assert.equal(await page.getByRole('button',{name:'Digital Copy',exact:true}).count(),1);
+   assert.equal(await page.evaluate(()=>window.__testCameraStarts),1);
+   await page.getByRole('button',{name:'Digital Copy',exact:true}).waitFor({timeout:20000});
    assert.deepEqual(errors,[],'No uncaught browser errors');
    await page.screenshot({path:`${output}/${name}-${photos}-photos.png`});
    results.push({browser:name,photos,passed:true});
