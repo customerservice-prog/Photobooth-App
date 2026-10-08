@@ -44,7 +44,9 @@ try{
   await staff.click();await page.getByTestId('staff-confirm').click();
   await page.getByRole('dialog',{name:'Operator controls',exact:true}).waitFor();
   assert((await page.locator('.operatorPanel').textContent()).includes('209'));
-  assert.equal(await page.locator('.operatorQuickCard').count(),6);
+  assert.equal(await page.locator('.operatorQuickCard').count(),7);
+  assert(await page.getByTestId('operator-load-event').isVisible());
+  assert.equal(await page.getByTestId('operator-load-event').getAttribute('href'),'/load-event');
   assert(await page.getByTestId('operator-reset-guest').isVisible());
   assert(await page.getByTestId('operator-sound-test').isVisible());
   assert.equal(await page.getByRole('link',{name:/Event setup/}).getAttribute('href'),'/setup');
