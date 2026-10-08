@@ -29,7 +29,10 @@ export function buildBoothHandoffPayload(event){
   a:e.primary,b:e.accent,limit:prints,
   on:event.printingEnabled!==false&&prints>0,qr:event.qrSharingEnabled!==false,
   sync:process.env.PHOTOBOOTH_EVENT_SYNC_SECRET?makeSyncTicket(event.id,event.date):undefined,
-  design:'champagne'
+  // Staff approves exactly one graphic before guests arrive; the booth renders
+  // this choice as a full card (one pose) or four-photo keepsake (four poses).
+  design:e.approvedDesign,name:clean(e.nameOnPrint||event.name,65),
+  year:e.classYear||'',guest:'approved'
  });
 }
 export function makeBoothHandoffLink(event){
