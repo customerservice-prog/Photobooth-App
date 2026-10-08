@@ -16,6 +16,14 @@ try{
  await page.getByRole('heading',{name:'October 10 Test Photo Booth Party'}).waitFor();
  assert(await page.getByText('Needs setup').first().isVisible(),'a missing venue must not appear ready');
  assert(await page.getByText('Venue and address').first().isVisible());
+ const send=page.getByTestId('send-to-booth-link'),href=await send.getAttribute('href');
+ assert(href.startsWith('https://photobooth-booth-production.up.railway.app/load-event#'));
+ const original=JSON.parse(Buffer.from(href.split('#')[1],'base64url').toString('utf8'));
+ assert.equal(original.t,'October 10 Test Photo Booth Party');
+ assert(!JSON.stringify(original).includes('test@example.invalid'));
+ assert(!JSON.stringify(original).includes('Test Customer'));
+ assert(await page.getByRole('img',{name:/QR code to load/}).isVisible());
+ console.log('Safe cross-device event handoff URL and QR image ready.');
  await page.screenshot({path:'admin-proof/event-before-desktop.png',fullPage:true});
  await page.getByRole('link',{name:/Edit event/}).first().click();
  await page.getByRole('heading',{name:/Set up October 10 Test Photo Booth Party/}).waitFor();
@@ -46,6 +54,18 @@ try{
  assert.equal(event.theme.boothExperience.accent,'#e4b4a1');
  assert.equal(event.endTime.toISOString(),'2026-10-11T00:00:00.000Z');
  assert.equal(event.status,'CONFIGURED');
+ await page.getByTestId('send-to-booth-link').waitFor();
+ const updatedUrl=await page.getByTestId('send-to-booth-link').getAttribute('href');
+ const updated=JSON.parse(Buffer.from(updatedUrl.split('#')[1],'base64url').toString('utf8'));
+ assert.equal(updated.f,1);
+ assert.equal(updated.b,9);
+ assert.equal(updated.l,'strip');
+ assert.equal(updated.s,2);
+ assert.equal(updated.n,0);
+ assert.equal(updated.p,false);
+ assert.deepEqual(updated.c,['#855665','#e4b4a1']);
+ assert(!JSON.stringify(updated).includes('123 Main Street'));
+ console.log('Admin edits update the transfer link without exposing the customer address.');
  console.log('Event settings saved, midnight schedule and unrelated theme metadata retained.');
  for(const path of ['/dashboard','/events','/booths','/templates','/photos','/galleries','/customers','/employees','/reports','/settings']){
   await page.goto(base+path,{waitUntil:'domcontentloaded'});
