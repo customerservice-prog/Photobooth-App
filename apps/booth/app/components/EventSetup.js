@@ -159,7 +159,7 @@ export default function EventSetup({cfg,photo='',poses=[],onSave,onClose}){
      <p className="ksFine">Your setup stays on this device. Saved guest photos and print counts remain untouched.</p>
     </form>}
    </section>
-   <aside className="ksSetupPreview ksWowPreview" aria-label="Interactive keepsake preview">
+   <aside className="ksSetupPreview ksWowPreview" data-preview-format={format} aria-label="Interactive keepsake preview">
     <div className="ksPreviewTop"><span className="ksEyebrow">THE KEEPSAKE STUDIO</span><span className="ksPreviewStar" aria-hidden="true">✦</span></div>
     <div className="ksPreviewFormat" role="group" aria-label="Preview the print format">
      <button type="button" data-testid="setup-preview-card" aria-pressed={format==='card'} onClick={()=>chooseLayout('card')}>4×6 Card</button>
