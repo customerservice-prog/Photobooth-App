@@ -35,8 +35,11 @@ export function renderClassicPhotoStrip({poses,cfg={},template='ivory',stripMode
    return backdrop+image;
   }).join('');
   const smallTitle=lettering(title,600,57,1120,47,ink,{face:'serif',lines:1});
+  // Keep the customizable event footer even in the full-width, photo-forward strip.
+  // This sits entirely below the four image cells and remains editable in event setup.
+  const footerArt=footer?lettering(footer,600,1690,1120,25,ink,{face:'sans',lines:1}):'';
   const date=lettering(copy.date||cfg.date||'',600,1730,1100,25,ink);
-  return `<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="1800" viewBox="0 0 1200 1800" role="img" aria-label="${esc('Four photo booth pictures — '+title)}" data-collection="photo-strips" data-layout="photo_strip" data-strip-mode="single" data-pose-count="4" data-design="arcade-four"><title>${esc(title+' — four-photo classic keepsake')}</title>${rect(0,0,1200,1800,'#ffffff')}${smallTitle}${photoArt}${date}${lettering('FRIENDLY PHOTO BOOTH',600,1770,1100,15,ink,{tracking:2})}</svg>`;
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="1800" viewBox="0 0 1200 1800" role="img" aria-label="${esc('Four photo booth pictures — '+title)}" data-collection="photo-strips" data-layout="photo_strip" data-strip-mode="single" data-pose-count="4" data-design="arcade-four"><title>${esc(title+' — four-photo classic keepsake')}</title>${rect(0,0,1200,1800,'#ffffff')}${smallTitle}${photoArt}${footerArt}${date}${lettering('FRIENDLY PHOTO BOOTH',600,1770,1100,15,ink,{tracking:2})}</svg>`;
  }
  const text=(value,y,maxWidth,size,fill=ink,options={})=>lettering(value,mid,y,maxWidth,size,fill,{face:'sans',...options});
  let column=rect(0,0,width,1800,paper)+rect(10,10,width-20,1780,'none',accent,1.3);
