@@ -13,6 +13,7 @@ import {composePhotoStrip} from './lib/photo-strip.mjs';
 import {workspace,readEventDraft,saveEventDraft,usage,ownPrintUsage,readyForEvent} from './lib/event-workspace.mjs';
 import {saveCapture,saveKeepsake,archiveCount,recentCaptures,openArchive,capturePoses} from './lib/event-photo-archive.mjs';
 import {createScreenAwakeController,readScreenAwakeSetting,saveScreenAwakeSetting} from './lib/screen-awake.mjs';
+import {activeEventDestination} from './lib/active-event.mjs';
 import './event-prep/preparation.css';
 const RESET_MS=90000;
 const defaultCfg={title:'Our Celebration',subtitle:'Friendly Photo Booth',date:new Date().toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'}),type:'other',printPackage:normalizePrintPackage()};
@@ -51,6 +52,11 @@ export default function Booth(){
     setOnline(navigator.onLine);setInstalled(navigator.standalone===true||window.matchMedia?.('(display-mode: standalone)').matches===true);
     const f=()=>setOnline(navigator.onLine);addEventListener('online',f);addEventListener('offline',f);
     async function load(){try{
+      const params=new URLSearchParams(window.location.search);
+      if(!params.has('booth_event')&&!params.has('event')){
+        const assigned=activeEventDestination(localStorage);
+        if(assigned){window.location.replace(assigned);return;}
+      }
       const target=workspace(window.location.search);setScope(target);
       const c=target.managed?readEventDraft(localStorage):JSON.parse(localStorage.getItem(target.config)||'null');
       if(target.imported&&!c)throw new Error('This event has not been loaded on this iPad. Scan its Send to Booth QR code from the staff dashboard.');
