@@ -52,7 +52,7 @@ export function configFromBoothHandoff(payload,existing={}){
   printPackage:{...previousPackage,includedPrints:payload.limit,addOnPrints:0,
    shotsPerSession:4,copiesPerSession:1,printingEnabled:payload.on&&payload.limit>0},
   setupComplete:true,qrSharingEnabled:payload.qr,
-  adminHandoff:{version:1,revision:payload.rev,transferredAt:new Date().toISOString()}
+  adminHandoff:{version:1,revision:payload.rev,transferredAt:new Date().toISOString(),syncTicket:typeof payload.sync==='string'?payload.sync:(old.adminHandoff?.syncTicket||null)}
  };
 }
 export function applyBoothHandoff(storage,payload){
