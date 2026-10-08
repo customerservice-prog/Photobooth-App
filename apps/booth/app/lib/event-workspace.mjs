@@ -35,7 +35,10 @@ export function workspace(search=''){
    // Keep the already-created transfer photo archive intact; the earlier
    // October archive remains accessible from its original event-prep page.
    const linkedOctober=id===OCTOBER_ADMIN_EVENT_ID;
-   return {id,imported:true,managed:false,demo:false,linkedOctober,config:root+'-config',
+   // A separate, intentionally labeled sample session, never an admin booking.
+   // Paid event settings, photos and print allowances remain untouched.
+   const demo=id==='graduation-showcase';
+   return {id,imported:true,managed:false,demo,linkedOctober,config:root+'-config',
     usage:root+'-usage',photos:root+'-recent',previous:root+'-previous',
     archive:'transfer:'+id,home:'/'+q,setup:'/setup'+q};
   }
