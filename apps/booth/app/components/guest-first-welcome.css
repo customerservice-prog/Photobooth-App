@@ -274,3 +274,20 @@
 @media(prefers-reduced-motion:reduce){
  .booth.bwWelcomeMode .bwSessionCard{transition:none;transform:none!important}
 }
+
+
+/* Rotated sample sheets protrude beyond their layout box.
+   Reserve true clearance so the bottom caption can never overlap either sheet. */
+.booth.bwWelcomeMode .bwPaperStack{margin-bottom:44px}
+@media(min-width:851px) and (max-height:760px){
+ .booth.bwWelcomeMode .bwPaperStack{margin-bottom:29px}
+}
+@media(min-width:851px) and (max-height:610px){
+ .booth.bwWelcomeMode .bwPaperStack{margin-bottom:24px}
+}
+@media(max-width:850px){
+ .booth.bwWelcomeMode .bwPaperStack{margin-bottom:32px}
+}
+@media(max-width:680px){
+ .booth.bwWelcomeMode .bwPaperStack{margin-bottom:33px}
+}
