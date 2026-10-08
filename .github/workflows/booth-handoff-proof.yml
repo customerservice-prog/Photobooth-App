@@ -1,0 +1,50 @@
+name: Staff to iPad handoff proof
+on:
+  push:
+    branches: ['main', 'feature/one-click-admin-booth-handoff-20261008']
+    paths:
+      - 'apps/booth/**'
+      - 'apps/admin/lib/booth-transfer.mjs'
+      - '.github/workflows/booth-handoff-proof.yml'
+  pull_request:
+    paths:
+      - 'apps/booth/**'
+      - 'apps/admin/lib/booth-transfer.mjs'
+      - '.github/workflows/booth-handoff-proof.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  handoff:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      NEXT_TELEMETRY_DISABLED: '1'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install booth dependencies and browsers
+        working-directory: apps/booth
+        run: |
+          npm install --no-audit --no-fund
+          npm install --no-save playwright@1.55.0
+          npx playwright install --with-deps chromium webkit
+      - name: Validate privacy, settings and print counter isolation
+        working-directory: apps/booth
+        run: node --test tests/booth-handoff.test.mjs
+      - name: Build booth with handoff route
+        working-directory: apps/booth
+        run: npm run build
+      - name: Verify import and update on real Chromium and WebKit
+        working-directory: apps/booth
+        run: |
+          npm run start > handoff-server.log 2>&1 &
+          SERVER_PID=$!
+          trap 'kill $SERVER_PID 2>/dev/null || true' EXIT
+          for i in $(seq 1 60); do
+            if curl -fsS http://127.0.0.1:3000/handoff > /dev/null; then break; fi
+            sleep 1
+          done
+          node scripts/handoff-proof.mjs
