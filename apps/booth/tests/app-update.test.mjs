@@ -51,10 +51,14 @@ test('a stalled version request is aborted with a timeout',async()=>{
 test('an in-flight caller cancellation propagates and releases its listeners',async()=>{
  const c=new AbortController();const promise=readAppVersion({signal:c.signal,fetcher:async(_u,{signal})=>new Promise((_resolve,reject)=>signal.addEventListener('abort',()=>reject(new Error('aborted')),{once:true}))});c.abort();await assert.rejects(()=>promise,e=>e.name==='AbortError');
 });
-test('updater never resets browser storage or registers a service worker',async()=>{
- const [helper,component]=await Promise.all(['../app/lib/app-update.mjs','../app/components/AppUpdate.js'].map(p=>readFile(new URL(p,import.meta.url),'utf8')));
- for(const src of [helper,component])assert.doesNotMatch(src,/localStorage|indexedDB|sessionStorage|caches\.|serviceWorker\.|document\.cookie|Clear-Site-Data/);
- assert.match(component,/if\(reload\)/);assert.match(component,/controller\.signal\.aborted/);
+test('updater never clears event data or registers a worker; refresh requires a user tap',async()=>{
+  const [helper,component]=await Promise.all(['../app/lib/app-update.mjs','../app/components/AppUpdate.js'].map(p=>readFile(new URL(p,import.meta.url),'utf8')));
+  for(const src of [helper,component])assert.doesNotMatch(src,/localStorage|indexedDB|sessionStorage|caches\.|document\.cookie|Clear-Site-Data/);
+  assert.doesNotMatch(helper+component,/serviceWorker\.register\(|\.unregister\(/);
+  assert.match(helper,/refreshInstalledWorkerOnManualUpdate/);
+  assert.match(component,/if\(reload\)/);
+  assert.match(component,/await refreshInstalledWorkerOnManualUpdate\(\)/);
+  assert.match(component,/controller\.signal\.aborted/);
 });
 test('update is offered only at safe welcome and launcher screens',async()=>{
  const read=p=>readFile(new URL(p,import.meta.url),'utf8');assert.match(await read('../app/components/WelcomeScreen.js'),/<AppUpdate disabled=\{starting\}/);assert.match(await read('../app/components/BoothLauncher.js'),/<AppUpdate\/>/);
