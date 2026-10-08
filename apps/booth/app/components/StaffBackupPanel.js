@@ -1,9 +1,10 @@
 'use client';
-import {useState} from 'react';
+import {useState,useEffect} from 'react';
 import {workspace} from '../lib/event-workspace.mjs';
-import {saveBackupToken} from '../lib/backup-sync.mjs';
+import {saveBackupToken,backupEnabled,syncEventPhotos} from '../lib/backup-sync.mjs';
 export default function StaffBackupPanel(){
  const [status,setStatus]=useState('');
+ useEffect(()=>{const event=workspace(location.search);if(backupEnabled(localStorage,event.id))setStatus('Backup authorized. New photos retry while online.');},[]);
  async function activate(){
   const event=workspace(location.search);
   if(!event.managed&&!event.imported)return setStatus('Load a customer event first.');
