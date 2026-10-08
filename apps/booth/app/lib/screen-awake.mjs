@@ -79,6 +79,7 @@ export function createScreenAwakeController({doc,win,nav,onStatus=()=>{}}){
   win?.removeEventListener?.('focus',onInteraction);
   releaseHeld();
   // No React callbacks on teardown.
+  status='off';
  }
  return {start,setEnabled,retry:request,stop,getStatus:()=>status,getEnabled:()=>enabled};
 }
