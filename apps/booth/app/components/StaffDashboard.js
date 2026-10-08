@@ -1,5 +1,6 @@
 'use client';
 import {useEffect,useRef} from 'react';
+import './staff-dashboard.css';
 
 // A functional staff dashboard shared by demo and live contexts. The staff
 // confirmation is not authentication; the iPad must be supervised/Guided Access.
