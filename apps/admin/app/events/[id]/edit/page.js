@@ -52,7 +52,7 @@ export default async function EditEventPage({params}){
     {(!booths.length||!templates.length)&&<div className="warningNote" style={{marginTop:14}}>Missing options? {!booths.length&&<Link href="/booths/new">Register a booth →</Link>}{!booths.length&&!templates.length?' · ':''}{!templates.length&&<Link href="/templates/new">Add a print design →</Link>}</div>}
    </section>
    <input type="hidden" name="numberOfPhotos" value={event.numberOfPhotos===3?'3':'4'}/>
-   <ExperienceEditor initial={experience}/>
+   <ExperienceEditor initial={experience} eventType={type}/>
    <section className="card formSection" id="printing">
     <div className="eyebrow">STEP 05 · OUTPUT</div><h2 className="sectionTitle">Printing and digital keepsakes</h2>
     <p className="sectionLead">One physical 4×6 sheet per guest print request. Digital downloads do not use a paper allowance.</p>
