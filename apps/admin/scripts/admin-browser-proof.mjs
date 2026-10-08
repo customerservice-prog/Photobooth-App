@@ -1,0 +1,73 @@
+import assert from 'node:assert/strict';
+import {mkdir} from 'node:fs/promises';
+import {chromium} from 'playwright';
+import {PrismaClient} from '@prisma/client';
+const base=process.env.ADMIN_PROOF_URL||'http://127.0.0.1:3001';
+await mkdir('admin-proof',{recursive:true});
+const browser=await chromium.launch({headless:true,args:['--no-sandbox']});
+const prisma=new PrismaClient();
+let page;
+try{
+ const context=await browser.newContext({viewport:{width:1440,height:900}});
+ page=await context.newPage();
+ const errors=[];
+ page.on('pageerror',e=>errors.push(e.message));
+ await page.goto(base+'/events/event-smoke-20261010',{waitUntil:'networkidle'});
+ await page.getByRole('heading',{name:'October 10 Test Photo Booth Party'}).waitFor();
+ assert(await page.getByText('Needs setup').first().isVisible(),'a missing venue must not appear ready');
+ assert(await page.getByText('Venue and address').first().isVisible());
+ await page.screenshot({path:'admin-proof/event-before-desktop.png',fullPage:true});
+ await page.getByRole('link',{name:/Edit event/}).first().click();
+ await page.getByRole('heading',{name:/Set up October 10 Test Photo Booth Party/}).waitFor();
+ await page.locator('input[name="venueName"]').fill('Sky Lodge');
+ await page.locator('input[name="venueAddress"]').fill('123 Main Street, Syracuse, NY');
+ await page.locator('input[name="maxPrints"]').fill('0');
+ await page.locator('input[name="featured"][value="one"]').check();
+ await page.locator('select[name="pauseSeconds"]').selectOption('9');
+ await page.locator('input[name="format"][value="strip"]').check();
+ await page.locator('select[name="strips"]').selectOption('2');
+ await page.locator('input[name="paletteId"][value="rose"]').check();
+ await page.screenshot({path:'admin-proof/edit-desktop.png',fullPage:true});
+ await page.getByRole('button',{name:/Save event changes/}).click();
+ await page.waitForURL('**/events/event-smoke-20261010');
+ await page.getByText('Core setup complete').first().waitFor();
+ assert(await page.getByText('0 sheets').first().isVisible());
+ await page.screenshot({path:'admin-proof/event-after-desktop.png',fullPage:true});
+ const event=await prisma.event.findUnique({where:{id:'event-smoke-20261010'},include:{customer:true,booth:true,template:true}});
+ assert.equal(event.venueName,'Sky Lodge');
+ assert.equal(event.venueAddress,'123 Main Street, Syracuse, NY');
+ assert.equal(event.maxPrints,0);
+ assert.equal(event.theme.legacySetting,'must survive');
+ assert.equal(event.theme.boothExperience.featured,'one');
+ assert.equal(event.theme.boothExperience.pauseSeconds,9);
+ assert.equal(event.theme.boothExperience.format,'strip');
+ assert.equal(event.theme.boothExperience.strips,2);
+ assert.equal(event.theme.boothExperience.primary,'#855665');
+ assert.equal(event.theme.boothExperience.accent,'#e4b4a1');
+ assert.equal(event.endTime.toISOString(),'2026-10-11T00:00:00.000Z');
+ assert.equal(event.status,'CONFIGURED');
+ console.log('Event settings saved, midnight schedule and unrelated theme metadata retained.');
+ for(const path of ['/dashboard','/events','/booths','/templates','/photos','/galleries','/customers','/employees','/reports','/settings']){
+  await page.goto(base+path,{waitUntil:'domcontentloaded'});
+  const top=page.locator('main.page');
+  await top.waitFor();
+  assert(await top.getByRole('heading',{level:1}).count()===1,'one clear primary heading at '+path);
+  assert(!errors.length,'no page script errors at '+path+': '+errors.join(' | '));
+ }
+ for(const [label,width,height] of [['ipad',1024,768],['phone',390,844],['small-phone',320,640]]){
+  await page.setViewportSize({width,height});
+  await page.goto(base+'/events/event-smoke-20261010',{waitUntil:'networkidle'});
+  const metrics=await page.evaluate(()=>({documentWidth:document.documentElement.scrollWidth,windowWidth:window.innerWidth}));
+  assert(metrics.documentWidth<=metrics.windowWidth+2,label+' has no horizontal overflow: '+JSON.stringify(metrics));
+  await page.screenshot({path:'admin-proof/'+label+'-event.png',fullPage:true});
+  if(width<850){
+   const toggle=page.getByRole('button',{name:/Menu/});
+   await toggle.click();
+   assert.equal(await toggle.getAttribute('aria-expanded'),'true');
+   await page.getByRole('link',{name:'My booths'}).click();
+   await page.waitForURL('**/booths');
+   assert.equal(await page.getByRole('button',{name:/Menu/}).getAttribute('aria-expanded'),'false');
+  }
+ }
+ console.log('Admin routes, event edit and iPad/phone layouts verified.');
+}finally{await prisma.$disconnect();await page?.context().close();await browser.close();}
