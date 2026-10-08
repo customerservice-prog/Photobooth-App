@@ -1,0 +1,41 @@
+.loadPage{min-height:100dvh;background:radial-gradient(circle at 85% 0%,#bbd2b34a,transparent 40%),#f4f5ef;color:#294536;padding:clamp(12px,4vw,36px);display:flex;justify-content:center;align-items:flex-start;font:14px/1.5 system-ui,sans-serif}
+.loadCard{width:min(860px,100%);background:#fffefa;border:1px solid #d8ded0;border-radius:24px;box-shadow:0 18px 50px #1c3c2924;overflow:hidden}
+.loadHead{display:flex;align-items:center;justify-content:space-between;gap:10px;min-height:79px;padding:15px clamp(17px,3vw,35px);border-bottom:1px solid #dce4d8}
+.loadBrand{display:flex;align-items:center;gap:10px;color:#356346;font:26px Georgia,serif}
+.loadBrand>span{font:800 17px/1.2 system-ui,sans-serif;letter-spacing:1px}
+.loadBrand small{display:block;color:#809080;font:700 9px/1.5 system-ui,sans-serif;letter-spacing:1.5px}
+.loadBack{text-decoration:none;color:#41644b;font-weight:700;font-size:12px}
+.loadIntro{padding:32px clamp(17px,4vw,43px) 8px}
+.loadOverline{font-size:11px;font-weight:800;letter-spacing:1.8px;color:#ab8253}
+.loadIntro h1{font:400 clamp(30px,4.4vw,44px)/1.1 Georgia,serif;letter-spacing:-.8px;margin:9px 0 11px}
+.loadIntro p{color:#66796b;margin:0;max-width:670px}
+.loadChoose,.loadReview,.loadSuccess{padding:23px clamp(17px,4vw,43px) 34px}
+.loadFileChoice{display:grid;place-items:center;width:100%;min-height:90px;padding:18px;border:2px dashed #88aa91;border-radius:15px;text-align:center;color:#2d6144;font-weight:750;cursor:pointer;background:#f0f6ed}
+.loadFileChoice input{display:block;width:min(270px,100%);margin:10px auto 0}
+.loadChoose p{color:#607365;font-size:13px}
+.loadReviewHead{padding:18px;background:#eaf2e8;border:1px solid #d3e1d2;border-radius:15px}
+.loadReviewHead h2{font:400 clamp(26px,3.9vw,35px)/1.12 Georgia,serif;margin:5px 0 7px}
+.loadReviewHead p{margin:0;color:#5f7666}
+.loadFacts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:16px 0}
+.loadFacts>div{border:1px solid #dae4d7;border-radius:12px;padding:14px;background:#fafbf7}
+.loadFacts small{display:block;text-transform:uppercase;font-size:10px;letter-spacing:1px;color:#778776;margin-bottom:6px}
+.loadFacts strong{display:block;font-size:15px;color:#2f533e;overflow-wrap:anywhere}
+.loadColors{display:inline-flex;vertical-align:middle;width:41px;height:21px;overflow:hidden;border-radius:6px;margin-right:8px;border:1px solid #bec8b6}
+.loadColors i{flex:1}
+.loadNotice{padding:15px;border:1px solid #e1d3a9;background:#fcf8e7;color:#645d45;border-radius:12px;font-size:13px;line-height:1.6;margin-top:15px}
+.loadActions{display:flex;gap:11px;flex-wrap:wrap;margin-top:21px}
+.loadPrimary,.loadSecondary{display:inline-flex;justify-content:center;align-items:center;min-height:52px;padding:12px 18px;border-radius:12px;text-decoration:none;font:750 14px/1.3 system-ui,sans-serif}
+.loadPrimary{background:#2b6148;color:#fffdf5;border:1px solid #2b6148;flex:1}
+.loadSecondary{background:#fffefa;color:#356448;border:1px solid #c1d4c0}
+.loadPrimary:disabled{opacity:.5;cursor:not-allowed}
+.loadFine,.loadSuccess>small{color:#718072;font-size:12px;line-height:1.5;margin:15px 0 0}
+.loadError{padding:15px;margin:18px clamp(17px,4vw,43px) 0;border:1px solid #e9bbb0;border-radius:12px;background:#fff0ed;color:#913a2c}
+.loadSuccess{text-align:center}
+.loadSuccessMark{display:grid;place-items:center;width:65px;height:65px;border-radius:50%;background:#dfeee0;color:#24663e;font-size:30px;margin:0 auto 14px}
+.loadSuccess h2{font:400 31px Georgia,serif;margin:5px 0}
+.loadSuccess p{color:#536b58}
+.loadFooter{display:flex;justify-content:space-between;gap:9px;padding:15px clamp(17px,4vw,43px);border-top:1px solid #dce4d8;color:#7c8c7b;font:750 10px system-ui,sans-serif;letter-spacing:1px}
+.loadFooter a{color:#37634d;text-decoration:none}
+.loadPage button:focus-visible,.loadPage a:focus-visible,.loadPage input:focus-visible{outline:3px solid #c69b54;outline-offset:3px}
+@media(max-width:600px){.loadPage{padding:8px}.loadCard{border-radius:16px}.loadHead{min-height:68px}.loadIntro{padding-top:25px}.loadFacts{gap:8px}.loadFacts>div{padding:10px}.loadFacts strong{font-size:13px}.loadActions>*{flex-basis:100%}.loadFooter{flex-wrap:wrap}}
+@media(prefers-reduced-motion:reduce){.loadPage *{scroll-behavior:auto}}
