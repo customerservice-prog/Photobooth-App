@@ -2,6 +2,7 @@
 import {useEffect,useState} from 'react';
 import {decodeBoothHandoff,applyBoothHandoff} from '../lib/booth-handoff.mjs';
 import {workspace,usage} from '../lib/event-workspace.mjs';
+import {assignActiveEvent} from '../lib/active-event.mjs';
 import './handoff.css';
 export default function HandoffPage(){
  const [state,setState]=useState({loading:true,payload:null,error:'',previous:null,used:0});
@@ -22,6 +23,7 @@ export default function HandoffPage(){
   setSaving(true);
   try{
    const result=applyBoothHandoff(localStorage,state.payload);
+   try{assignActiveEvent(localStorage,result.scope.id);}catch{}
    // Replace removes the long transfer fragment from the address bar.
    window.location.replace(result.scope.home);
   }catch(error){
