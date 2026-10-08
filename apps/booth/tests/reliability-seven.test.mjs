@@ -13,7 +13,7 @@ test('staff session is signed and expires after fifteen minutes',async()=>{
  assert.equal(await validStaffSession(value,secret,now),true);
  assert.equal(await validStaffSession(value,secret+'x',now),false);
  assert.equal(await validStaffSession(value,secret,now+16*60000),false);
- assert.equal(await validStaffSession(value.slice(0,-1)+'0',secret,now),false);
+ assert.equal(await validStaffSession(value.slice(0,-1)+(value.endsWith('0')?'1':'0'),secret,now),false);
  assert.equal(await validStaffSession('',secret,now),false);
 });
 test('only a saved, matching customer event may auto-resume',()=>{
