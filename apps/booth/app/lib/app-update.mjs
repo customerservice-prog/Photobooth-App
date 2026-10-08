@@ -47,7 +47,7 @@ export async function readAppVersion({fetcher=globalThis.fetch,signal,timeoutMs=
 
 // Only called after staff/guest deliberately taps "Load latest version" on an idle screen.
 // Safely wakes an installed PWA's waiting worker without deleting IndexedDB,
-// localStorage, photo archives, print counts or device settings.
+// event preferences, photo archives, print counts or device settings.
 export async function refreshInstalledWorkerOnManualUpdate({serviceWorker=globalThis.navigator?.serviceWorker,timeoutMs=1800}={}){
  if(!serviceWorker?.getRegistration)return 'not-installed';
  const limit=promise=>Promise.race([Promise.resolve(promise),new Promise(resolve=>setTimeout(()=>resolve(null),timeoutMs))]);
