@@ -12,7 +12,7 @@ export default function StaffBackupPanel(){
   try{
    const r=await fetch('/api/backup/authorize',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({eventId:event.id})});
    const data=await r.json();if(!r.ok)throw new Error(data.error);
-   saveBackupToken(localStorage,event.id,data.token);setStatus('Backup enabled. Photos sync when online.');
+   saveBackupToken(localStorage,event.id,data.token);const result=await syncEventPhotos({storage:localStorage,scope:event.archive,eventId:event.id,online:navigator.onLine});setStatus(result.state==='ready'?'Backup connected. Saved photos are synchronized.':'Backup authorized; '+result.state+'. Local photos remain safe.');
   }catch(e){setStatus(e.message||'Unavailable');}
  }
  return <section className="operatorKioskCard"><h3>Private photo backups</h3>
