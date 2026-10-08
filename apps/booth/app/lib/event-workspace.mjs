@@ -20,10 +20,18 @@ export function octoberPreset(){
 }
 export function workspace(search=''){
   const p=new URLSearchParams(search);
-  if(p.get('event')!==EVENT_ID)return {...LEGACY_KEYS,id:'legacy',demo:false,managed:false,home:'/',setup:'/setup',archive:'legacy'};
+  const event=p.get('event');
+  if(/^admin-[a-z0-9_-]{5,90}$/i.test(event||'')){
+   const id=event,root='friendly-booth-import:'+id+':';
+   const query='?event='+encodeURIComponent(id);
+   return {id,demo:false,managed:true,transferred:true,specialOctober:false,
+    config:root+'config',usage:root+'used',photos:root+'recent',archive:id+':live',
+    home:'/'+query,setup:'/setup'+query};
+  }
+  if(event!==EVENT_ID)return {...LEGACY_KEYS,id:'legacy',demo:false,managed:false,home:'/',setup:'/setup',archive:'legacy'};
   const demo=p.get('demo')==='1';
   const query='?event='+EVENT_ID+(demo?'&demo=1':'');
-  return {id:EVENT_ID,demo,managed:true,config:EVENT_KEYS.config,usage:demo?EVENT_KEYS.demoUsage:EVENT_KEYS.liveUsage,photos:root+(demo?'-demo-recent':'-live-recent'),archive:EVENT_ID+(demo?':demo':':live'),home:'/'+query,setup:'/event-prep'};
+  return {id:EVENT_ID,demo,managed:true,specialOctober:true,transferred:false,config:EVENT_KEYS.config,usage:demo?EVENT_KEYS.demoUsage:EVENT_KEYS.liveUsage,photos:root+(demo?'-demo-recent':'-live-recent'),archive:EVENT_ID+(demo?':demo':':live'),home:'/'+query,setup:'/event-prep'};
 }
 export const demoWorkspace=()=>workspace('?event='+EVENT_ID+'&demo=1');
 export const liveWorkspace=()=>workspace('?event='+EVENT_ID);
@@ -37,7 +45,7 @@ export function readEventDraft(storage){
 }
 export function usage(storage,scope){
   let raw=storage.getItem(scope.usage);
-  if(raw===null&&scope.managed&&!scope.demo){const legacy=parsed(storage,LEGACY_KEYS.config);if(isLegacyOctober(legacy))raw=storage.getItem(LEGACY_KEYS.usage);}
+  if(raw===null&&scope.specialOctober&&!scope.demo){const legacy=parsed(storage,LEGACY_KEYS.config);if(isLegacyOctober(legacy))raw=storage.getItem(LEGACY_KEYS.usage);}
   if(raw===null)return 0;
   if(!/^\d+$/.test(raw)||!Number.isSafeInteger(Number(raw)))throw new Error('The print counter needs staff review. It was not reset.');
   return Number(raw);
