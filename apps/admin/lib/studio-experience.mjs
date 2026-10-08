@@ -106,5 +106,5 @@ export function mergeExperience(theme,form){
  return {...current,boothExperience:e};
 }
 export function guestHandoffMessage(){
- return 'Changes here are saved in the admin database. The event iPad stores its own setup: open Photo Booth setup on that device and match the choices before the event. This page does not silently change a live iPad.';
+ return 'Changes are saved in your private admin dashboard. Send the event setup link to the iPad and apply it once; the approved customer design is then preloaded for 1 Photo and 4 Photos. This page does not silently interrupt a live booth.';
 }
