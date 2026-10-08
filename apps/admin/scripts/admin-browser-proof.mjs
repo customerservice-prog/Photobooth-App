@@ -61,12 +61,12 @@ try{
   assert(metrics.documentWidth<=metrics.windowWidth+2,label+' has no horizontal overflow: '+JSON.stringify(metrics));
   await page.screenshot({path:'admin-proof/'+label+'-event.png',fullPage:true});
   if(width<850){
-   const toggle=page.getByRole('button',{name:/Menu/});
+   const toggle=page.locator('.mobileMenuButton');
    await toggle.click();
    assert.equal(await toggle.getAttribute('aria-expanded'),'true');
    await page.getByRole('link',{name:'My booths'}).click();
    await page.waitForURL('**/booths');
-   assert.equal(await page.getByRole('button',{name:/Menu/}).getAttribute('aria-expanded'),'false');
+   assert.equal(await toggle.getAttribute('aria-expanded'),'false');
   }
  }
  console.log('Admin routes, event edit and iPad/phone layouts verified.');
