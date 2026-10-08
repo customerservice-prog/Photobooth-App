@@ -1,2 +1,37 @@
-import {prisma} from '../../lib/prisma';export const dynamic='force-dynamic';
-export default async function ReportsPage(){let events=[],sessions=[],prints=[],booths=[],error=null;try{[events,sessions,prints,booths]=await Promise.all([prisma.event.findMany({orderBy:{date:'desc'},take:100}),prisma.photoSession.findMany({orderBy:{startedAt:'desc'},take:500}),prisma.printJob.findMany({orderBy:{createdAt:'desc'},take:500}),prisma.booth.findMany({include:{events:true}})])}catch(e){error=e.message}const completed=sessions.filter(s=>s.completedAt).length,failed=prints.filter(p=>p.status==='FAILED').length,successful=prints.filter(p=>['COMPLETED','SENT_TO_PRINT_SYSTEM'].includes(p.status)).length,rate=prints.length?Math.round(successful/prints.length*100):100;const recent=events.slice(0,8);return <main className="page"><div><div className="eyebrow">Business intelligence</div><h1 className="title">Reports</h1><p className="muted">Operational performance for events, guest sessions, printing and booth utilization.</p></div>{error&&<div className="card" style={{padding:20,marginTop:24,color:'#e8a3a3'}}>Reporting database unavailable: {error}</div>}{!error&&<><div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(180px,1fr))',gap:14,marginTop:28}}>{[['Events',events.length],['Guest sessions',sessions.length],['Completed sessions',completed],['Print success',`${rate}%`],['Print failures',failed],['Booths',booths.length]].map(([l,v])=><div className="card" key={l} style={{padding:19}}><div className="eyebrow" style={{color:'#77736b',letterSpacing:1}}>{l}</div><div style={{fontFamily:'Georgia,serif',fontSize:31,marginTop:8}}>{v}</div></div>)}</div><div style={{display:'grid',gridTemplateColumns:'minmax(0,1.4fr) minmax(280px,.7fr)',gap:18,marginTop:18}}><section className="card" style={{padding:22}}><div className="eyebrow">Event history</div><h2 style={{fontFamily:'Georgia,serif',fontWeight:400}}>Recent events</h2>{recent.map(e=>{const n=sessions.filter(s=>s.eventId===e.id).length,p=prints.filter(x=>x.eventId===e.id).length;return <div key={e.id} style={{display:'grid',gridTemplateColumns:'1fr auto auto',gap:18,padding:'13px 0',borderTop:'1px solid #282923',fontSize:12}}><div><strong>{e.name}</strong><div className="muted" style={{fontSize:10,marginTop:4}}>{new Date(e.date).toLocaleDateString()}</div></div><div><span style={{fontFamily:'Georgia,serif',fontSize:20}}>{n}</span><div className="muted" style={{fontSize:9}}>SESSIONS</div></div><div><span style={{fontFamily:'Georgia,serif',fontSize:20}}>{p}</span><div className="muted" style={{fontSize:9}}>PRINTS</div></div></div>})}{!recent.length&&<p className="muted">No event history yet.</p>}</section><aside className="card" style={{padding:22}}><div className="eyebrow">Fleet</div><h2 style={{fontFamily:'Georgia,serif',fontWeight:400}}>Booth utilization</h2>{booths.map(b=><div key={b.id} style={{padding:'13px 0',borderTop:'1px solid #282923'}}><div style={{display:'flex',justifyContent:'space-between',fontSize:12}}><strong>{b.name}</strong><span style={{color:b.status==='ONLINE'?'#c8a760':'#827d73'}}>{b.status}</span></div><div className="muted" style={{fontSize:10,marginTop:5}}>{b.events?.length||0} assigned event{b.events?.length===1?'':'s'}</div></div>)}{!booths.length&&<p className="muted">No booths registered.</p>}</aside></div><section className="card" style={{padding:22,marginTop:18}}><div className="eyebrow">Wedding-day reliability</div><h2 style={{fontFamily:'Georgia,serif',fontWeight:400}}>Print health</h2><div style={{height:12,borderRadius:99,background:'#25231f',overflow:'hidden',marginTop:18}}><div style={{height:'100%',width:`${rate}%`,background:'linear-gradient(90deg,#8e6b31,#d8bb70)'}}/></div><div style={{display:'flex',justifyContent:'space-between',marginTop:8,fontSize:11}}><span className="muted">{successful} successful / handed to print system</span><span style={{color:failed?'#e49b9b':'#c8a760'}}>{failed} failed</span></div></section></>}</main>}
+import Link from 'next/link';
+import {prisma} from '../../lib/prisma';
+import {PageHeader,Metric,DatabaseError} from '../StudioUI';
+import {dateLabel} from '../../lib/studio-experience.mjs';
+export const dynamic='force-dynamic';
+export default async function ReportsPage(){
+ let events=[],sessions=[],prints=[],booths=[],error=null;
+ try{[events,sessions,prints,booths]=await Promise.all([
+  prisma.event.findMany({orderBy:{date:'desc'},take:100}),
+  prisma.photoSession.findMany({orderBy:{startedAt:'desc'},take:500}),
+  prisma.printJob.findMany({orderBy:{createdAt:'desc'},take:500}),
+  prisma.booth.findMany({include:{events:true}})
+ ]);}catch(e){error=e;}
+ const completed=sessions.filter(s=>!!s.completedAt).length,failed=prints.filter(p=>p.status==='FAILED').length,handedOff=prints.filter(p=>p.status==='SENT_TO_PRINT_SYSTEM').length,markedComplete=prints.filter(p=>p.status==='COMPLETED').length;
+ return <main className="page">
+  <PageHeader eyebrow="OPERATIONS REPORTS" title="See how the booth is doing" subtitle="Recent event, photo and print records from the admin database. These counts are not a complete report of any unsynced photos on an event iPad."><Link className="btn btn2" href="/photos">Photo & print details →</Link></PageHeader>
+  {error?<DatabaseError topic="reports"/>:<>
+   <div className="metricGrid"><Metric label="Recent events" value={events.length} foot="Up to 100"/><Metric label="Guest sessions" value={sessions.length} foot="Up to 500"/><Metric label="Completed sessions" value={completed}/><Metric label="Failed print jobs" value={failed}/></div>
+   <div className="uiGrid">
+    <section className="card cardPad"><div className="eyebrow">RECENT EVENT ACTIVITY</div><h2 className="sectionTitle">Events</h2>
+     <div className="rowList">{events.slice(0,12).map(e=>{const n=sessions.filter(s=>s.eventId===e.id).length,p=prints.filter(x=>x.eventId===e.id).length;return <Link key={e.id} href={'/events/'+e.id} className="listRow"><div><strong className="rowTitle">{e.name}</strong><small className="rowSubtitle">{dateLabel(e.date)} · {n} guest session{n===1?'':'s'} · {p} print request{p===1?'':'s'}</small></div><span className="stepArrow">→</span></Link>})}</div>
+     {!events.length&&<p className="sectionLead">No event history has been recorded yet.</p>}
+    </section>
+    <div className="uiStack">
+     <section className="card cardPad softCard"><div className="eyebrow">PRINTER ACTIVITY</div><h2 className="sectionTitle">Print job states</h2>
+      <div className="keyValue"><div><small>Marked completed</small><strong>{markedComplete}</strong></div><div><small>Handed to system</small><strong>{handedOff}</strong></div><div><small>Failed</small><strong>{failed}</strong></div><div><small>Total recent jobs</small><strong>{prints.length}</strong></div></div>
+      <div className="helpNote" style={{marginTop:16}}>Handed to print system is not the same as a physical sheet being printed. Confirm physical output before marking an event ready.</div>
+     </section>
+     <section className="card cardPad"><div className="eyebrow">BOOTHS</div><h2 className="sectionTitle">Registered equipment</h2>
+      <p className="sectionLead">{booths.length} booth record{booths.length===1?'':'s'} found. Recorded Online status may be stale.</p>
+      <div className="rowList">{booths.slice(0,12).map(b=><div className="listRow" key={b.id}><strong className="rowTitle">{b.name}</strong><span className="rowSubtitle">{b.events.length} event{b.events.length===1?'':'s'} · {b.status}</span></div>)}</div>
+     </section>
+    </div>
+   </div>
+  </>}
+ </main>;
+}
