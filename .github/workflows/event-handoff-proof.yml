@@ -1,0 +1,52 @@
+name: Non-destructive event handoff proof
+on:
+  push:
+    branches:
+      - main
+      - feature/one-step-secure-event-handoff-20261008
+    paths:
+      - 'apps/booth/**'
+      - '.github/workflows/event-handoff-proof.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'apps/booth/**'
+      - '.github/workflows/event-handoff-proof.yml'
+permissions:
+  contents: read
+jobs:
+  transfer:
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    defaults:
+      run:
+        working-directory: apps/booth
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install and test event transfer
+        run: |
+          npm install --no-audit --no-fund
+          npm run test:delivery
+      - name: Compile booth app with imported event routes
+        run: npm run build
+      - name: Install actual desktop and iPad browser engines
+        run: |
+          npm install --no-save playwright@1.55.0
+          npx playwright install --with-deps chromium webkit
+      - name: Run end-to-end import with original photos and counters seeded
+        run: |
+          mkdir -p handoff-proof
+          npm run start > handoff-proof/server.log 2>&1 &
+          SERVER_PID=$!
+          trap 'kill $SERVER_PID 2>/dev/null || true' EXIT
+          node scripts/event-handoff-proof.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: booth-event-handoff-${{ github.run_id }}
+          path: apps/booth/handoff-proof/
+          retention-days: 3
