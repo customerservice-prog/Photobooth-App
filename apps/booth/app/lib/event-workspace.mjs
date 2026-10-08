@@ -23,9 +23,13 @@ export function workspace(search=''){
   const event=p.get('event');
   if(/^admin-[a-z0-9_-]{5,90}$/i.test(event||'')){
    const id=event,root='friendly-booth-import:'+id+':';
+   const linkedOctober=id==='admin-efcbaffc-893f-4361-983b-79a38e7d111a';
    const query='?event='+encodeURIComponent(id);
-   return {id,demo:false,managed:true,transferred:true,specialOctober:false,
-    config:root+'config',usage:root+'used',photos:root+'recent',archive:id+':live',
+   return {id,demo:false,managed:true,transferred:true,specialOctober:false,linkedOctober,
+    config:root+'config',
+    usage:linkedOctober?EVENT_KEYS.liveUsage:root+'used',
+    photos:root+'recent',
+    archive:linkedOctober?'oct10-2026:live':id+':live',
     home:'/'+query,setup:'/setup'+query};
   }
   if(event!==EVENT_ID)return {...LEGACY_KEYS,id:'legacy',demo:false,managed:false,home:'/',setup:'/setup',archive:'legacy'};
@@ -45,7 +49,7 @@ export function readEventDraft(storage){
 }
 export function usage(storage,scope){
   let raw=storage.getItem(scope.usage);
-  if(raw===null&&scope.specialOctober&&!scope.demo){const legacy=parsed(storage,LEGACY_KEYS.config);if(isLegacyOctober(legacy))raw=storage.getItem(LEGACY_KEYS.usage);}
+  if(raw===null&&(scope.specialOctober||scope.linkedOctober)&&!scope.demo){const legacy=parsed(storage,LEGACY_KEYS.config);if(isLegacyOctober(legacy))raw=storage.getItem(LEGACY_KEYS.usage);}
   if(raw===null)return 0;
   if(!/^\d+$/.test(raw)||!Number.isSafeInteger(Number(raw)))throw new Error('The print counter needs staff review. It was not reset.');
   return Number(raw);
