@@ -55,7 +55,7 @@ function photo(src,i,x,y,w,h,fit='fill'){
 function base(){return defs()+rect(0,0,1200,1800,'url(#lmBg)')+rect(0,0,1200,1800,'url(#lmBlueGlow)')+confetti()+
  rect(15,15,1170,1770,'none','stroke="url(#lmGold)" stroke-width="5"')+
  rect(25,25,1150,1750,'none','stroke="#fc8c23" stroke-width="2"');}
-function svg(body,layout,cfg){const t=labels(cfg);return `<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="1800" viewBox="0 0 1200 1800" role="img" data-design="lamarr-graduation" data-template-key="graduation/grad-gala" data-layout="${layout}" aria-label="${esc(t.name+' graduation print')}"><title>${esc(t.name+' graduation keepsake')}</title>${base()}${body}</svg>`;}
+function svg(body,layout,cfg){const t=labels(cfg);return `<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="1800" viewBox="0 0 1200 1800" role="img" data-design="graduation-grad-gala" data-template-key="graduation/grad-gala" data-layout="${layout}" aria-label="${esc(t.name+' graduation print')}"><title>${esc(t.name+' graduation keepsake')}</title>${base()}${body}</svg>`;}
 export function renderLamarrOne(photoSrc,cfg={}){
  const t=labels(cfg),image=photo(photoSrc,0,67,240,1066,1012,cfg.photoFit);
  const hero=balloons()+text('Congrats Grad!',774,147,104,'url(#lmGold)','font-family="Georgia, serif" font-style="italic" font-weight="bold" paint-order="stroke" stroke="#783709" stroke-width="2"');
