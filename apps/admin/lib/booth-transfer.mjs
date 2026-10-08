@@ -2,6 +2,7 @@
 // The payload is in the URL fragment, so neither service receives the data in
 // HTTP requests or server logs. Treat the link as shareable event information.
 import {BOOTH_URL,experienceFrom,toLocalDay,wallTime} from './studio-experience.mjs';
+import {makeSyncTicket} from './event-sync-token.mjs';
 const idRe=/^[A-Za-z0-9_-]{3,90}$/;
 const clean=(input,n=96)=>String(input??'').replace(/[\u0000-\u001f<>]/g,' ').trim().slice(0,n);
 const kind=(eventType)=>{
@@ -27,6 +28,7 @@ export function buildBoothHandoffPayload(event){
   f:e.featured,p:e.pauseSeconds,mode:e.format,s:e.strips,fit:e.photoFit,
   a:e.primary,b:e.accent,limit:prints,
   on:event.printingEnabled!==false&&prints>0,qr:event.qrSharingEnabled!==false,
+  sync:process.env.PHOTOBOOTH_EVENT_SYNC_SECRET?makeSyncTicket(event.id,event.date):undefined,
   design:'champagne'
  });
 }
