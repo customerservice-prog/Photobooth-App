@@ -44,7 +44,10 @@ try{
   await staff.click();await page.getByTestId('staff-confirm').click();
   await page.getByRole('dialog',{name:'Operator controls',exact:true}).waitFor();
   assert((await page.locator('.operatorPanel').textContent()).includes('209'));
-  assert.equal(await page.locator('.operatorQuickCard').count(),6);
+  assert.equal(await page.locator('.operatorQuickCard').count(),7);
+  await page.getByTestId('operator-load-event').click();
+  assert.equal(await page.getByTestId('staff-load-event').getAttribute('open'),'','one tap expands the transfer form');
+  assert(await page.getByTestId('staff-event-link').isVisible());
   assert(await page.getByTestId('operator-reset-guest').isVisible());
   assert(await page.getByTestId('operator-sound-test').isVisible());
   assert.equal(await page.getByRole('link',{name:/Event setup/}).getAttribute('href'),'/setup');
@@ -100,7 +103,7 @@ try{
   assert.equal(prepared.details.primaryColor,'#855665');
   assert.equal(prepared.details.secondaryColor,'#e4b4a1');
   assert.equal(prepared.printLayouts.defaultLayout,'card');
-  assert.equal(prepared.photoFit,'fill');
+  assert.equal(prepared.photoFit,'fit','an explicitly selected whole-photo setting should be preserved');
   assert.equal(prepared.printLayouts.stripMode,'single');
   assert.equal(await page.evaluate(()=>localStorage.getItem('friendly-booth-print-usage-v1')),'7');
   assert.equal(await page.getByTestId('welcome-quick-photo').count(),1);
