@@ -18,7 +18,7 @@ export default function StaffDashboard({onClose,onReset,onVoiceTest,onRecover,on
   <div className="operatorInner">
    <header className="operatorHead">
     <div><span className="operatorOverline">FRIENDLY PHOTO BOOTH · STAFF AREA</span><h2>Staff tools</h2><p>Everything you need to help guests, all in one place.</p></div>
-    <button type="button" className="operatorClose" onClick={onClose} autoFocus>Close controls <span aria-hidden="true">×</span></button>
+    <button type="button" className="operatorClose" aria-label="Close controls" onClick={onClose} autoFocus>Close controls <span aria-hidden="true">×</span></button>
    </header>
    <section className="operatorStats" aria-label="Booth status">
     <div><small>CONNECTION</small><strong>{online?'Online':'Offline'}</strong><span>{online?'Ready to connect':'Keep this browser open'}</span></div>
