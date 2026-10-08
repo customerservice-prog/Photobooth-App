@@ -1,31 +1,23 @@
-// LaMarr graduation keepsakes. The photographs always come from the actual booth camera.
-const esc=x=>String(x??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&apos;'}[c]));
+// Event-specific physical 4×6 artwork used identically by iPad preview, export and print.
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&apos;'}[c]));
 export const isLamarrGraduation=cfg=>/lamarr/i.test(String(cfg?.details?.graduate||'')+' '+String(cfg?.title||''));
-function ornaments(){
- const dots=Array.from({length:92},(_,i)=>{const x=(i*619+43)%1200,y=(i*397+61)%1800;return '<circle cx="'+x+'" cy="'+y+'" r="'+(i%3+2)+'" fill="'+(i%2?'#ff8a18':'#e5b45f')+'" opacity=".85"/>';}).join('');
- const stars=Array.from({length:20},(_,i)=>{const x=i%2?1136:64,y=90+i*81;return '<path d="M0 -12L4 -4 13 -2 5 4 7 13 0 8 -8 13 -5 3 -12 -2 -4 -5Z" transform="translate('+x+' '+y+')" fill="'+(i%2?'#ff8b1a':'#e9b55b')+'"/>';}).join('');
- return dots+stars;
-}
-function base(){
- return '<defs><linearGradient id="lamarr-navy" x2="1" y2="1"><stop stop-color="#041329"/><stop offset=".5" stop-color="#0b2d59"/><stop offset="1" stop-color="#030c1f"/></linearGradient><linearGradient id="lamarr-orange" x2="0" y2="1"><stop stop-color="#ffb148"/><stop offset=".5" stop-color="#fa7117"/><stop offset="1" stop-color="#cf4912"/></linearGradient><linearGradient id="lamarr-gold"><stop stop-color="#f8d68d"/><stop offset=".5" stop-color="#fff3bf"/><stop offset="1" stop-color="#c78d37"/></linearGradient></defs><rect width="1200" height="1800" fill="url(#lamarr-navy)"/>'+ornaments()+'<rect x="14" y="14" width="1172" height="1772" rx="8" fill="none" stroke="#e2a34a" stroke-width="5"/>';
-}
-function photo(src,i,x,y,w,h,fit){
- return '<rect x="'+(x-8)+'" y="'+(y-8)+'" width="'+(w+16)+'" height="'+(h+16)+'" fill="#fcb155"/><rect x="'+(x-3)+'" y="'+(y-3)+'" width="'+(w+6)+'" height="'+(h+6)+'" fill="#ffffff"/>'+ (src?'<image data-guest-photo="true" data-pose="'+(i+1)+'" href="'+esc(src)+'" x="'+x+'" y="'+y+'" width="'+w+'" height="'+h+'" preserveAspectRatio="'+(fit==='fit'?'xMidYMid meet':'xMidYMid slice')+'"/>':'<rect x="'+x+'" y="'+y+'" width="'+w+'" height="'+h+'" fill="#ced9e0"/><text x="'+(x+w/2)+'" y="'+(y+h/2)+'" text-anchor="middle" fill="#102a4d" font-size="36">PHOTO '+(i+1)+'</text>');
-}
-function heading(){
- return '<text x="600" y="105" text-anchor="middle" font-family="Georgia,serif" font-size="84" font-weight="bold" fill="url(#lamarr-gold)" stroke="#c35e1a" stroke-width="1">LaMarr</text><path d="M250 133H950" stroke="#ff881d" stroke-width="10"/>';
-}
-function footer(y=1690){
- return '<path d="M148 '+(y-90)+'H1052" stroke="#ff881d" stroke-width="7"/><text x="600" y="'+y+'" text-anchor="middle" font-family="Georgia,serif" font-size="64" font-weight="bold" fill="#fff0bf">October 10th, 2026</text><text x="600" y="'+(y+56)+'" text-anchor="middle" font-family="Arial,sans-serif" font-size="29" font-weight="bold" letter-spacing="8" fill="#ff9c2b">CONGRATS GRAD!</text>';
-}
-function svg(content,format){
- return '<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="1800" viewBox="0 0 1200 1800" data-layout="'+format+'" data-design="lamarr-graduation" role="img" aria-label="LaMarr graduation photo booth keepsake">'+base()+content+'</svg>';
-}
+const rect=(x,y,w,h,color,rx=0)=>'<rect x="'+x+'" y="'+y+'" width="'+w+'" height="'+h+'" rx="'+rx+'" fill="'+color+'"/>';
+function defs(){return '<defs><linearGradient id="lmBg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#031126"/><stop offset=".55" stop-color="#0d3264"/><stop offset="1" stop-color="#040d23"/></linearGradient><linearGradient id="lmGold" x1="0" y1="0" x2="1" y2="0"><stop stop-color="#c7832b"/><stop offset=".25" stop-color="#fff0b9"/><stop offset=".58" stop-color="#e9b867"/><stop offset="1" stop-color="#9b641e"/></linearGradient><linearGradient id="lmOrange"><stop stop-color="#ffb24c"/><stop offset=".6" stop-color="#fa7d17"/><stop offset="1" stop-color="#c9560e"/></linearGradient><radialGradient id="lmBall"><stop stop-color="#ffe3a4"/><stop offset=".35" stop-color="#ffa42c"/><stop offset="1" stop-color="#c7570a"/></radialGradient></defs>';}
+function star(x,y,size,fill){return '<path d="M0 -1L.24 -.25 1 0 .24 .25 0 1 -.24 .25 -1 0 -.24 -.25Z" transform="translate('+x+' '+y+') scale('+size+')" fill="'+fill+'"/>';}
+function confetti(){return Array.from({length:110},(_,i)=>{const x=(31+i*373)%1200,y=(79+i*761)%1800;return i%4===0?star(x,y,3+i%11,'#ffe7a5'):'<rect x="'+x+'" y="'+y+'" width="'+(2+i%5)+'" height="'+(3+i%9)+'" transform="rotate('+(i*37%180)+' '+x+' '+y+')" fill="'+(i%2?'#fe871b':'#ffca6e')+'" opacity=".8"/>';}).join('');}
+function balloon(x,y,s,navy=false){return '<g transform="translate('+x+' '+y+') scale('+s+')"><ellipse cx="0" cy="0" rx="64" ry="90" fill="'+(navy?'#163d7c':'url(#lmBall)')+'" stroke="'+(navy?'#7596c8':'#ffc16e')+'" stroke-width="4"/><ellipse cx="-19" cy="-26" rx="12" ry="30" fill="#fff" opacity=".26" transform="rotate(26 -19 -26)"/><path d="M-8 88L0 101 8 88M0 102Q22 140 -5 186" fill="none" stroke="#d6a650" stroke-width="4"/></g>';}
+function cap(x,y,s){return '<g transform="translate('+x+' '+y+') scale('+s+')" fill="#061732" stroke="#ef9b34" stroke-width="6"><path d="M-90 0L0 -36 90 0 0 34Z"/><path d="M-58 13V60Q0 92 58 60V13" fill="none"/><path d="M90 0V70" fill="none"/><circle cx="90" cy="74" r="7" fill="#ff8a1e"/></g>';}
+function base(){return defs()+rect(0,0,1200,1800,'url(#lmBg)')+confetti()+'<rect x="12" y="12" width="1176" height="1776" fill="none" stroke="url(#lmGold)" stroke-width="7"/><rect x="24" y="24" width="1152" height="1752" fill="none" stroke="#f88e28" stroke-width="2"/>';}
+function photo(src,i,x,y,w,h,fit){const frame=rect(x-10,y-10,w+20,h+20,'url(#lmGold)',6)+rect(x-4,y-4,w+8,h+8,'#fa8c23',4);return frame+(src?'<image data-guest-photo="true" data-pose="'+(i+1)+'" href="'+esc(src)+'" x="'+x+'" y="'+y+'" width="'+w+'" height="'+h+'" preserveAspectRatio="'+(fit==='fit'?'xMidYMid meet':'xMidYMid slice')+'"/>':rect(x,y,w,h,'#b9c6ce')+'<text x="'+(x+w/2)+'" y="'+(y+h/2)+'" fill="#243957" font-family="Arial,sans-serif" font-weight="bold" text-anchor="middle" font-size="44">PHOTO '+(i+1)+'</text>');}
+function bigName(y){return '<path d="M190 '+(y+29)+'Q600 '+(y+48)+' 1010 '+(y+29)+'" fill="none" stroke="#fa8d21" stroke-width="14"/><text x="600" y="'+y+'" text-anchor="middle" font-size="145" font-family="Georgia,serif" font-style="italic" font-weight="bold" fill="#fff5d4" stroke="#f08c29" stroke-width="6" paint-order="stroke">LaMarr</text>';}
+function date(y){return '<text x="600" y="'+y+'" font-family="Georgia,serif" font-size="53" font-weight="bold" fill="url(#lmGold)" text-anchor="middle">OCTOBER 10TH 2026</text>';}
+function bottom(y){return date(y)+cap(600,y+60,.48)+'<text x="600" y="'+(y+130)+'" text-anchor="middle" font-family="Arial,sans-serif" letter-spacing="7" font-weight="bold" font-size="28" fill="#ffffff">CONGRATS GRAD!</text>';}
+function svg(parts,layout){return '<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="1800" viewBox="0 0 1200 1800" role="img" data-design="lamarr-graduation" data-layout="'+layout+'" aria-label="LaMarr graduation four by six photo keepsake">'+base()+parts+'</svg>';}
 export function renderLamarrFour(poses=[],cfg={}){
- const images=Array.isArray(poses)?poses:[];
- const cells=Array.from({length:4},(_,i)=>photo(images[i],i,100,174+i*343,1000,323,cfg.photoFit)).join('');
- return svg(heading()+cells+footer(1695),'photo_strip');
+ const shots=Array.isArray(poses)?poses:[],cells=Array.from({length:4},(_,i)=>photo(shots[i],i,105,142+i*314,990,294,cfg.photoFit)).join('');
+ return svg(cap(112,80,.7)+'<text x="760" y="83" text-anchor="middle" fill="#ff9d36" font-family="Georgia,serif" font-style="italic" font-size="70">Class of</text><text x="1070" y="88" text-anchor="end" fill="#ffffff" font-size="72" font-family="Georgia,serif" font-weight="bold">2026</text>'+cells+balloon(105,1390,.66)+balloon(1090,1400,.64,true)+bigName(1542)+bottom(1648),'photo_strip');
 }
 export function renderLamarrOne(photoSrc,cfg={}){
- return svg(heading()+photo(photoSrc,0,82,175,1036,1280,cfg.photoFit)+footer(1652),'card');
+ const pic=photo(photoSrc,0,94,204,1012,1000,cfg.photoFit);
+ return svg(balloon(92,83,.7,true)+balloon(210,103,.65)+'<text x="772" y="91" text-anchor="middle" font-family="Georgia,serif" font-size="90" font-style="italic" fill="url(#lmGold)">Congrats Grad!</text>'+pic+cap(600,1244,.85)+bigName(1439)+'<text x="600" y="1514" text-anchor="middle" font-family="Georgia,serif" font-style="italic" font-size="72" fill="#ffffff">Grad Party!</text>'+balloon(85,1620,.58)+balloon(1110,1615,.58,true)+date(1680),'card');
 }
