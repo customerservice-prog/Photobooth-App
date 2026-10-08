@@ -15,6 +15,7 @@ import {saveCapture,saveKeepsake,archiveCount,recentCaptures,openArchive,capture
 import {createScreenAwakeController,readScreenAwakeSetting,saveScreenAwakeSetting} from './lib/screen-awake.mjs';
 import {activeEventDestination} from './lib/active-event.mjs';
 import {backupEnabled,saveBackupToken,syncEventPhotos} from './lib/backup-sync.mjs';
+import {logPrintRequest,markPrintOutcome} from './lib/print-ledger.mjs';
 import './event-prep/preparation.css';
 const RESET_MS=90000;
 const defaultCfg={title:'Our Celebration',subtitle:'Friendly Photo Booth',date:new Date().toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'}),type:'other',printPackage:normalizePrintPackage()};
