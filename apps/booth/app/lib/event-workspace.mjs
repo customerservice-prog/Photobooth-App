@@ -3,6 +3,11 @@ import {normalizePrintPackage} from './print-package.mjs';
 import {normalizeGuestPause,normalizePhotoPreference} from './guest-pause.mjs';
 
 export const EVENT_ID='oct10-2026';
+// This existing admin booking represents the same physical October event that
+// predates admin→iPad transfers. Preserve both local photo archives; reconcile
+// their print requests so neither guest entry point starts a second allowance.
+export const OCTOBER_ADMIN_EVENT_ID='efcbaffc-893f-4361-983b-79a38e7d111a';
+export const OCTOBER_TRANSFER_USAGE='friendly-booth-transfer-v1-'+OCTOBER_ADMIN_EVENT_ID+'-usage';
 export const ADMIN_EVENT_URL='https://photobooth-app-production.up.railway.app/events/efcbaffc-893f-4361-983b-79a38e7d111a';
 export const LEGACY_KEYS=Object.freeze({config:'friendly-booth-event-v1',photos:'friendly-booth-photos-v1',usage:'friendly-booth-print-usage-v1'});
 const root='friendly-booth-oct10-2026-v2';
@@ -27,7 +32,10 @@ export function workspace(search=''){
    if(!/^[A-Za-z0-9_-]{3,90}$/.test(id||''))throw new Error('Invalid event link. Ask staff for a fresh booth setup link.');
    const root='friendly-booth-transfer-v1-'+id;
    const q='?booth_event='+encodeURIComponent(id);
-   return {id,imported:true,managed:false,demo:false,config:root+'-config',
+   // Keep the already-created transfer photo archive intact; the earlier
+   // October archive remains accessible from its original event-prep page.
+   const linkedOctober=id===OCTOBER_ADMIN_EVENT_ID;
+   return {id,imported:true,managed:false,demo:false,linkedOctober,config:root+'-config',
     usage:root+'-usage',photos:root+'-recent',previous:root+'-previous',
     archive:'transfer:'+id,home:'/'+q,setup:'/setup'+q};
   }
@@ -46,18 +54,37 @@ export function readEventDraft(storage){
   // Only migrate the explicitly known old October preset; never another event.
   return isLegacyOctober(legacy)?{...preset,...legacy,eventId:EVENT_ID,details:{...preset.details,...legacy.details},schedule:preset.schedule,preparation:preset.preparation}:preset;
 }
-export function usage(storage,scope){
+// The owning counter is the only number written after a print. For the October
+// event, both the historical live counter and imported-event counter contribute
+// to one allowance; they are NOT migrated, merged, reset or overwritten.
+export function ownPrintUsage(storage,scope){
   let raw=storage.getItem(scope.usage);
-  if(raw===null&&scope.managed&&!scope.demo){const legacy=parsed(storage,LEGACY_KEYS.config);if(isLegacyOctober(legacy))raw=storage.getItem(LEGACY_KEYS.usage);}
+  if(raw===null&&scope.managed&&!scope.demo){
+    const legacy=parsed(storage,LEGACY_KEYS.config);
+    if(isLegacyOctober(legacy))raw=storage.getItem(LEGACY_KEYS.usage);
+  }
   if(raw===null)return 0;
   if(!/^\d+$/.test(raw)||!Number.isSafeInteger(Number(raw)))throw new Error('The print counter needs staff review. It was not reset.');
   return Number(raw);
+}
+export function usage(storage,scope){
+  const own=ownPrintUsage(storage,scope);
+  if(scope.linkedOctober){
+    return own+ownPrintUsage(storage,liveWorkspace());
+  }
+  if(scope.managed&&!scope.demo){
+    // Original October launch sees print requests from the transferred event
+    // too; each route increments only its own counter.
+    const imported=workspace('?booth_event='+OCTOBER_ADMIN_EVENT_ID);
+    return own+ownPrintUsage(storage,imported);
+  }
+  return own;
 }
 export function saveEventDraft(storage,cfg){
   const old=storage.getItem(EVENT_KEYS.config);
   if(old!==null)storage.setItem(EVENT_KEYS.previous,old);
   // Preserve existing legacy usage conservatively before a settings edit.
-  if(storage.getItem(EVENT_KEYS.liveUsage)===null)storage.setItem(EVENT_KEYS.liveUsage,String(usage(storage,liveWorkspace())));
+  if(storage.getItem(EVENT_KEYS.liveUsage)===null)storage.setItem(EVENT_KEYS.liveUsage,String(ownPrintUsage(storage,liveWorkspace())));
   const next={...cfg,eventId:EVENT_ID};
   delete next.runtime;delete next.mode;delete next.captureMode;
   storage.setItem(EVENT_KEYS.config,JSON.stringify(next));return next;
