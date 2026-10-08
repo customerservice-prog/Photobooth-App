@@ -1,7 +1,7 @@
 // Keep the installed app identity stable. Navigation never clears or migrates
 // photos, settings, counters, or any other browser storage.
-export const BOOTH_RELEASE='2026.10.08.1';
-export const BOOTH_RELEASE_LABEL='Clean guest welcome · speaker test stays in Staff Tools';
+export const BOOTH_RELEASE='2026.10.08.2';
+export const BOOTH_RELEASE_LABEL='Four-digit staff access · refreshed iPad guest screen';
 const ENTRIES=Object.freeze({
   demo:'/?event=oct10-2026&demo=1',
   preparation:'/event-prep',
