@@ -22,7 +22,7 @@ export function buildBoothHandoffPayload(event){
  const revision=event.updatedAt?new Date(event.updatedAt).toISOString():new Date(event.date).toISOString();
  return Object.freeze({
   v:1,id:String(event.id),rev:revision,
-  title:clean(event.name,96),date,
+  title:clean(event.name,96),date,start:wallTime(event.startTime),end:wallTime(event.endTime),
   type:kind(event.eventType),
   f:e.featured,p:e.pauseSeconds,mode:e.format,s:e.strips,fit:e.photoFit,
   a:e.primary,b:e.accent,limit:prints,
