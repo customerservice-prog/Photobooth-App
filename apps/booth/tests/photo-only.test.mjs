@@ -49,3 +49,19 @@ test('late still-photo composition cannot revive an abandoned guest session',()=
   const source=read('page.js');
   assert.match(source,/const data=total===1\?shots\[0\]:await composePhotoStrip\(shots,[^\n]+\);if\(id!==run\.current\)return;/);
 });
+
+
+test('large keepsake proof uses the production PrintCard renderer and sample photos never become a captured session',()=>{
+  const source=read('components/WelcomeScreen.js');
+  const printer=read('components/PrintCard.js');
+  assert.match(source,/data-testid="welcome-large-proof"/);
+  assert.match(source,/data-selected-photos=\{String\(chosenShots\)\}/);
+  assert.match(source,/onClick=\{startSelected\}/);
+  assert.match(source,/useSamplePoses\(family\)/);
+  assert.match(source,/\/images\/welcome-poses\//);
+  assert.match(source,/<PrintCard photo=\{samples\?poses\[0\]:''\}/);
+  assert.match(printer,/renderKeepsake\(/);
+  assert.doesNotMatch(source,/localStorage\.(setItem|clear|removeItem)/);
+  assert.doesNotMatch(source,/getUserMedia|saveCapture|print\(\)/);
+  assert.match(source,/SAMPLE PHOTOS/);
+});
