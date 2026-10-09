@@ -176,6 +176,12 @@ async function runCase(browser,engine,scope,total,fixture){
   assert.equal(release.status,200);assert.equal(release.data.version,BOOTH_RELEASE);
   const configBefore=await page.evaluate(key=>localStorage.getItem(key),keys.config);
   if(fixture){
+   // The server-rendered welcome uses the default Other design until React
+   // loads this browser's saved config. Network idle does not await hydration.
+   await page.waitForFunction(expected=>{
+    const designs=Array.from(document.querySelectorAll('.bwLayoutPreview svg[data-design]'),element=>element.getAttribute('data-design'));
+    return designs.length===2&&designs.every(design=>design===expected);
+   },fixture.type+'-'+fixture.template,{timeout:10000});
    const welcomeDesigns=await page.locator('.bwLayoutPreview svg[data-design]').evaluateAll(elements=>elements.map(element=>element.getAttribute('data-design')));
    assert.deepEqual(welcomeDesigns,[fixture.type+'-'+fixture.template,fixture.type+'-'+fixture.template],'both welcome layouts use the approved event artwork');
   }
