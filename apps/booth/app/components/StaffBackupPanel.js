@@ -1,24 +1,28 @@
 'use client';
 import {useState,useEffect} from 'react';
 import {workspace} from '../lib/event-workspace.mjs';
-import {saveBackupToken,backupEnabled,syncEventPhotos} from '../lib/backup-sync.mjs';
+import {syncEventPhotos,eventBackupProof,readBackupStatus,backupStatusLabel,BACKUP_STATUS_EVENT} from '../lib/backup-sync.mjs';
 export default function StaffBackupPanel(){
- const [status,setStatus]=useState('');
- useEffect(()=>{const event=workspace(location.search);if(backupEnabled(localStorage,event.id))setStatus('Backup authorized. New photos retry while online.');},[]);
- async function activate(){
+ const [status,setStatus]=useState(null),[busy,setBusy]=useState(false);
+ useEffect(()=>{
+  const refresh=()=>{try{const event=workspace(location.search);setStatus(event.demo?{state:'demo'}:readBackupStatus(localStorage,event.id));}catch{}};
+  refresh();addEventListener(BACKUP_STATUS_EVENT,refresh);addEventListener('storage',refresh);
+  return()=>{removeEventListener(BACKUP_STATUS_EVENT,refresh);removeEventListener('storage',refresh);};
+ },[]);
+ async function retry(){
+  if(busy)return;
   const event=workspace(location.search);
-  if(!event.managed&&!event.imported)return setStatus('Load a customer event first.');
-  setStatus('Connecting…');
+  if(event.demo)return;
+  setBusy(true);
   try{
-   const r=await fetch('/api/backup/authorize',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({eventId:event.id})});
-   const data=await r.json();if(!r.ok)throw new Error(data.error);
-   saveBackupToken(localStorage,event.id,data.token);const result=await syncEventPhotos({storage:localStorage,scope:event.archive,eventId:event.id,online:navigator.onLine});
-   setStatus(result.state==='ready'?'Secure backups are connected. New photos upload automatically while this iPad is online.':result.state==='needs-staff'?'Backup authorization needs renewing. Tap Enable secure backups again. Photos remain on this iPad.':result.state==='offline'?'Backup connected. This iPad is offline; photos will retry when online.':'Backups are authorized, but upload is unavailable right now. Photos remain on this iPad and will retry while online.');
-  }catch(e){setStatus(e.message||'Unavailable');}
+   const result=await syncEventPhotos({storage:localStorage,scope:event.archive,eventId:event.id,
+    syncTicket:eventBackupProof(localStorage,event),online:navigator.onLine,allowStaffAuthorization:true,forceRetry:true});
+   setStatus(result);
+  }catch{setStatus({state:'retry-later'});}finally{setBusy(false);}
  }
- return <section className="operatorKioskCard"><h3>Private photo backups</h3>
-  <p>Staff can authorize this iPad to securely back up event photos. Local originals remain intact.</p>
-  <button type="button" className="operatorPrimary" onClick={activate}>Enable secure backups</button>
-  <p role="status">{status}</p>
+ return <section className="operatorKioskCard" data-testid="staff-backup-panel"><h3>Automatic event gallery</h3>
+  <p>Every original photo and finished print saves automatically to this customer’s private gallery while the iPad is online. Photos also stay on this iPad, and uploads retry after a connection interruption.</p>
+  {status?.state!=='demo'&&<button type="button" className="operatorPrimary" onClick={retry} disabled={busy}>{busy?'Checking backup…':'Retry backup now'}</button>}
+  <p role="status" data-testid="staff-backup-status">{status?.state==='demo'?'Sample session only. No customer event gallery is updated.':backupStatusLabel(status)}</p>
  </section>;
 }

@@ -1,15 +1,16 @@
 'use client';
 import {useEffect,useState} from 'react';
 import {archiveCount,exportPhotos,downloadBlob,deleteArchivedEvent} from '../lib/event-photo-archive.mjs';
-import {backupEnabled} from '../lib/backup-sync.mjs';
+import {readBackupStatus,backupStatusLabel,BACKUP_STATUS_EVENT,syncEventPhotos,eventBackupProof} from '../lib/backup-sync.mjs';
 import {canCloseImportedEvent,clearClosedEventSettings,EVENT_CLOSE_CONFIRMATION,galleryZipFilename} from '../lib/event-lifecycle.mjs';
 
 export default function StaffEventCloseout({scope,eventName}){
  const eligible=canCloseImportedEvent(scope);
  const [count,setCount]=useState(null),[exported,setExported]=useState(null),[verified,setVerified]=useState(false);
  const [typed,setTyped]=useState(''),[status,setStatus]=useState(''),[busy,setBusy]=useState(false);
+ const [backup,setBackup]=useState(null);
  useEffect(()=>{let active=true;archiveCount(scope.archive).then(n=>{if(active)setCount(n);}).catch(()=>{if(active)setStatus('Could not read the photo archive. Do not delete anything.');});return()=>{active=false;};},[scope.archive]);
- const backedUp=typeof window!=='undefined'?backupEnabled(window.localStorage,scope.id):false;
+ useEffect(()=>{const refresh=()=>setBackup(readBackupStatus(localStorage,scope.id));refresh();addEventListener(BACKUP_STATUS_EVENT,refresh);return()=>removeEventListener(BACKUP_STATUS_EVENT,refresh);},[scope.id]);
  async function exportGallery(){
   if(busy)return;
   setBusy(true);setStatus('Preparing the complete event ZIP…');setVerified(false);setExported(null);
@@ -26,6 +27,10 @@ export default function StaffEventCloseout({scope,eventName}){
   if(!eligible||busy||!exported||!verified||typed!==EVENT_CLOSE_CONFIRMATION)return;
   setBusy(true);setStatus('Checking that no photos changed since export…');
   try{
+   // Re-scan the actual archive before cleanup. A remembered authorization or
+   // an old zero-pending status is not proof that the current images uploaded.
+   const result=await syncEventPhotos({storage:localStorage,scope:scope.archive,eventId:scope.id,syncTicket:eventBackupProof(localStorage,scope),online:navigator.onLine});
+   if(result.state!=='ready'||result.pending!==0)throw new Error('Keep this event on the iPad until every photo is saved online. Reconnect Wi-Fi and use Retry backup now, then check the event digital gallery. Your downloaded ZIP is also available.');
    const current=await archiveCount(scope.archive);
    if(current!==exported.count)throw new Error('More photos were taken after the ZIP export. Download an updated ZIP first.');
    await deleteArchivedEvent(scope.archive,exported.count,exported.snapshot);
@@ -37,21 +42,22 @@ export default function StaffEventCloseout({scope,eventName}){
  return <section className="operatorKioskCard" data-testid="staff-end-event" aria-label="After the event">
   <div className="operatorKioskTop">
    <div><span className="operatorOverline">AFTER THE EVENT · STAFF ONLY</span><h3>Save the gallery. Then prepare for the next rental.</h3>
-    <p>All guest photos stay in this iPad’s private event archive until you explicitly remove them. Digital copies can be shared with the customer after downloading.</p></div>
+    <p>Photos upload automatically to this event’s private digital gallery. Keep this iPad online until every photo is saved, then download the gallery to send to the customer.</p></div>
   </div>
   <div className="operatorStats">
    <div><small>PHOTO SESSIONS</small><strong>{count===null?'—':count}</strong></div>
-   <div><small>SECURE BACKUPS</small><strong>{backedUp?'Enabled':'Not enabled'}</strong><span>{backedUp?'Also check the staff dashboard':'Enable earlier for automatic upload'}</span></div>
+   <div><small>ONLINE EVENT GALLERY</small><strong>{backup?.state==='ready'&&backup.pending===0?'All photos saved':backup?.pending>0?backup.pending+' files waiting':'Checking backup'}</strong><span>{backupStatusLabel(backup)}</span></div>
   </div>
   <div className="operatorFoldContent" style={{padding:0}}>
-   <p><strong>1. Download all event photos.</strong> Your ZIP includes every original pose and each finished 4×6 JPEG (or a collage for an interrupted session).</p>
+   <p><strong>1. Download all event photos.</strong> Open this event’s Digital gallery in the owner dashboard to download its online photos. The iPad ZIP below provides an additional copy of every original pose and available finished 4×6 JPEG.</p>
+   {eligible&&<a className="operatorSecondary" href={'https://photobooth-app-production.up.railway.app/events/'+encodeURIComponent(scope.id)+'/backups'} target="_blank" rel="noopener noreferrer">Open this event’s digital gallery</a>}
    <button type="button" className="operatorPrimary" disabled={busy||count===null} onClick={exportGallery} data-testid="staff-export-gallery">{busy?'Working…':count===0?'Download empty-event record ZIP':'Download complete event gallery ZIP'}</button>
    {count===0&&<p>There are no captured sessions in this event on this device. Download and check the empty-event ZIP before removing its setup.</p>}
    {exported&&<p className="operatorNotice" data-testid="staff-export-result">ZIP requested: {exported.count} photo sessions, {exported.finished} finished keepsakes. Open the ZIP to check that everything is there. {exported.finished<exported.count?'Some sessions only have original captures and a collage.':''}</p>}
    {eligible&&<details className="operatorFold" data-testid="staff-finish-event-fold">
     <summary>2. Remove this completed event from the iPad <span>Only after saving and verifying the gallery</span></summary>
     <div className="operatorFoldContent">
-     <p><strong>Before removing:</strong> open the ZIP, confirm its photographs, and deliver or securely keep the digital gallery for the customer. The app cannot tell whether a download actually saved.</p>
+     <p><strong>Before removing:</strong> wait for all photos to save online, open the ZIP, confirm its photographs, and deliver or securely keep the digital gallery for the customer. The app cannot tell whether a download actually saved.</p>
      <label className="operatorWakeToggle"><input type="checkbox" checked={verified} onChange={e=>setVerified(e.target.checked)} disabled={!exported||busy}/><span><strong>I opened the ZIP and verified the customer’s photos.</strong><small>This also confirms I have a usable copy before deletion.</small></span></label>
      <label className="formField" style={{marginTop:12}}>Type CLOSE EVENT to remove only this event from this iPad
       <input className="input" data-testid="staff-close-event-confirm" value={typed} onChange={e=>setTyped(e.target.value.toUpperCase())} placeholder={EVENT_CLOSE_CONFIRMATION} disabled={!verified||busy}/>

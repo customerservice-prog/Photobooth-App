@@ -44,7 +44,7 @@ export default async function EventDetailPage({params}){
    <section className="card cardPad ownerEventStep" id="after-event" data-testid="owner-finish-event">
     <header className="ownerStepHeader"><span className="ownerEventStepNumber" aria-hidden="true">3</span><div><h2 className="sectionTitle">Save the photos</h2><p className="sectionLead">Download and check the gallery before finishing this rental.</p></div></header>
     <div className="buttonRow"><Link href={gallery} className="btn" data-testid="owner-event-gallery">Open digital gallery →</Link></div>
-    <p className="ownerGalleryHelp">The gallery contains available secure backups. If photos are only on the event iPad, open Staff tools → Finish the event and download its complete ZIP there. Open the ZIP before sharing it with the customer.</p>
+    <p className="ownerGalleryHelp">Once this event is loaded on the iPad, its original photos and finished images save to the gallery automatically while online. Offline photos wait for the iPad to reconnect. Confirm its uploads have finished, download all uploaded photos, and check the ZIP before sending it to the customer.</p>
     <div className="ownerEventCloseout">
      {!finished&&<><form action={completeAction}><button className="btn btn2" type="submit">Mark event completed</button></form><span>After the gallery is saved and checked.</span></>}
      {event.status==='COMPLETED'&&<><form action={archiveAction}><button className="btn btn2" type="submit">Archive completed event</button></form><span>Keep the booking while preparing the next rental.</span></>}

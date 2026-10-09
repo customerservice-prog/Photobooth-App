@@ -32,6 +32,7 @@ jobs:
     env:
       DELIVERY_DATABASE_URL: postgresql://booth:booth@127.0.0.1:5432/booth
       RUN_LIVE_BACKUP_DB_TEST: 'true'
+      RUN_LIVE_GALLERY_DB_TEST: 'true'
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -42,4 +43,35 @@ jobs:
         run: npm install --no-audit --no-fund
       - name: Verify real backup database writes and deduplication
         working-directory: apps/booth
-        run: node --test tests/backup-database.test.mjs
+        run: node --test tests/backup-database.test.mjs ../admin/tests/event-gallery-postgres.test.mjs
+  automatic-browser:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: apps/booth
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install --no-audit --no-fund
+      - run: npm install --no-save playwright@1.55.0
+      - run: npx playwright install --with-deps chromium webkit
+      - name: Build the actual booth
+        run: |
+          mkdir -p automatic-backup-proof
+          npm run build > automatic-backup-proof/build.log 2>&1
+      - name: Automatic original and finished-image backup, offline retry and interrupted sessions
+        run: |
+          npm run start > automatic-backup-proof/server.log 2>&1 &
+          PID=$!
+          trap 'kill $PID 2>/dev/null || true' EXIT
+          node scripts/automatic-backup-proof.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: automatic-backup-${{ github.run_id }}
+          path: apps/booth/automatic-backup-proof/
+          retention-days: 3

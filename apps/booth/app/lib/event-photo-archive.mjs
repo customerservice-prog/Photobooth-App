@@ -20,11 +20,52 @@ function jpeg(data){
  const bytes=atob(data.split(',')[1]);return Uint8Array.from(bytes,c=>c.charCodeAt(0)).buffer;
 }
 const photoBlob=value=>value instanceof Blob?value:new Blob([value],{type:'image/jpeg'});
-function materialize(record){return {...record,collage:photoBlob(record.collage),poses:record.poses.map(photoBlob),keepsake:record.keepsake?photoBlob(record.keepsake):null};}
+function materialize(record){return {...record,collage:record.collage?photoBlob(record.collage):null,poses:record.poses.map(photoBlob),keepsake:record.keepsake?photoBlob(record.keepsake):null};}
+function notifySaved(scope,id,kind){
+ // A sync worker must only see an image once its storage transaction commits.
+ // Notification failures cannot turn an already-saved photo into a failed save.
+ try{if(typeof globalThis.dispatchEvent==='function'&&typeof CustomEvent==='function')globalThis.dispatchEvent(new CustomEvent('friendly-booth-photo-saved',{detail:{scope,id,kind}}));}catch{}
+}
+function captureRecord(scope,id,cfg={}){
+ return {key:scope+':'+id,id,scope,createdAt:new Date().toISOString(),revision:crypto.randomUUID(),encoding:'jpeg-arraybuffer',collage:null,poses:[],keepsake:null,title:String(cfg.title||''),eventDate:String(cfg.date||'')};
+}
+// Save each original before the next countdown. An interrupted session remains
+// exportable, and the final collage later completes this exact same record.
+export async function savePose(scope,id,poseNumber,data,cfg={}){
+ if(!scope||!id||!Number.isInteger(poseNumber)||poseNumber<1||poseNumber>4)throw new Error('The captured photo could not be identified.');
+ const image=jpeg(data),fresh=captureRecord(scope,id,cfg);
+ const record=await transaction('readwrite',(store,done,abort)=>{
+  const request=store.get(fresh.key);
+  request.onsuccess=()=>{
+   const existing=request.result||fresh,index=poseNumber-1;
+   if(index<existing.poses.length){
+    if(!identicalImage(existing.poses[index],image)){abort(new Error('A saved original photo has conflicting data. It was left unchanged.'));return;}
+    done(existing);return;
+   }
+   if(existing.collage||index!==existing.poses.length){abort(new Error('The original photos are out of order. Saved photos were left unchanged.'));return;}
+   const next={...existing,poses:[...existing.poses,image],revision:crypto.randomUUID(),updatedAt:new Date().toISOString()};
+   if(request.result)store.put(next);else store.add(next);
+   done(next);
+  };
+ });
+ notifySaved(scope,id,'pose-'+poseNumber);return materialize(record);
+}
 export async function saveCapture(scope,id,data,shots,cfg){
  if(!scope||!id||!Array.isArray(shots)||![1,3,4].includes(shots.length))throw new Error('The photo session is incomplete.');
- const record={key:scope+':'+id,id,scope,createdAt:new Date().toISOString(),revision:crypto.randomUUID(),encoding:'jpeg-arraybuffer',collage:jpeg(data),poses:shots.map(jpeg),keepsake:null,title:String(cfg.title||''),eventDate:String(cfg.date||'')};
- await transaction('readwrite',s=>s.add(record));return materialize(record);
+ const fresh={...captureRecord(scope,id,cfg),collage:jpeg(data),poses:shots.map(jpeg)};
+ const record=await transaction('readwrite',(store,done,abort)=>{
+  const request=store.get(fresh.key);
+  request.onsuccess=()=>{
+   const existing=request.result;
+   if(!existing){store.add(fresh);done(fresh);return;}
+   if(existing.poses.length>fresh.poses.length||existing.poses.some((image,index)=>!identicalImage(image,fresh.poses[index]))||
+    (existing.collage&&!identicalImage(existing.collage,fresh.collage))){abort(new Error('A saved photo session has conflicting data. It was left unchanged.'));return;}
+   if(existing.collage){done(existing);return;}
+   const next={...existing,collage:fresh.collage,poses:fresh.poses,revision:crypto.randomUUID(),updatedAt:new Date().toISOString()};
+   store.put(next);done(next);
+  };
+ });
+ notifySaved(scope,id,'collage');return materialize(record);
 }
 function identicalImage(left,right){
  const bytes=value=>value instanceof ArrayBuffer?new Uint8Array(value):ArrayBuffer.isView(value)?new Uint8Array(value.buffer,value.byteOffset,value.byteLength):null;
@@ -68,12 +109,13 @@ export async function saveKeepsake(scope,id,blob){
  // Safari can close a transaction while unrelated asynchronous work is pending.
  const bytes=await blob.arrayBuffer();
  await transaction('readwrite',store=>{const req=store.get(scope+':'+id);req.onsuccess=()=>{if(!req.result){store.transaction.abort();return;}store.put({...req.result,keepsake:bytes,revision:crypto.randomUUID(),updatedAt:new Date().toISOString()});};});
+ notifySaved(scope,id,'keepsake');
 }
 async function archiveRecords(scope){return transaction('readonly',(s,done)=>{const r=s.index('scope').getAll(scope);r.onsuccess=()=>done(r.result);});}
 export async function listCaptures(scope){const records=await archiveRecords(scope);return records.sort((a,b)=>a.createdAt.localeCompare(b.createdAt)).map(materialize);}
 export async function archiveCount(scope){return transaction('readonly',(s,done)=>{const r=s.index('scope').count(scope);r.onsuccess=()=>done(r.result);});}
 export function blobDataUrl(blob){return new Promise((resolve,reject)=>{const r=new FileReader();r.onload=()=>resolve(r.result);r.onerror=()=>reject(r.error);r.readAsDataURL(blob);});}
-export async function recentCaptures(scope,limit=8){const all=await listCaptures(scope);return Promise.all(all.slice(-limit).reverse().map(async r=>({id:r.id,createdAt:r.createdAt,data:await blobDataUrl(r.collage)})));}
+export async function recentCaptures(scope,limit=8){const all=await listCaptures(scope);return Promise.all(all.filter(r=>r.collage).slice(-limit).reverse().map(async r=>({id:r.id,createdAt:r.createdAt,data:await blobDataUrl(r.collage)})));}
 // JPEG files are already compressed. CRC calculation reads only one file at a time.
 const crcTable=Uint32Array.from({length:256},(_,n)=>{for(let k=0;k<8;k++)n=(n&1)?0xedb88320^(n>>>1):n>>>1;return n>>>0;});
 export function crc32(bytes){let crc=0xffffffff;for(const n of bytes)crc=crcTable[(crc^n)&255]^(crc>>>8);return (crc^0xffffffff)>>>0;}
@@ -112,9 +154,9 @@ export async function exportPhotos(scope,{allowEmpty=false}={}){
  const stored=await archiveRecords(scope),snapshot=archiveSnapshot(scope,stored);
  const records=stored.sort((a,b)=>a.createdAt.localeCompare(b.createdAt)).map(materialize);
  if(!records.length&&!allowEmpty)throw new Error('No photos have been captured in this event on this device yet.');
- const files=[],manifest={scope,createdAt:new Date().toISOString(),sessions:records.length,finishedKeepsakes:records.filter(r=>r.keepsake).length,note:'Photos stored on this device only. Demonstration and live-event archives are separate. Collages are included for interrupted sessions without a finished keepsake.'};
+ const files=[],manifest={scope,createdAt:new Date().toISOString(),sessions:records.length,originalPhotos:records.reduce((n,r)=>n+r.poses.length,0),interruptedSessions:records.filter(r=>!r.collage).length,finishedKeepsakes:records.filter(r=>r.keepsake).length,note:'Photos stored on this device only. Demonstration and live-event archives are separate. Every saved original is included, including photos from interrupted sessions.'};
  files.push({name:'manifest.json',blob:new Blob([JSON.stringify(manifest,null,2)],{type:'application/json'})});
- records.forEach((r,n)=>{const folder='session-'+String(n+1).padStart(4,'0')+'/';r.poses.forEach((blob,i)=>files.push({name:folder+'pose-'+(i+1)+'.jpg',blob}));files.push({name:folder+(r.keepsake?'keepsake.jpg':'collage.jpg'),blob:r.keepsake||r.collage});});
+ records.forEach((r,n)=>{const folder='session-'+String(n+1).padStart(4,'0')+'/';r.poses.forEach((blob,i)=>files.push({name:folder+'pose-'+(i+1)+'.jpg',blob}));if(r.keepsake||r.collage)files.push({name:folder+(r.keepsake?'keepsake.jpg':'collage.jpg'),blob:r.keepsake||r.collage});});
  return {blob:await makeZip(files),count:records.length,finishedKeepsakes:manifest.finishedKeepsakes,snapshot};
 }
 // Irreversible cleanup for a single, already-exported event only.

@@ -5,7 +5,7 @@ export async function assertFinishedGuest(page,total){
  const preview=page.getByTestId('approved-guest-preview');
  await preview.waitFor({timeout:110000});
  await page.getByTestId('approved-finished-jpeg').waitFor({timeout:35000});
- await page.waitForFunction(()=>document.querySelector('[data-testid="approved-gallery-status"]')?.textContent?.includes('Saved to the event gallery'),null,{timeout:25000});
+ await page.waitForFunction(()=>document.querySelector('[data-testid="approved-gallery-status"]')?.textContent?.includes('Your photo is saved'),null,{timeout:25000});
  assert.equal(await preview.getAttribute('data-output-layout'),total===1?'card':'photo_strip');
  assert.equal(await preview.locator('.agPaperWrap img').count(),1,'guest sees one preloaded finished picture');
  assert.equal(await preview.locator('.agDock button').count(),3,'guest has only Print, Send and Done');

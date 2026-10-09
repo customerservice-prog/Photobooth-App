@@ -106,7 +106,7 @@ export default function GuestReadyPreview({photo,poses=[],sessionShots,cfg:store
    </div></div>
   </div>
   <div className="agNotices">
-  <p className="agSaved" data-testid="approved-gallery-status">{archiveBusy?'Saving your photo…':archiveError?'Please ask the attendant for help saving this photo.':archived?'✓ Saved to the event gallery':prepared&&!onArchive?'Ready to print or send':prepared?'Saving your photo…':'Preparing your photo…'}</p>
+  <p className="agSaved" data-testid="approved-gallery-status">{archiveBusy?'Saving your photo…':archiveError?'Please ask the attendant for help saving this photo.':archived?'✓ Your photo is saved':prepared&&!onArchive?'Ready to print or send':prepared?'Saving your photo…':'Preparing your photo…'}</p>
   {(archiveError||status||exportError)&&<p className={'agStatus'+(archiveError||exportError?' agWarning':'')} role={archiveError||exportError?'alert':'status'}>{archiveError||exportError||status}{archiveError&&prepared&&<><button type="button" data-testid="approved-retry-save" disabled={busy} onClick={()=>setArchiveRetry(n=>n+1)}>Retry saving</button><button type="button" disabled={busy} onClick={saveRecovery}>Save recovery JPEG</button></>}{exportError&&<button type="button" onClick={()=>setRetry(n=>n+1)}>Retry photo</button>}</p>}
   {printRequested&&<div className="agPrintRecovery"><span>Only retry if you canceled or no sheet printed.</span><button type="button" data-testid="approved-retry-print" disabled={busy} onClick={retryPrint}>Retry print</button></div>}
   </div>
