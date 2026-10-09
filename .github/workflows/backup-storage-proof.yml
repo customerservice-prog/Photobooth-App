@@ -31,6 +31,7 @@ jobs:
           --health-retries 12
     env:
       DELIVERY_DATABASE_URL: postgresql://booth:booth@127.0.0.1:5432/booth
+      RUN_LIVE_BACKUP_DB_TEST: 'true'
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4

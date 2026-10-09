@@ -12,7 +12,8 @@ export default function StaffBackupPanel(){
   try{
    const r=await fetch('/api/backup/authorize',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({eventId:event.id})});
    const data=await r.json();if(!r.ok)throw new Error(data.error);
-   saveBackupToken(localStorage,event.id,data.token);const result=await syncEventPhotos({storage:localStorage,scope:event.archive,eventId:event.id,online:navigator.onLine});setStatus(result.state==='ready'?'Backup connected. Saved photos are synchronized.':'Backup authorized; '+result.state+'. Local photos remain safe.');
+   saveBackupToken(localStorage,event.id,data.token);const result=await syncEventPhotos({storage:localStorage,scope:event.archive,eventId:event.id,online:navigator.onLine});
+   setStatus(result.state==='ready'?'Secure backups are connected. New photos upload automatically while this iPad is online.':result.state==='needs-staff'?'Backup authorization needs renewing. Tap Enable secure backups again. Photos remain on this iPad.':result.state==='offline'?'Backup connected. This iPad is offline; photos will retry when online.':'Backups are authorized, but upload is unavailable right now. Photos remain on this iPad and will retry while online.');
   }catch(e){setStatus(e.message||'Unavailable');}
  }
  return <section className="operatorKioskCard"><h3>Private photo backups</h3>
