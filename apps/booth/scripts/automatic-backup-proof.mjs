@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import {mkdir,readFile,writeFile} from 'node:fs/promises';
+import {createServer} from 'node:http';
 import {chromium,webkit} from 'playwright';
 import {octoberPreset,workspace} from '../app/lib/event-workspace.mjs';
 import {BOOTH_RELEASE} from '../app/lib/booth-launch.mjs';
@@ -10,7 +11,7 @@ import {BOOTH_RELEASE} from '../app/lib/booth-launch.mjs';
 // write-capable fixture against a deployed booth or a customer's event.
 const base=(process.env.AUTOMATIC_BACKUP_BASE_URL||'http://127.0.0.1:3000').replace(/\/$/,'');
 const origin=new URL(base).origin;
-assert(['127.0.0.1','localhost','[::1]'].includes(new URL(base).hostname),'Automatic backup fixtures are restricted to a local test server');
+assert(new URL(base).protocol==='http:'&&['127.0.0.1','localhost','[::1]'].includes(new URL(base).hostname),'Automatic backup fixtures are restricted to a local HTTP test server');
 const engines=process.env.AUTOMATIC_BACKUP_CHROMIUM_ONLY==='1'?[['chromium',chromium]]:[['chromium',chromium],['webkit',webkit]];
 const out='automatic-backup-proof',results=[];
 await mkdir(out,{recursive:true});
@@ -70,34 +71,47 @@ try{
  for(const [engine,api] of engines){
   const browser=await api.launch({headless:true,...(engine==='chromium'?{args:['--no-sandbox']}: {})});
   const context=await browser.newContext({viewport:{width:1024,height:768},hasTouch:true,isMobile:true,reducedMotion:'reduce',serviceWorkers:'block'});
-  const saved=new Map(),attempts=[],authorizations=[],unexpectedWrites=[],errors=[];
+  const saved=new Map(),attempts=[],authorizations=[],unexpectedWrites=[],errors=[],boundaryErrors=[];
   let networkAllowed=true,expireFirstUpload=true;
-  await context.route('**/*',async route=>{
-   const request=route.request(),url=new URL(request.url());
-   if(url.origin!==origin)return route.abort();
-   if(request.method()==='POST'&&url.pathname==='/api/backup/authorize'){
-    if(!networkAllowed)return route.abort('internetdisconnected');
-    const body=request.postDataJSON();
-    assert.deepEqual(body,{eventId,syncTicket:proof},'loaded event proof authorizes automatically without a staff login');
-    authorizations.push(body);
-    return route.fulfill({json:{token:'fixture-backup-token-'+authorizations.length}});
-   }
-   if(request.method()==='POST'&&url.pathname==='/api/backup/image'){
-    if(!networkAllowed)return route.abort('internetdisconnected');
-    const headers=request.headers(),kind=headers['x-booth-kind'],id=headers['x-booth-capture'];
+  // WebKit does not expose Blob request bodies in Playwright's intercepted
+  // request metadata. Receive the real HTTP stream instead; an unchanged
+  // route.continue body preserves the browser's original upload bytes.
+  const backupServer=createServer(async(request,response)=>{
+   const reply=(status,data)=>{response.writeHead(status,{'Content-Type':'application/json','Access-Control-Allow-Origin':origin,'Access-Control-Allow-Credentials':'true','Access-Control-Allow-Methods':'POST, OPTIONS','Access-Control-Allow-Headers':'Content-Type, Authorization, X-Booth-Event, X-Booth-Capture, X-Booth-Kind'});response.end(JSON.stringify(data));};
+   try{
+    if(request.method==='OPTIONS')return reply(204,{});
+    const chunks=[];for await(const chunk of request)chunks.push(chunk);
+    const bytes=Buffer.concat(chunks);
+    if(request.method==='POST'&&request.url==='/api/backup/authorize'){
+     const body=JSON.parse(bytes.toString('utf8'));
+     assert.deepEqual(body,{eventId,syncTicket:proof},'loaded event proof authorizes automatically without a staff login');
+     authorizations.push(body);
+     return reply(200,{token:'fixture-backup-token-'+authorizations.length});
+    }
+    assert.equal(request.method,'POST');assert.equal(request.url,'/api/backup/image');
+    const headers=request.headers,kind=headers['x-booth-kind'],id=headers['x-booth-capture'];
     assert.equal(headers['x-booth-event'],eventId,'every image remains bound to the loaded event');
     assert.match(kind,/^(pose-[1-4]|collage|keepsake)$/);
     assert.match(headers.authorization,/^Bearer fixture-backup-token-\d+$/);
-    const bytes=request.postDataBuffer();
-    assert(bytes&&bytes[0]===255&&bytes[1]===216&&bytes.at(-2)===255&&bytes.at(-1)===217,'uploaded original is a complete JPEG');
+    assert(bytes.length>0&&bytes[0]===255&&bytes[1]===216&&bytes.at(-2)===255&&bytes.at(-1)===217,'uploaded original is a complete JPEG');
     attempts.push({id,kind});
-    if(expireFirstUpload){expireFirstUpload=false;return route.fulfill({status:401,json:{error:'Expired test ticket'}});}
+    if(expireFirstUpload){expireFirstUpload=false;return reply(401,{error:'Expired test ticket'});}
     const key=id+'/'+kind,old=saved.get(key);
     if(old)assert.deepEqual(old,bytes,'a retried image retains the original bytes');
     saved.set(key,Buffer.from(bytes));
     // Let the next original or keepsake commit while a worker is in flight.
     await new Promise(resolve=>setTimeout(resolve,300));
-    return route.fulfill({json:{ok:true}});
+    return reply(200,{ok:true});
+   }catch(error){boundaryErrors.push(error.message);return reply(500,{error:'Backup fixture rejected request'});}
+  });
+  await new Promise((resolve,reject)=>{backupServer.once('error',reject);backupServer.listen(0,'127.0.0.1',resolve);});
+  const backupOrigin='http://127.0.0.1:'+backupServer.address().port;
+  await context.route('**/*',async route=>{
+   const request=route.request(),url=new URL(request.url());
+   if(url.origin!==origin)return route.abort();
+   if(request.method()==='POST'&&['/api/backup/authorize','/api/backup/image'].includes(url.pathname)){
+    if(!networkAllowed)return route.abort('internetdisconnected');
+    return route.continue({url:backupOrigin+url.pathname});
    }
    if(!['GET','HEAD'].includes(request.method())){unexpectedWrites.push({method:request.method(),path:url.pathname});return route.abort();}
    if(/^\/(setup|staff|event-prep)(\/|$)/.test(url.pathname)){unexpectedWrites.push({path:url.pathname});return route.abort();}
@@ -182,10 +196,10 @@ try{
    assert.equal(attempts.length,attemptsBeforeReload,'acknowledged images are not uploaded again after reload');
    assert.deepEqual(await archive(page),archived,'upload acknowledgments never remove the local archive');
    assert.deepEqual(await page.evaluate(({config,usage})=>({config:localStorage.getItem(config),usage:localStorage.getItem(usage)}),scope),before,'automatic backup leaves the approved design and print allowance unchanged');
-   assert.deepEqual(unexpectedWrites,[]);assert.deepEqual(errors,[]);
-   results.push({engine,passed:true,release,browserVersion:browser.version(),sessions:3,originals:6,collages:2,finishedDesigns:2,backendFiles:saved.size,exactJPEGBytes:true,automaticWithoutStaff:true,expiredTicketRenewed:true,offlineCaptureAndReload:true,interruptedOriginalRetained:true,acknowledgmentsDeduplicated:true,serverBoundary:'mocked HTTP; authorization and database verified by separate tests',unexpectedWrites});
-  }catch(error){await page.screenshot({path:out+'/'+engine+'-failure.png',fullPage:true}).catch(()=>{});results.push({engine,passed:false,message:error.message,stack:error.stack,unexpectedWrites,errors});throw error;}
-  finally{await context.close();await browser.close();}
+   assert.deepEqual(unexpectedWrites,[]);assert.deepEqual(errors,[]);assert.deepEqual(boundaryErrors,[]);
+   results.push({engine,passed:true,release,browserVersion:browser.version(),sessions:3,originals:6,collages:2,finishedDesigns:2,backendFiles:saved.size,exactJPEGBytes:true,automaticWithoutStaff:true,expiredTicketRenewed:true,offlineCaptureAndReload:true,interruptedOriginalRetained:true,acknowledgmentsDeduplicated:true,serverBoundary:'local HTTP fixture with actual wire bytes; authorization and database verified by separate tests',unexpectedWrites});
+  }catch(error){await page.screenshot({path:out+'/'+engine+'-failure.png',fullPage:true}).catch(()=>{});results.push({engine,passed:false,message:error.message,stack:error.stack,unexpectedWrites,errors,boundaryErrors});throw error;}
+  finally{await context.close();await browser.close();await new Promise(resolve=>backupServer.close(resolve));}
  }
  console.log(JSON.stringify(results,null,2));
 }finally{await writeFile(out+'/results.json',JSON.stringify(results,null,2)+'\n');}
