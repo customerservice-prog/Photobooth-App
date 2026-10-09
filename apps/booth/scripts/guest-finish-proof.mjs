@@ -180,12 +180,12 @@ async function runCase(browser,engine,scope,total,fixture){
    // loads this browser's saved config. Network idle does not await hydration.
    await page.waitForFunction(expected=>{
     const designs=Array.from(document.querySelectorAll('.bwLayoutPreview svg[data-design]'),element=>element.getAttribute('data-design'));
-    return designs.length===2&&designs.every(design=>design===expected);
+    return designs.length===3&&designs.every(design=>design===expected);
    },fixture.type+'-'+fixture.template,{timeout:10000});
    const welcomeDesigns=await page.locator('.bwLayoutPreview svg[data-design]').evaluateAll(elements=>elements.map(element=>element.getAttribute('data-design')));
-   assert.deepEqual(welcomeDesigns,[fixture.type+'-'+fixture.template,fixture.type+'-'+fixture.template],'both welcome layouts use the approved event artwork');
+   assert.deepEqual(welcomeDesigns,Array(3).fill(fixture.type+'-'+fixture.template),'both welcome layouts use the approved event artwork');
   }
-  await page.getByTestId(total===1?'welcome-quick-photo':'welcome-four-photo').click();
+  await page.getByTestId(total===1?'welcome-quick-photo':'welcome-four-photo').click();assert.equal(await page.getByTestId('welcome-large-proof').getAttribute('data-selected-photos'),String(total));await page.getByTestId('welcome-start-session').click();
   // Use the real "I'm ready" action between poses to keep this bounded.
   const deadline=Date.now()+100000;
   while(!await page.getByTestId('approved-guest-preview').count()){

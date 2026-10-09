@@ -38,7 +38,7 @@ for(const [engine,api] of engines){
   await page.getByTestId('welcome-four-photo').waitFor();
  }
  async function capture(total,{saved=true}={}){
-  await page.getByTestId(total===1?'welcome-quick-photo':'welcome-four-photo').click();
+  await page.getByTestId(total===1?'welcome-quick-photo':'welcome-four-photo').click();await page.getByTestId('welcome-start-session').click();
   await page.locator('.pcStage').waitFor();
   await page.getByTestId('approved-guest-preview').waitFor({timeout:110000});
   await page.getByTestId('approved-finished-jpeg').waitFor({timeout:35000});
