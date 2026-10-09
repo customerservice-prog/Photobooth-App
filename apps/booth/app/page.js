@@ -11,7 +11,7 @@ import {normalizeEventConfig} from './lib/event-config.mjs';
 import {normalizePrintPackage,printsRemaining,canPrint} from './lib/print-package.mjs';
 import {composePhotoStrip} from './lib/photo-strip.mjs';
 import {workspace,readEventDraft,saveEventDraft,usage,ownPrintUsage,readyForEvent} from './lib/event-workspace.mjs';
-import {saveCapture,saveKeepsake,archiveCount,recentCaptures,openArchive,capturePoses,importLegacyCaptures} from './lib/event-photo-archive.mjs';
+import {savePose,saveCapture,saveKeepsake,archiveCount,recentCaptures,openArchive,capturePoses,importLegacyCaptures} from './lib/event-photo-archive.mjs';
 import {createScreenAwakeController,readScreenAwakeSetting,saveScreenAwakeSetting} from './lib/screen-awake.mjs';
 import {activeEventDestination} from './lib/active-event.mjs';
 import {backupEnabled,saveBackupToken,syncEventPhotos} from './lib/backup-sync.mjs';
@@ -29,7 +29,7 @@ export default function Booth(){
   const {config:CFG,photos:STORE,usage:PRINT_USAGE}=scope;
   const[step,setStep]=useState('welcome'),[photo,setPhoto]=useState(null),[poses,setPoses]=useState([]),[error,setError]=useState(''),[online,setOnline]=useState(true),[saved,setSaved]=useState(0),[operator,setOperator]=useState(false),[printing,setPrinting]=useState(false),[cfg,setCfg]=useState(defaultCfg),[gallery,setGallery]=useState([]),[filter,setFilter]=useState('original'),[template,setTemplate]=useState('ivory'),[installOpen,setInstallOpen]=useState(false),[installed,setInstalled]=useState(false),[editing,setEditing]=useState(false),[starting,setStarting]=useState(false),[previewActive,setPreviewActive]=useState(false),[capture,setCapture]=useState({phase:'ready',current:1,total:4,completed:0,shots:[]}),[sessionShots,setSessionShots]=useState(4),[printsUsed,setPrintsUsed]=useState(0),[voiceStatus,setVoiceStatus]=useState('idle');
   const video=useRef(null),stream=useRef(null),timer=useRef(null),startGuard=useRef(false),run=useRef(0),printCleanup=useRef(()=>{}),captureId=useRef(null),printGuard=useRef(false),latestPrintRequest=useRef(null),captureAbort=useRef(null),capturePhase=useRef('ready'),resumeGuestPause=useRef(null);
-  const captureStored=useRef(false),capturePayload=useRef(null);
+  const captureStored=useRef(false),capturePayload=useRef(null),captureSession=useRef(null);
   // The staff preference is per iPad, not per guest or transferred event.
   // Keeping the display awake is best-effort; iPad Guided Access is the OS lock.
   const [backupStatus,setBackupStatus]=useState('not-enabled');
@@ -102,7 +102,7 @@ export default function Booth(){
       if(!pending)throw new Error('The original photo could not be recovered.');
       await saveCapture(scope.archive,captureId.current,pending.data,pending.shots,pending.cfg);
       captureStored.current=true;
-      setSaved(n=>n+1);
+      if(!captureSession.current?.counted){setSaved(n=>n+1);if(captureSession.current)captureSession.current.counted=true;}
       setGallery(old=>[{id:captureId.current,createdAt:new Date().toISOString(),data:pending.data},...old].slice(0,8));
     }
     await saveKeepsake(scope.archive,captureId.current,artifact.blob);
@@ -115,9 +115,10 @@ export default function Booth(){
   },[]);
   async function begin(total=4){
     if(startGuard.current||!initialized)return;if(![1,4].includes(total))total=4;startGuard.current=true;setStarting(true);setSessionShots(total);stopTalking();const id=++run.current;
+    const session={id:crypto.randomUUID(),counted:false};captureSession.current=session;captureId.current=session.id;captureStored.current=false;capturePayload.current=null;
     captureAbort.current?.abort();const controller=new AbortController();captureAbort.current=controller;capturePhase.current='ready';
     setCapture({phase:'ready',current:1,total,completed:0,shots:[]});
-    setError('');setFilter('original');setTemplate(cfg.defaultTemplate||'ivory');setPhoto(null);setPoses([]);setEditing(false);stopCamera();captureId.current=null;
+    setError('');setFilter('original');setTemplate(cfg.defaultTemplate||'ivory');setPhoto(null);setPoses([]);setEditing(false);stopCamera();
     try{
       // Audio starts on the guest tap, but cannot delay or prevent camera access.
       // Use the cheerful recorded voice when it succeeds; otherwise show the
@@ -144,7 +145,13 @@ export default function Booth(){
       await waitForPose(250,controller.signal);setStep('photoSeries');
       const shots=await runPhotoSequence({total,signal:controller.signal,pauseSeconds:normalizeGuestPause(cfg.photoPauseSeconds),
         onPause:({seconds,signal,onTick})=>waitForGuestReady({seconds,signal,onTick,registerReady:ready=>{resumeGuestPause.current=ready;}}),
-        capture:options=>takeFreshPhoto(video.current,options),
+        capture:async options=>{
+          const frame=await takeFreshPhoto(video.current,options);
+          try{await savePose(scope.archive,session.id,options.index+1,frame.data,cfg);}
+          catch{throw new Error('The captured photo could not save on this iPad. Ask staff to check storage before taking more photos.');}
+          if(!session.counted){session.counted=true;setSaved(n=>n+1);}
+          return frame;
+        },
         onProgress:next=>{if(id===run.current){capturePhase.current=next.phase;setCapture(next);}},
         onCue:cue=>{
           if(id!==run.current)return 0;
@@ -158,7 +165,7 @@ export default function Booth(){
         }
       });
       stopTalking();const data=total===1?shots[0]:await composePhotoStrip(shots,{...cfg,printPackage:{...cfg.printPackage,shotsPerSession:total}});if(id!==run.current)return;
-      stopCamera();await save(data,shots);if(id!==run.current)return;
+      stopCamera();await save(data,shots,session);if(id!==run.current)return;
       capturePhase.current='done';setPoses(shots);setPhoto(data);setCapture({phase:'ready',current:1,total:shots.length,completed:0,shots:[]});setStep('preview');
     }catch(e){
       if(id!==run.current||controller.signal.aborted)return;
@@ -172,10 +179,10 @@ export default function Booth(){
     setCapture({phase:'ready',current:1,total:4,completed:0,shots:[]});setPhoto(null);setPoses([]);setError(message);setStep('welcome');
   }
   function captureFail(){setError('Camera was not ready. Please try again.');stopCamera();setStep('welcome')}
-  async function save(data,shots){
-    const id=crypto.randomUUID();captureId.current=id;
+  async function save(data,shots,session){
+    const id=session.id;captureId.current=id;
     captureStored.current=false;capturePayload.current={data,shots,cfg};
-    try{await saveCapture(scope.archive,id,data,shots,cfg);captureStored.current=true;setSaved(n=>n+1);setGallery(old=>[{id,createdAt:new Date().toISOString(),data},...old].slice(0,8));}
+    try{await saveCapture(scope.archive,id,data,shots,cfg);captureStored.current=true;if(!session.counted){session.counted=true;setSaved(n=>n+1);}setGallery(old=>[{id,createdAt:new Date().toISOString(),data},...old].slice(0,8));}
     catch{setError('Photo captured, but the event archive could not save it. Keep this photo open and ask staff to check storage.');}
   }
   function persistConfig(next){try{const plain={...next};delete plain.runtime;if(scope.managed){plain.preparation={...plain.preparation,checks:{},colorsConfirmed:false};saveEventDraft(localStorage,plain);}else localStorage.setItem(CFG,JSON.stringify(plain));setCfg({...plain,runtime:cfg.runtime});setError('');return true}catch{setError('Event details could not be saved on this device. Keep the booth open and ask the attendant for help.');return false}}
@@ -217,7 +224,7 @@ export default function Booth(){
     catch(e){setError(e.message||'Print request could not be updated.');return false;}
   }
   function testSpeaker(){preparePhotoAudio().then(()=>setVoiceStatus('playing')).catch(()=>setVoiceStatus('blocked'));}
-  async function recover(p){const token=++run.current;setError('');let originals=[];try{originals=await capturePoses(scope.archive,p.id);}catch{setError('The original poses could not be opened. The saved photo is still available.');}if(token!==run.current)return;captureId.current=p.id;captureStored.current=true;capturePayload.current=null;setSessionShots(originals.length===4?4:1);setPoses(originals);setPhoto(p.data);setOperator(false);setEditing(false);setStep('preview')}
+  async function recover(p){const token=++run.current;setError('');let originals=[];try{originals=await capturePoses(scope.archive,p.id);}catch{setError('The original poses could not be opened. The saved photo is still available.');}if(token!==run.current)return;captureId.current=p.id;captureSession.current={id:p.id,counted:true};captureStored.current=true;capturePayload.current=null;setSessionShots(originals.length===4?4:1);setPoses(originals);setPhoto(p.data);setOperator(false);setEditing(false);setStep('preview')}
   const eventMeta=eventTypes[cfg.type]||eventTypes.other;
   const isPreview=step==='preview',isCapturing=['camera','photoSeries'].includes(step);
   const showWorkspaceBanner=!isPreview&&(scope.managed||scope.imported)&&scope.demo&&cfg.guestMode!=='approved';

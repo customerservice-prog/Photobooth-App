@@ -44,7 +44,7 @@ try{
    assert.equal(await page.getByRole('button',{name:'Send',exact:true}).count(),1,'guests can send the preloaded finished picture');
    assert.equal(await page.locator('.deliveryForm').count(),0,'guest preview has no contact-entry tools');
    assert.equal(await page.getByTestId('layout-strip').count(),0,'approved design is fixed before the event');
-   await page.waitForFunction(()=>document.querySelector('[data-testid="approved-gallery-status"]')?.textContent?.includes('Saved to the event gallery'),null,{timeout:25000});
+   await page.waitForFunction(()=>document.querySelector('[data-testid="approved-gallery-status"]')?.textContent?.includes('Your photo is saved'),null,{timeout:25000});
    await page.getByTestId('approved-print').click();
    assert.equal(await page.evaluate(()=>window.__printCalls),1);
    assert.equal(await page.evaluate(k=>localStorage.getItem(k),EVENT_KEYS.liveUsage),'17');

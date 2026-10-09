@@ -35,7 +35,19 @@ for(const [engine,api] of [['chromium',chromium],['webkit',webkit]]){
   page=await context.newPage();page.setDefaultTimeout(15000);const errors=[];page.on('pageerror',e=>errors.push(e.message));page.__errors=errors;
   await page.goto(base+'/?event=oct10-2026&demo=1',{waitUntil:'networkidle'});await page.getByTestId('welcome-four-photo').waitFor();
  }
- async function archive(){return page.evaluate(async source=>{const api=new Function(source.replace(/\bexport /g,'')+'\nreturn {listCaptures};')();const all=await api.listCaptures('oct10-2026:demo');return Promise.all(all.map(async record=>({id:record.id,poses:await Promise.all(record.poses.map(async blob=>Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',await blob.arrayBuffer()))).map(b=>b.toString(16).padStart(2,'0')).join('')))})));},archiveSource);}
+ async function archive(){return page.evaluate(async source=>{
+  const api=new Function(source.replace(/\bexport /g,'')+'\nreturn {listCaptures};')();
+  const hash=async blob=>blob?Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',await blob.arrayBuffer()))).map(b=>b.toString(16).padStart(2,'0')).join(''):null;
+  const all=await api.listCaptures('oct10-2026:demo');
+  return Promise.all(all.map(async record=>({id:record.id,poses:await Promise.all(record.poses.map(hash)),collage:await hash(record.collage),keepsake:await hash(record.keepsake)})));
+ },archiveSource);}
+ function assertFirstOriginalOnly(records){
+  assert.equal(records.length,1,'the first captured original remains in this event archive');
+  assert.equal(records[0].poses.length,1,'only the completed first pose was captured');
+  assert.match(records[0].poses[0],/^[a-f0-9]{64}$/,'the archived original is a real JPEG with a stable byte hash');
+  assert.equal(records[0].collage,null,'an interrupted session never creates an incomplete print collage');
+  assert.equal(records[0].keepsake,null,'an interrupted session never creates a finished keepsake');
+ }
  try{
   await open();await page.getByTestId('welcome-four-photo').dblclick();await page.locator('.pcStage[data-phase="countdown"]').waitFor();
   const countdownTones=await page.locator('.pcStage[data-phase="countdown"]').evaluate(stage=>{
@@ -94,10 +106,24 @@ for(const [engine,api] of [['chromium',chromium],['webkit',webkit]]){
   assert.equal(await page.evaluate(()=>window.__cameraTrack.readyState),'ended');assert.deepEqual(page.__errors,[]);
   await page.screenshot({path:`${out}/${engine}-four-different-photos-preview.png`});pass('four-unique-camera-frames-before-print-page',{draws,events,metadata,photoHashes:saved[0].poses});pass('double-tap-one-camera-session');pass('capture-does-not-print-or-use-allowance');
   if(!smoke){
-   await open();await page.getByTestId('welcome-four-photo').click();await page.locator('.pcStage[data-completed="1"]').waitFor();await page.getByRole('button',{name:'Cancel session',exact:true}).click();await page.getByTestId('welcome-four-photo').waitFor();await page.waitForTimeout(4400);assert.equal(await page.evaluate(()=>window.__cameraDraws.length),1);assert.equal(await page.locator('.ksStudio').count(),0);assert.equal((await archive()).length,0);assert.equal(await page.evaluate(()=>window.__cameraTrack.readyState),'ended');pass('cancel-after-first-photo-prevents-late-captures-or-partial-archive');
+   await open();await page.getByTestId('welcome-four-photo').click();await page.locator('.pcStage[data-completed="1"]').waitFor();
+   const beforeCancel=await archive();assertFirstOriginalOnly(beforeCancel);
+   await page.getByRole('button',{name:'Cancel session',exact:true}).click();await page.getByTestId('welcome-four-photo').waitFor();await page.waitForTimeout(4400);
+   assert.equal(await page.evaluate(()=>window.__cameraDraws.length),1);assert.equal(await page.locator('.ksStudio').count(),0);
+   const canceled=await archive();assertFirstOriginalOnly(canceled);assert.deepEqual(canceled,beforeCancel,'cancellation preserves the exact original and creates no late photos or print files');
+   assert.equal(await page.evaluate(()=>window.__cameraTrack.readyState),'ended');pass('cancel-after-first-photo-preserves-original-without-late-captures-or-incomplete-sheet',{photoHash:canceled[0].poses[0]});
    await open();await page.getByTestId('welcome-quick-photo').click();await assertFinishedGuest(page,1);const quick=await archive();assert.equal(quick.length,1);assert.equal(quick[0].poses.length,1);assert.equal(await page.evaluate(()=>window.__cameraDraws.length),1);assert.equal(await page.getByTestId('layout-strip').count(),0);pass('quick-session-captures-one-photo-and-stays-card-only');
-   await open();await page.getByTestId('welcome-four-photo').click();await page.locator('.pcStage[data-completed="1"]').waitFor();await page.evaluate(()=>window.__stopCamera());/* Spoken next-pose + ready + 3/2/1 + smile prompts run before the next camera-frame check. */await page.getByTestId('welcome-four-photo').waitFor({timeout:40000});assert((await page.locator('.boothAlert').innerText()).includes('camera stopped'));assert.equal((await archive()).length,0);assert.equal(await page.locator('.ksStudio').count(),0);pass('camera-interruption-does-not-show-or-save-incomplete-sheet');
-   await page.getByTestId('welcome-four-photo').click();await page.locator('.pcStage[data-phase="countdown"]').waitFor();await page.evaluate(()=>{Object.defineProperty(document,'visibilityState',{configurable:true,get:()=> 'hidden'});document.dispatchEvent(new Event('visibilitychange'));});await page.getByTestId('welcome-four-photo').waitFor();await page.waitForTimeout(800);assert((await page.locator('.boothAlert').innerText()).includes('background'));assert.equal(await page.evaluate(()=>window.__cameraTrack.readyState),'ended');assert.equal((await archive()).length,0);pass('backgrounding-stops-session-without-bursting-stale-timers');
+   await open();await page.getByTestId('welcome-four-photo').click();await page.locator('.pcStage[data-completed="1"]').waitFor();
+   const beforeInterruption=await archive();assertFirstOriginalOnly(beforeInterruption);
+   await page.evaluate(()=>window.__stopCamera());/* Spoken next-pose + ready + 3/2/1 + smile prompts run before the next camera-frame check. */await page.getByTestId('welcome-four-photo').waitFor({timeout:40000});
+   assert((await page.locator('.boothAlert').innerText()).includes('camera stopped'));
+   const interrupted=await archive();assertFirstOriginalOnly(interrupted);assert.deepEqual(interrupted,beforeInterruption,'camera interruption preserves the exact completed original');
+   assert.equal(await page.evaluate(()=>window.__cameraDraws.length),1);assert.equal(await page.locator('.ksStudio').count(),0);pass('camera-interruption-preserves-original-without-showing-or-saving-incomplete-sheet',{photoHash:interrupted[0].poses[0]});
+   const beforeBackground=await archive();
+   await page.getByTestId('welcome-four-photo').click();await page.locator('.pcStage[data-phase="countdown"]').waitFor();await page.evaluate(()=>{Object.defineProperty(document,'visibilityState',{configurable:true,get:()=> 'hidden'});document.dispatchEvent(new Event('visibilitychange'));});await page.getByTestId('welcome-four-photo').waitFor();await page.waitForTimeout(4400);
+   assert((await page.locator('.boothAlert').innerText()).includes('background'));assert.equal(await page.evaluate(()=>window.__cameraTrack.readyState),'ended');
+   assert.equal(await page.evaluate(()=>window.__cameraDraws.length),1,'a backgrounded countdown never captures a stale or late frame');
+   assert.deepEqual(await archive(),beforeBackground,'backgrounding leaves the earlier partial session intact and creates no empty or late session');pass('backgrounding-stops-session-without-bursting-stale-timers-or-changing-earlier-original');
   }
  }catch(error){if(page)await page.screenshot({path:`${out}/${engine}-failure.png`,fullPage:true}).catch(()=>{});const diagnostic=page?await page.evaluate(()=>({draws:window.__cameraDraws,metadata:window.__frameMetadata,events:window.__captureEvents,alert:document.querySelector('.boothAlert')?.textContent})).catch(()=>null):null;results.push({engine,passed:false,message:error.message,stack:error.stack,diagnostic});throw error;}finally{await browser.close();await writeFile(`${out}/results.json`,JSON.stringify({base,smoke,results},null,2));}
 }

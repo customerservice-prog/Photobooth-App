@@ -14,7 +14,12 @@ const manifest=await (await fetch(base+'/manifest.webmanifest?proof='+Date.now()
 for(const [engine,api] of [['chromium',chromium],['webkit',webkit]]){
  const browser=await api.launch({headless:true});let page;
  const pass=(test,extra={})=>results.push({engine,test,passed:true,...extra});
- const snapshot=()=>page.evaluate(()=>Object.fromEntries(Object.entries(localStorage).sort(([a],[b])=>a.localeCompare(b))));
+ // Backup progress is refreshed on entry; its timestamp is not an event edit.
+ // Compare every key and every status field, allowing only that clock to move.
+ const snapshot=()=>page.evaluate(()=>Object.fromEntries(Object.entries(localStorage).map(([key,value])=>{
+  if(key.startsWith('friendly-booth-backup-status-v1-')){try{const {updatedAt,...status}=JSON.parse(value);return [key,JSON.stringify(status)];}catch{}}
+  return [key,value];
+ }).sort(([a],[b])=>a.localeCompare(b))));
  const archiveSnapshot=()=>page.evaluate(async source=>{const a=new Function(source.replace(/\bexport /g,'')+';return {listCaptures};')();const out=[];for(const scope of ['oct10-2026:demo','oct10-2026:live'])for(const r of await a.listCaptures(scope))out.push({scope,id:r.id,poses:await Promise.all(r.poses.map(async b=>Array.from(new Uint8Array(await b.arrayBuffer())))),keepsake:r.keepsake?Array.from(new Uint8Array(await r.keepsake.arrayBuffer())):null});return out;},archiveSource);
  try{
   const context=await browser.newContext({viewport:{width:1024,height:768}});page=await context.newPage();const errors=[];page.on('pageerror',e=>errors.push(e.message));

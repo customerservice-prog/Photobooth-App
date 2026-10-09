@@ -5,6 +5,7 @@ import {readFile} from 'node:fs/promises';
 import {publicBoothOrigin,hasTrustedStaffOrigin,staffSecurityStatus,staffConfigurationError} from '../app/lib/staff-security.mjs';
 import {matchesConfiguredStaffPin} from '../app/lib/staff-pin-server.mjs';
 import {STAFF_COOKIE,makeStaffSession,validStaffSession} from '../app/lib/staff-auth.mjs';
+import {validEventBackupProof,verifyEventBackupProof} from '../app/lib/backup-event-proof.mjs';
 const publicOrigin='https://booth.example.test',internalUrl='http://booth.railway.internal:3000/api/staff/unlock';
 const fakePin='4826',fakeHash=createHash('sha256').update(fakePin).digest('hex');
 const configured={NODE_ENV:'production',BOOTH_PUBLIC_URL:publicOrigin,BOOTH_SECURITY_ENFORCED:'true',BOOTH_STAFF_PIN_SHA256:fakeHash,BOOTH_STAFF_SESSION_SECRET:'test-only-session-secret-at-least-32-characters'};
@@ -71,7 +72,7 @@ test('staff lock and backup authorization preserve origin and session checks beh
  const lock=new Function('NextResponse','STAFF_COOKIE','hasTrustedStaffOrigin',lockSource.replace(/^import .*;\n/gm,'').replace(/\bexport /g,'')+'\nreturn POST;')(nextResponse,'test-staff-cookie',hasTrustedStaffOrigin);
  const backupSource=await readFile(new URL('../app/api/backup/authorize/route.js',import.meta.url),'utf8');
  let authorized=true;
- const backup=new Function('NextResponse','cookies','STAFF_COOKIE','validStaffSession','authorizeBackup','database','hasTrustedStaffOrigin','staffSecurityStatus','staffConfigurationError',backupSource.replace(/^import .*;\n/gm,'').replace(/\bexport /g,'')+'\nreturn POST;')(nextResponse,()=>({get:()=>({value:'test-cookie'})}),'test-staff-cookie',async()=>authorized,id=>{assert.equal(id,'test-event');return 'test-backup-ticket';},async()=>{},hasTrustedStaffOrigin,staffSecurityStatus,staffConfigurationError);
+ const backup=new Function('NextResponse','cookies','STAFF_COOKIE','validStaffSession','authorizeBackup','database','hasTrustedStaffOrigin','staffSecurityStatus','staffConfigurationError','validEventBackupProof','verifyEventBackupProof',backupSource.replace(/^import .*;\n/gm,'').replace(/\bexport /g,'')+'\nreturn POST;')(nextResponse,()=>({get:()=>({value:'test-cookie'})}),'test-staff-cookie',async()=>authorized,id=>{assert.equal(id,'test-event');return 'test-backup-ticket';},async()=>{},hasTrustedStaffOrigin,staffSecurityStatus,staffConfigurationError,validEventBackupProof,verifyEventBackupProof);
  await withEnvironment(configured,async()=>{
   const result=await lock(request(publicOrigin));assert.equal(result.status,200);assert.equal(result.testCookies[0][2].maxAge,0);
   for(const origin of [undefined,'null','https://attacker.example.test'])assert.equal((await lock(request(origin))).status,403);

@@ -42,7 +42,7 @@ for(const [engine,api] of engines){
   await page.locator('.pcStage').waitFor();
   await page.getByTestId('approved-guest-preview').waitFor({timeout:110000});
   await page.getByTestId('approved-finished-jpeg').waitFor({timeout:35000});
-  if(saved)await page.waitForFunction(()=>document.querySelector('[data-testid="approved-gallery-status"]')?.textContent?.includes('Saved to the event gallery'),null,{timeout:25000});
+  if(saved)await page.waitForFunction(()=>document.querySelector('[data-testid="approved-gallery-status"]')?.textContent?.includes('Your photo is saved'),null,{timeout:25000});
  }
  async function records(scope){return page.evaluate(async ({source,scope})=>{
    const api=new Function(source.replace(/\bexport /g,'')+'\nreturn {listCaptures};')();
@@ -107,7 +107,7 @@ for(const [engine,api] of engines){
   await page.getByTestId('approved-retry-save').waitFor();
   assert(await page.getByTestId('approved-done').isDisabled());
   await page.getByTestId('approved-retry-save').click();
-  await page.waitForFunction(()=>document.querySelector('[data-testid="approved-gallery-status"]')?.textContent?.includes('Saved to the event gallery'),null,{timeout:25000});
+  await page.waitForFunction(()=>document.querySelector('[data-testid="approved-gallery-status"]')?.textContent?.includes('Your photo is saved'),null,{timeout:25000});
   assert(await page.getByTestId('approved-done').isEnabled());
   pass('archive-write-failure-keeps-the-photo-until-retry-succeeds');
   await page.getByTestId('approved-print').click();

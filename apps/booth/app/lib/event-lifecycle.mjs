@@ -2,7 +2,7 @@
 // archived customer's gallery before ZIP export and staff verification.
 import {ACTIVE_EVENT_KEY} from './active-event.mjs';
 import {PRINT_LEDGER_PREFIX} from './print-ledger.mjs';
-import {tokenKey} from './backup-sync.mjs';
+import {tokenKey,backupStatusKey} from './backup-sync.mjs';
 export const EVENT_CLOSE_CONFIRMATION='CLOSE EVENT';
 export function canCloseImportedEvent(scope){
  return Boolean(scope?.imported&&!scope.demo&&/^[A-Za-z0-9_-]{3,90}$/.test(scope.id||'')&&
@@ -11,7 +11,7 @@ export function canCloseImportedEvent(scope){
 }
 export function clearClosedEventSettings(storage,scope){
  if(!canCloseImportedEvent(scope))throw new Error('Only a fully exported customer event can be removed from this iPad.');
- const exact=[scope.config,scope.previous,scope.usage,scope.photos,tokenKey(scope.id),
+ const exact=[scope.config,scope.previous,scope.usage,scope.photos,tokenKey(scope.id),backupStatusKey(scope.id),
    PRINT_LEDGER_PREFIX+scope.id+'-transfer'];
  const marker='friendly-booth-uploaded-v1-'+scope.archive+'-';
  const keys=[];
