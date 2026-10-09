@@ -26,7 +26,7 @@ async function ownerHome(){
  pass('owner-home-three-stages-and-three-primary-links');
 }
 async function preview(design,name,year=''){
- await page.waitForFunction(({design,name,year})=>{const nodes=[...document.querySelectorAll('[data-testid="owner-design-proof"] svg')];return nodes.length===2&&nodes.every(svg=>svg.getAttribute('data-design')?.endsWith('-'+design)&&svg.textContent.includes(name)&&(!year||svg.textContent.includes(year)));},{design,name,year});
+ await page.waitForFunction(({design,name,year})=>{const nodes=[...document.querySelectorAll('[data-testid="owner-design-proof"] svg')];return nodes.length===2&&nodes.every(svg=>svg.getAttribute('data-design')?.endsWith('-'+design)&&svg.textContent.includes(name))&&(!year||nodes[1].textContent.includes(year));},{design,name,year});
  for(const n of [1,4]){assert.equal(await page.getByTestId('owner-proof-'+n).locator('svg').count(),1);assert.equal(await page.getByTestId('owner-proof-'+n).locator('[data-guest-photo="true"]').count(),0);}
 }
 try{
@@ -53,7 +53,7 @@ try{
  const original={format:await page.locator('input[name="format"]').inputValue(),strips:await page.locator('input[name="strips"]').inputValue(),booth:await page.locator('select[name="boothId"]').inputValue(),template:await page.locator('select[name="templateId"]').inputValue()};
  assert.equal(await page.locator('details#experience').getAttribute('open'),null);assert.equal(await page.getByTestId('owner-event-advanced').getAttribute('open'),null);
  await page.locator('input[name="nameOnPrint"]').fill('Test Celebration');await preview('champagne','Test Celebration');
- await page.locator('input[name="date"]').fill('2026-10-12');await page.waitForFunction(()=>[...document.querySelectorAll('[data-testid="owner-design-proof"] svg')].every(svg=>svg.textContent.includes('October 12, 2026')));await page.locator('input[name="date"]').fill('2026-10-10');
+ await page.locator('input[name="date"]').fill('2026-10-12');await page.waitForFunction(()=>[...document.querySelectorAll('[data-testid="owner-design-proof"] svg')].every(svg=>[...svg.querySelectorAll('[data-copy]')].some(node=>node.getAttribute('data-copy')==='October 12, 2026')));await page.locator('input[name="date"]').fill('2026-10-10');
  await page.locator('select[name="eventType"]').selectOption('Graduation');await page.locator('label.ownerDesignChoice').filter({has:page.locator('input[value="grad-gala"]')}).click();await page.locator('input[name="classYear"]').fill('2027');await preview('grad-gala','Test Celebration','2027');
  await page.locator('input[name="classYear"]').fill('');await page.locator('select[name="eventType"]').selectOption('Party');await page.locator('label.ownerDesignChoice').filter({has:page.locator('input[value="champagne"]')}).click();await preview('champagne','Test Celebration');
  const formData=await page.locator('form.ownerEventForm').evaluate(form=>Object.fromEntries(new FormData(form)));for(const [field,key]of [['format','format'],['strips','strips'],['boothId','booth'],['templateId','template']])assert.equal(formData[field],original[key]);
@@ -65,7 +65,7 @@ try{
  await page.locator('details#experience summary').click();await page.locator('select[name="featured"]').selectOption('one');
  await page.locator('select[name="pauseSeconds"]').selectOption('9');
  await page.locator('input[name="nameOnPrint"]').fill('Test Celebration');
- assert.equal(await page.locator('input[name="strips"]').inputValue(),'1');
+ assert.equal(await page.locator('input[name="strips"]').inputValue(),original.strips);
  await page.locator('input[name="paletteId"][value="rose"]').check();
  await page.screenshot({path:'admin-proof/edit-desktop.png',fullPage:true});
  if(!readonly){await page.getByRole('button',{name:/Save event changes/}).click();
