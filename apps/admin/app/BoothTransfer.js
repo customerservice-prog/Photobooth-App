@@ -30,20 +30,19 @@ export default function BoothTransfer({url,eventName,ready}){
  }
  const close=()=>{setOpen(false);setCopied(false);setQr('');setError('');};
  return <>
-  <button type="button" className="btn transferPrimary" data-testid="send-to-booth" onClick={()=>setOpen(true)}>Send event to Booth →</button>
-  <p className="inlineInfo" style={{margin:'10px 0 0'}}>One link transfers this event’s photo and print settings—no typing them again on the iPad.</p>
-  {open&&<dialog ref={dialog} className="transferDialog" aria-label="Send event to Booth" onCancel={e=>{e.preventDefault();close();}} onClick={e=>{if(e.target===dialog.current)close();}}>
+  <button type="button" className="btn transferPrimary" data-testid="send-to-booth" onClick={()=>setOpen(true)}>Load on iPad →</button>
+  {open&&<dialog ref={dialog} className="transferDialog" aria-label="Load event on iPad" onCancel={e=>{e.preventDefault();close();}} onClick={e=>{if(e.target===dialog.current)close();}}>
    <div className="transferInner">
-    <div className="transferHeader"><span className="eyebrow">STEP 3 · SEND TO THE EVENT IPAD</span><button type="button" className="btn btn2 btnSm" onClick={close} aria-label="Close transfer">Close ×</button></div>
-    <h2>Load the event in one step.</h2>
-    <p className="transferIntro">Open this link on the iPad that will take the photos. Staff will see a review screen, then tap <strong>Apply event to this iPad.</strong></p>
+    <div className="transferHeader"><span className="eyebrow">EVENT IPAD SETUP</span><button type="button" className="btn btn2 btnSm" onClick={close} aria-label="Close transfer">Close ×</button></div>
+    <h2>Open this event on the iPad.</h2>
+    <p className="transferIntro">Scan or copy the setup link onto the iPad that will take the photos.</p>
     <div className="transferInfo">
      <strong>{eventName}</strong>
-     <small>{ready?'Event information is complete.':'The venue or another detail still needs attention in the admin. You may load the booth for testing, but finish setup before the event.'}</small>
+     <small>{ready?'Required setup details are saved.':'Some event details still need attention. You can load it for testing, then finish setup before the rental.'}</small>
     </div>
     <div className="transferQR">
      {qr?<img data-testid="event-handoff-qr" src={qr} width="260" height="260" alt="QR code to open this event on the iPad" />:<div className="transferQRWait" role="status">Preparing scannable code…</div>}
-     <div className="transferQRHelp"><strong>Scan from the event iPad</strong><p>Open the Camera app, scan this code, open the Friendly Booth link, and tap <b>Apply event</b>.</p><p><strong>Using the installed Home Screen app?</strong> If the QR opens Safari instead of Friendly Booth, copy the link, then open the installed booth app → Staff tools → Load an event → Paste. This keeps photos and counters in the correct app.</p></div>
+     <div className="transferQRHelp"><strong>On the event iPad</strong><ol><li>Scan the code with Camera and open the link.</li><li>Enter your staff PIN when asked.</li><li>Review the event, then tap <b>Apply event to this iPad.</b></li></ol></div>
     </div>
     <label className="formField" htmlFor="booth-transfer-link">Or copy the iPad link
      <input id="booth-transfer-link" data-testid="event-handoff-url" className="input transferLink" ref={linkInput} type="text" readOnly value={url} onClick={e=>e.currentTarget.select()}/>
@@ -53,10 +52,9 @@ export default function BoothTransfer({url,eventName,ready}){
      <a href={url} className="btn btn2" target="_blank" rel="noopener noreferrer">Open on this device ↗</a>
     </div>
     {error&&<p className="errorNote" role="alert" style={{margin:'12px 0 0'}}>{error}</p>}
-    <div className="transferPrivacy">
-     <strong>What gets sent?</strong> Event title, date/time, photo choices, pose break, colors, design style and print allowance. <b>No email address, phone, venue street address, private notes or guest photos.</b> Anyone with this link can read the included event settings.
-    </div>
-    <p className="transferNote"><strong>Check the actual print design:</strong> the iPad uses its own built-in card and strip artwork; this link does not install an admin-only template. <strong>After changing settings:</strong> send a fresh link. Saved photos and print usage remain intact. This is not continuous background synchronization.</p>
+    <p className="transferNote">The event is loaded after you apply it on the iPad. Check the displayed name and both photo layouts there.</p>
+    <details className="transferMore"><summary>Using the installed Home Screen app?</summary><p>If scanning opens Safari, copy the link instead. Open the installed booth app → Staff tools → Load an event → Paste. Photos and counters stay in that app.</p></details>
+    <details className="transferMore"><summary>Shared settings and later updates</summary><p>The link includes the event title, date, approved design, print name, photo choices and print allowance. It excludes customer contact details, venue address, private notes and guest photos. Anyone with the link can read the included settings.</p><p>Authorized online iPads check for saved updates between sessions. If an update is unavailable, apply a fresh link and check the iPad preview. Existing photos and print usage stay saved.</p></details>
    </div>
   </dialog>}
  </>;

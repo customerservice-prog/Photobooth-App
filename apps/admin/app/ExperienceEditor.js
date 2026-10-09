@@ -1,76 +1,70 @@
 'use client';
-import {useEffect,useState} from 'react';
+import {useEffect,useRef,useState} from 'react';
 import {COLORS,PHOTO_PAUSES,approvedDesignFor} from '../lib/studio-experience.mjs';
-const PRINT_STYLES=[
- {id:'ivory',name:'Classic White',desc:'Bright, timeless celebration'},
- {id:'blush',name:'Midnight',desc:'A darker, elegant photo design'},
- {id:'champagne',name:'Celebration',desc:'Uses the customer’s event colors'},
- {id:'grad-gala',name:'Navy & Gold Grad Party',desc:'Navy, orange, gold and big graduation photos'}
-];
-export default function ExperienceEditor({initial,eventType='Other celebration'}){
- const [kind,setKind]=useState(eventType);
+import {ownerApprovedDesigns,ownerPreviewConfig} from '../lib/owner-design-preview.mjs';
+import OwnerDesignPreview,{OwnerDesignArtwork} from './OwnerDesignPreview';
+
+export default function ExperienceEditor({initial,eventType='Other celebration',eventName='',eventDate=''}){
+ const editor=useRef(null);
+ const [kind,setKind]=useState(eventType),[name,setName]=useState(eventName),[date,setDate]=useState(eventDate);
  const [featured,setFeatured]=useState(initial.featured);
  const [pause,setPause]=useState(initial.pauseSeconds);
  const [fit,setFit]=useState(initial.photoFit);
  const [palette,setPalette]=useState(initial.paletteId);
- const [primary,setPrimary]=useState(initial.primary);
- const [accent,setAccent]=useState(initial.accent);
+ const [primary,setPrimary]=useState(initial.primary),[accent,setAccent]=useState(initial.accent);
  const [design,setDesign]=useState(approvedDesignFor(eventType,initial.approvedDesign));
- const [printName,setPrintName]=useState(initial.nameOnPrint||'');
- const [year,setYear]=useState(initial.classYear||'');
- const graduation=/graduation/i.test(kind);
- const styles=graduation?PRINT_STYLES:PRINT_STYLES.slice(0,3);
- const selected=styles.find(x=>x.id===design)||styles[2];
- // Changing the event type above updates the available approved designs.
+ const [printName,setPrintName]=useState(initial.nameOnPrint||''),[year,setYear]=useState(initial.classYear||'');
+ const graduation=/graduation/i.test(kind),styles=ownerApprovedDesigns(kind);
+ const selectedDesign=approvedDesignFor(kind,design),selected=styles.find(x=>x.id===selectedDesign)||styles[0];
+ const experience={...initial,featured,pauseSeconds:pause,photoFit:fit,paletteId:palette,primary,accent,approvedDesign:selected.id,nameOnPrint:printName,classYear:year};
+ const cfg=ownerPreviewConfig({eventType:kind,eventName:name,eventDate:date,experience});
  useEffect(()=>{
-  const input=document.querySelector('select[name="eventType"]');
-  if(!input)return;
-  const update=()=>setKind(input.value);
-  input.addEventListener('change',update);
-  return()=>input.removeEventListener('change',update);
- },[]);
+  const form=editor.current?.closest('form');
+  if(!form)return;
+  const update=()=>{
+   setKind(form.elements.namedItem('eventType')?.value||eventType);
+   setName(form.elements.namedItem('eventName')?.value||'');
+   setDate(form.elements.namedItem('date')?.value||'');
+  };
+  update();form.addEventListener('input',update);form.addEventListener('change',update);
+  return()=>{form.removeEventListener('input',update);form.removeEventListener('change',update);};
+ },[eventType]);
  useEffect(()=>{if(!graduation&&design==='grad-gala')setDesign('champagne');},[graduation,design]);
  function choosePalette(p){setPalette(p.id);setPrimary(p.primary);setAccent(p.accent);}
- return <>
-  <section id="experience" className="card formSection">
-   <div className="eyebrow">STEP 03 · GUEST CHOICES</div>
-   <h2 className="sectionTitle">Guests only choose 1 or 4 photos</h2>
-   <p className="sectionLead">The event artwork is prepared here, not by guests. Both choices use the same approved theme. No guest template picker.</p>
-   <div className="choiceGrid" role="group" aria-label="Featured guest photo experience">
-    <label className="choice"><input type="radio" name="featured" value="one" checked={featured==='one'} onChange={()=>setFeatured('one')}/><span><strong>1 Photo</strong><small>One pose in the approved full-size 4×6 design</small></span></label>
-    <label className="choice"><input type="radio" name="featured" value="four" checked={featured==='four'} onChange={()=>setFeatured('four')}/><span><strong>4 Photos</strong><small>Four poses in the approved 4×6 multi-photo design</small></span></label>
-   </div>
-   <div className="formGrid" style={{marginTop:18}}>
-    <label className="formField">Time between four-photo poses<select className="input" name="pauseSeconds" value={pause} onChange={e=>setPause(Number(e.target.value))}>{PHOTO_PAUSES.map(n=><option key={n} value={n}>{n} seconds</option>)}</select></label>
-    <label className="formField">Photo framing<select className="input" name="photoFit" value={fit} onChange={e=>setFit(e.target.value)}><option value="fill">Fill the frame (recommended)</option><option value="fit">Show whole photograph</option></select></label>
-   </div>
+ return <div ref={editor} className="ownerDesignEditor">
+  <section id="style" className="card formSection ownerDesignSection">
+   <div className="eyebrow">CUSTOMER DESIGN</div><h2 className="sectionTitle">Choose their artwork</h2>
+   <p className="sectionLead">Approve one look with your customer. It will be ready for both 1 Photo and 4 Photos.</p>
+   <div className="ownerDesignWorkspace"><div className="ownerDesignControls">
+    <fieldset className="ownerDesignChoices"><legend>Choose one design</legend>
+     {styles.map(d=><label className={'ownerDesignChoice'+(selected.id===d.id?' isSelected':'')} key={d.id}>
+      <input type="radio" name="approvedDesign" value={d.id} checked={selected.id===d.id} onChange={()=>setDesign(d.id)}/>
+      <span className="ownerDesignThumb" aria-hidden="true"><OwnerDesignArtwork cfg={{...cfg,defaultTemplate:d.id}}/></span>
+      <span className="ownerDesignChoiceWords"><strong>{d.name}</strong><small>{d.description}</small></span>
+      <span className="ownerDesignCheck" aria-hidden="true">{selected.id===d.id?'✓':''}</span>
+     </label>)}
+    </fieldset>
+    <div className="ownerDesignNames">
+     <label className="formField">Name on the photos<input className="input" name="nameOnPrint" maxLength={65} placeholder={name||'Use event name'} value={printName} onChange={e=>setPrintName(e.target.value)}/><small>Leave empty to use the event name.</small></label>
+     {graduation?<label className="formField">Class year<input className="input" name="classYear" maxLength={4} inputMode="numeric" pattern="[0-9]{4}" placeholder="2026" value={year} onChange={e=>setYear(e.target.value.replace(/\D/g,'').slice(0,4))}/></label>:<input type="hidden" name="classYear" value={year}/>}
+    </div>
+   </div><OwnerDesignPreview cfg={cfg} designName={selected.name}/></div>
   </section>
-  <section id="style" className="card formSection">
-   <div className="eyebrow">STEP 04 · YOUR CUSTOMER'S APPROVED DESIGN</div>
-   <h2 className="sectionTitle">Prepare one look before the event</h2>
-   <p className="sectionLead">Choose the design with the customer, enter their print name, and approve it. This is preloaded on the event iPad for 1 Photo and 4 Photos. Guests cannot switch designs.</p>
-   <div className="choiceGrid" role="group" aria-label="Approved keepsake design">
-    {styles.map(d=><label className="choice" key={d.id}><input type="radio" name="approvedDesign" value={d.id} checked={selected.id===d.id} onChange={()=>setDesign(d.id)}/><span><strong>{d.name}</strong><small>{d.desc}</small></span></label>)}
+  <details id="experience" className="card ownerDesignAdvanced">
+   <summary><span>Photo timing, framing &amp; colors</span><small>Optional staff settings</small></summary>
+   <div className="ownerDesignAdvancedBody">
+    <div className="formGrid">
+     <label className="formField">Featured guest choice<select className="input" name="featured" value={featured} onChange={e=>setFeatured(e.target.value)}><option value="one">1 Photo</option><option value="four">4 Photos</option></select><small>Both choices stay available to guests.</small></label>
+     <label className="formField">Time between poses<select className="input" name="pauseSeconds" value={pause} onChange={e=>setPause(Number(e.target.value))}>{PHOTO_PAUSES.map(n=><option key={n} value={n}>{n} seconds</option>)}</select></label>
+     <label className="formField">Photo framing<select className="input" name="photoFit" value={fit} onChange={e=>setFit(e.target.value)}><option value="fill">Fill the frame</option><option value="fit">Show whole photograph</option></select></label>
+    </div>
+    <h3>Event colors</h3><div className="paletteGrid" role="group" aria-label="Event colors">{COLORS.map(p=><label key={p.id} className="paletteCard"><input type="radio" name="paletteId" value={p.id} checked={palette===p.id} onChange={()=>choosePalette(p)}/><span className="paletteSwatch" aria-hidden="true"><i style={{background:p.primary}}/><i style={{background:p.accent}}/></span><span>{p.name}</span></label>)}</div>
+    <div className="formGrid" style={{marginTop:16}}>
+     <label className="formField">Primary color<input className="input colorInput" name="primaryColor" type="color" value={primary} onChange={e=>setPrimary(e.target.value)}/></label>
+     <label className="formField">Accent color<input className="input colorInput" name="accentColor" type="color" value={accent} onChange={e=>setAccent(e.target.value)}/></label>
+    </div>
+    <input type="hidden" name="format" value={initial.format}/><input type="hidden" name="strips" value={initial.strips}/>
    </div>
-   <div className="formGrid" style={{marginTop:16}}>
-    <label className="formField">Name shown on their printed photos<input className="input" name="nameOnPrint" maxLength={65} placeholder="Leave empty to use event name" value={printName} onChange={e=>setPrintName(e.target.value)}/></label>
-    {graduation&&<label className="formField">Graduating class year<input className="input" name="classYear" maxLength={4} inputMode="numeric" pattern="[0-9]{4}" placeholder="2026" value={year} onChange={e=>setYear(e.target.value.replace(/\D/g,'').slice(0,4))}/></label>}
-   </div>
-   {graduation&&<p className="inlineInfo"><a href="https://photobooth-booth-production.up.railway.app/lamarr-preview" target="_blank" rel="noopener noreferrer">Preview the Navy &amp; Gold one-photo and four-photo layouts ↗</a></p>}
-   <h3 style={{fontSize:14,margin:'22px 0 12px'}}>Customer-approved colors</h3>
-   <div className="paletteGrid" role="group" aria-label="Event colors">
-    {COLORS.map(p=><label key={p.id} className="paletteCard"><input type="radio" name="paletteId" value={p.id} checked={palette===p.id} onChange={()=>choosePalette(p)}/><span className="paletteSwatch" aria-hidden="true"><i style={{background:p.primary}}/><i style={{background:p.accent}}/></span><span>{p.name}</span></label>)}
-   </div>
-   <div className="formGrid" style={{marginTop:16}}>
-    <label className="formField">Primary color<input className="input colorInput" name="primaryColor" type="color" value={primary} onChange={e=>setPrimary(e.target.value)}/></label>
-    <label className="formField">Accent color<input className="input colorInput" name="accentColor" type="color" value={accent} onChange={e=>setAccent(e.target.value)}/></label>
-   </div>
-   <input type="hidden" name="format" value="strip"/>
-   <input type="hidden" name="strips" value="1"/>
-   <div className="themePreview" style={{'--primary':primary,'--paper':accent}}>
-    <div className="themePreviewArtwork" aria-hidden="true">✦</div>
-    <div><strong>{selected.name} · customer-approved</strong><p>1 Photo creates a single large keepsake. 4 Photos makes four different poses on one 4×6 sheet.</p><p>Only your staff can change this setup. {pause}-second breaks between poses.</p></div>
-   </div>
-  </section>
- </>;
+  </details>
+ </div>;
 }

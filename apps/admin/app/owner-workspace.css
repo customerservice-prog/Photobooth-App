@@ -1,0 +1,46 @@
+.ownerMoreTools{margin-top:24px;border-top:1px solid #ffffff28;padding-top:15px}
+.ownerMoreTools>summary{display:flex;justify-content:space-between;align-items:center;cursor:pointer;list-style:none;min-height:48px;padding:10px 13px;color:#d0dfce;font-size:13px;font-weight:650}
+.ownerMoreTools>summary::-webkit-details-marker{display:none}
+.ownerMoreTools>summary>span{color:#e2c88b;font-size:19px}
+.ownerMoreTools[open]>summary>span{transform:rotate(45deg)}
+.ownerMoreTools>div{padding-top:8px}
+.ownerHome{max-width:1410px}
+.ownerHome .title{font-size:clamp(32px,3.3vw,44px)}
+.ownerCurrent{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(260px,.8fr);overflow:hidden;margin:23px 0}
+.ownerCurrentMain{padding:clamp(23px,3vw,36px)}
+.ownerEventTop{display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+.ownerCurrentMain h2{font:400 clamp(26px,2.6vw,35px)/1.16 Georgia,serif;letter-spacing:-.5px;margin:19px 0 8px;overflow-wrap:anywhere}
+.ownerEventDate{font-size:14px;color:#6b7b6e; margin:0 0 21px}
+.ownerEventFacts{display:flex;gap:25px;flex-wrap:wrap;margin:0 0 24px}
+.ownerEventFacts small{display:block;color:#738675;font-size:11px;font-weight:600;margin-bottom:4px}
+.ownerEventFacts strong{font-size:14px;font-weight:650}
+.ownerNextAction{padding:clamp(23px,3vw,33px);background:linear-gradient(150deg,#edf3e7,#f8f5e7);border-left:1px solid #dce4d5;display:flex;flex-direction:column;justify-content:center;align-items:flex-start;gap:19px}
+.ownerStepMark{width:42px;height:42px;display:grid;place-items:center;background:#2f5c45;color:#fff2d1;border-radius:13px;font:400 25px Georgia,serif}
+.ownerNextAction h3{font:400 25px/1.2 Georgia,serif;margin:9px 0 11px}
+.ownerNextAction p{font-size:13px;color:#657565;line-height:1.65;margin:0}
+.ownerWorkflow{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;margin:25px 0}
+.ownerWorkflowCard{display:flex;flex-direction:column;align-items:flex-start;min-width:0;padding:23px;border:1px solid #d9e2d4;border-radius:16px;background:#fffefa}
+.ownerStepNumber{display:grid;place-items:center;width:32px;height:32px;border:1px solid #ddc998;color:#90703e;border-radius:50%;background:#fcf5e4;font:600 16px Georgia,serif}
+.ownerWorkflowCard h2{font-size:17px;line-height:1.4;font-weight:700;margin:14px 0 7px}
+.ownerWorkflowCard p{font-size:13px;color:#6c7a6c;line-height:1.65;margin:0 0 21px}
+.ownerWorkflowCard .btn{margin-top:auto;width:100%;font-size:12px}
+.ownerSchedule .sectionLead{margin-bottom:0}
+.ownerScheduleRow{display:flex;align-items:center;gap:15px;text-decoration:none;padding:15px 0;border-bottom:1px solid #e4e9df}
+.ownerScheduleRow:last-child{border-bottom:0}
+.ownerScheduleRow>span:nth-child(2){flex:1;min-width:0}
+.ownerScheduleRow strong{font-size:14px;overflow-wrap:anywhere}
+.ownerScheduleRow small{display:block;font-size:12px;color:#738171;margin-top:4px}
+.ownerScheduleRow>span:last-child{font-size:19px;color:#668167}
+.ownerScheduleRow .dateBlock{min-width:52px}
+.ownerScheduleRow .dateBlock strong{font:400 24px Georgia,serif}
+.ownerDeviceNote{font-size:12px;color:#738371;line-height:1.65;margin:20px 0 0;text-align:center}
+.ownerDeviceNote a{font-weight:600;text-underline-offset:3px}
+.ownerGalleryGrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;margin-top:22px}
+.ownerGalleryCard{display:flex;flex-direction:column;align-items:flex-start;gap:12px;padding:24px}
+.ownerGalleryCard h2{font:400 24px/1.2 Georgia,serif;margin:0;overflow-wrap:anywhere}
+.ownerGalleryCard .btn{margin-top:auto}
+.ownerGalleryCard .sectionLead{margin:0}
+.ownerGalleryNotice{margin-top:22px}
+@media(max-width:1150px){.ownerCurrent{grid-template-columns:minmax(0,1.2fr) minmax(230px,.8fr)}.ownerWorkflow{gap:11px}.ownerWorkflowCard{padding:19px 15px}}
+@media(max-width:1000px){.ownerCurrent{grid-template-columns:1fr}.ownerNextAction{border-left:0;border-top:1px solid #dce4d5;flex-direction:row;gap:17px}.ownerStepMark{flex:none}.ownerNextAction h3{font-size:22px}.ownerWorkflowCard h2{font-size:15px}}
+@media(max-width:650px){.ownerWorkflow,.ownerGalleryGrid{grid-template-columns:1fr}.ownerWorkflowCard{padding:20px;display:grid;grid-template-columns:32px minmax(0,1fr);column-gap:13px;row-gap:5px}.ownerStepNumber{grid-row:1/3}.ownerWorkflowCard h2{margin:2px 0 0;font-size:17px}.ownerWorkflowCard p{margin:0 0 10px}.ownerWorkflowCard .btn{grid-column:2}.ownerHome .pageHeader>.buttonRow{width:100%}.ownerCurrentMain{padding:23px 20px}.ownerCurrentMain>.buttonRow>.btn{width:100%}.ownerEventFacts{gap:17px}.ownerNextAction{padding:20px;gap:12px}.ownerEventTop .eyebrow{font-size:9px}.ownerGalleryCard{padding:21px}.ownerGalleryCard .btn{width:100%}.ownerDeviceNote{text-align:left}}

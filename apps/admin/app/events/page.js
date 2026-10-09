@@ -20,7 +20,7 @@ export default async function EventsPage({searchParams={}}){
  });
  const filterUrl=(kind)=>'/events?filter='+kind+(query?'&q='+encodeURIComponent(query):'');
  return <main className="page">
-  <PageHeader eyebrow="YOUR EVENTS" title="Find an event. Finish its setup." subtitle="Every event shows what is ready and what needs attention. Choose an event to see everything in one place."><Link className="btn" href="/events/new">＋ New event</Link></PageHeader>
+  <PageHeader eyebrow="YOUR RENTALS" title="Your events" subtitle="Open an event to prepare its design, load the iPad, or save the gallery."><Link className="btn" href="/events/new">＋ New event</Link></PageHeader>
   <form className="searchBar" action="/events" method="get">
    <input type="hidden" name="filter" value={filter}/>
    <input className="input" type="search" name="q" defaultValue={query} placeholder="Search event, customer or venue" aria-label="Search events"/>

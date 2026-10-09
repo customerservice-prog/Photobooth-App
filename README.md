@@ -12,6 +12,17 @@ hardware/platform research (iPad, Safari/PWA limits, AirPrint, Canon SELPHY),
 and `/docs/phases.md` for the build roadmap. Nothing in this repository should be
 considered "working" or "tested" unless explicitly stated in a phase update.
 
+## Admin deployment
+
+The owner design previews reuse the booth's actual artwork renderer. Deploy the
+admin service from repository root `/`, so `apps/admin` and `apps/booth` are both
+available. Install the workspace dependencies, use
+`npm run build --workspace @friendly-photo-booth/admin` as the build command and
+`npm run start --workspace @friendly-photo-booth/admin` as the start command.
+Admin development, builds and `npm test` prepare the shared artwork automatically;
+the generated assets are not committed. The booth service keeps its existing
+deployment settings.
+
 ## Repository layout
 
 ```
