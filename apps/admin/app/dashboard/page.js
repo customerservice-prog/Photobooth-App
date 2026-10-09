@@ -17,7 +17,7 @@ export default async function DashboardPage(){
  const eventUrl=next?'/events/'+next.id:'/events';
  return <main className="page ownerHome">
   <PageHeader eyebrow="FRIENDLY PHOTO BOOTH" title="Your event workspace." subtitle="Prepare a rental, load your iPad, and save the event’s photos.">
-   <Link className="btn" href="/events/new">＋ New event</Link>
+   <Link className="btn" href="/events/new">+ New event</Link>
   </PageHeader>
   {error?<DatabaseError topic="your events"/>:next?<section className="ownerCurrent card" data-testid="owner-current-event">
    <div className="ownerCurrentMain">
