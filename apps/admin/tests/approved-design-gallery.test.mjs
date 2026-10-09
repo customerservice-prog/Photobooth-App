@@ -7,9 +7,9 @@ import {zipJpegs,crc32,safeGalleryName} from '../lib/event-gallery-zip.mjs';
 
 test('only graduation can use navy and gold, all events choose one approved look',()=>{
  assert.equal(approvedDesignFor('Graduation','grad-gala'),'grad-gala');
- assert.equal(approvedDesignFor('Wedding','grad-gala'),'champagne');
+ assert.equal(approvedDesignFor('Wedding','grad-gala'),'ivory');
  assert.equal(approvedDesignFor('Birthday','ivory'),'ivory');
- assert.equal(approvedDesignFor('Other','bad-value'),'champagne');
+ assert.equal(approvedDesignFor('Other','bad-value'),'ivory');
 });
 test('staff-approved name/year and design persist alongside unrelated event JSON',()=>{
  const base={proof:'keep this',boothExperience:{otherField:'preserved'}};

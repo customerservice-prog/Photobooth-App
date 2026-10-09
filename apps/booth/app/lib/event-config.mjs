@@ -1,5 +1,6 @@
 import {validatePrintLayouts} from './print-layouts.mjs';
 import {normalizeGuestPause,normalizePhotoPreference} from './guest-pause.mjs';
+import {validateCustomDesign} from './custom-design.mjs';
 // Type-specific drafts: changing an event must never carry wedding names into a birthday.
 const defaults={wedding:['Wedding Celebration','Celebrating together'],birthday:['Birthday Celebration','Let’s celebrate'],mitzvah:['Mitzvah Celebration','Mazel tov!'],graduation:['Graduation Celebration','Congratulations'],corporate:['Company Celebration','Together, in the moment'],other:['Our Celebration','Celebrating together']};
 const fields={wedding:['partner1','partner2','venue','theme'],birthday:['honoree','age','theme'],mitzvah:['honoree','mitzvahType','hebrewName','theme'],graduation:['graduate','classYear','school'],corporate:['company','eventName','theme'],other:['eventName','honoree','subtitle']};
@@ -33,8 +34,9 @@ export function eventMonogram(cfg){
 }
 export function normalizeEventConfig(cfg){
  const type=validType(cfg.type),primary={birthday:'honoree',mitzvah:'honoree',graduation:'graduate',corporate:'company',other:'eventName'}[type];
- if(type!=='wedding'&&cfg.title==='Bryan Wedding'&&!cfg.details?.[primary])return switchEventDraft({...cfg,type:'wedding'},type);
- return {...cfg,type,photoFit:cfg.photoFit==='fit'?'fit':'fill',photoPauseSeconds:normalizeGuestPause(cfg.photoPauseSeconds),defaultPhotoExperience:normalizePhotoPreference(cfg.defaultPhotoExperience)};
+ const custom=cfg.defaultTemplate==='custom'?{customDesign:validateCustomDesign(cfg.customDesign)}:{};
+ if(type!=='wedding'&&cfg.title==='Bryan Wedding'&&!cfg.details?.[primary])return switchEventDraft({...cfg,...custom,type:'wedding'},type);
+ return {...cfg,...custom,type,photoFit:cfg.photoFit==='fit'?'fit':'fill',photoPauseSeconds:normalizeGuestPause(cfg.photoPauseSeconds),defaultPhotoExperience:normalizePhotoPreference(cfg.defaultPhotoExperience)};
 }
 export function finalizeEventSetup(draft){
  const next=composeEventConfig(draft,{...draft.details,date:draft.date}),d=next.details;
@@ -44,5 +46,5 @@ export function finalizeEventSetup(draft){
   next.type==='corporate'?!!(d.company||d.eventName):!!d.eventName;
  if(!complete)throw new Error(next.type==='wedding'?'Enter both names so every keepsake has the right couple.':'Enter the event name or person’s name above.');
  if(!next.date)throw new Error('Add the event date.');
- return {...next,photoFit:draft.photoFit==='fit'?'fit':'fill',photoPauseSeconds:normalizeGuestPause(draft.photoPauseSeconds),defaultPhotoExperience:normalizePhotoPreference(draft.defaultPhotoExperience),printLayouts:validatePrintLayouts(draft.printLayouts),setupComplete:true,defaultTemplate:(['ivory','blush','champagne'].includes(draft.defaultTemplate)||(next.type==='graduation'&&draft.defaultTemplate==='grad-gala'))?draft.defaultTemplate:'ivory'};
+ return {...next,photoFit:draft.photoFit==='fit'?'fit':'fill',photoPauseSeconds:normalizeGuestPause(draft.photoPauseSeconds),defaultPhotoExperience:normalizePhotoPreference(draft.defaultPhotoExperience),printLayouts:validatePrintLayouts(draft.printLayouts),setupComplete:true,...(draft.defaultTemplate==='custom'?{defaultTemplate:'custom',customDesign:validateCustomDesign(draft.customDesign)}:{defaultTemplate:(['ivory','blush','champagne'].includes(draft.defaultTemplate)||(next.type==='graduation'&&draft.defaultTemplate==='grad-gala'))?draft.defaultTemplate:'ivory'})};
 }

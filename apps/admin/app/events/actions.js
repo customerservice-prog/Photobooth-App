@@ -23,7 +23,7 @@ export async function createEvent(form){
    venueAddress:optional(form,'venueAddress'),internalNotes:optional(form,'internalNotes'),
    captureMode:'PHOTO',numberOfPhotos:4,maxPrints:108,copiesPerPrint:1,
    printingEnabled:true,displayPrintButton:true,qrSharingEnabled:true,
-   theme:mergeExperience({},new Map()),status:'NEEDS_SETUP'
+   theme:mergeExperience({},new Map([['eventType',value(form,'eventType')]])),status:'NEEDS_SETUP'
   }});
  });
  revalidatePath('/dashboard');revalidatePath('/events');redirect('/events/'+created.id+'/edit');
@@ -41,7 +41,9 @@ export async function updateEvent(id,form){
  const current=await prisma.event.findUnique({where:{id},select:{customerId:true,theme:true,status:true}});
  if(!current)throw new Error('This event no longer exists. Return to Events and try again.');
  // Retain every unrelated JSON field and preserve event lifecycle states.
- const done=!!(customerName&&venueName&&venueAddress&&boothId&&(templateId||value(form,'approvedDesign')));
+ // Validate the complete artwork before any customer or event write.
+ const theme=mergeExperience(current.theme,form);
+ const done=!!(customerName&&venueName&&venueAddress&&boothId&&(templateId||theme.boothExperience.approvedDesign));
  const status=['ACTIVE','COMPLETED','ARCHIVED','LOADED_TO_BOOTH'].includes(current.status)?current.status:done?'CONFIGURED':'NEEDS_SETUP';
  await prisma.$transaction(async tx=>{
   await tx.event.update({where:{id},data:{
@@ -49,7 +51,7 @@ export async function updateEvent(id,form){
    venueName,venueAddress,internalNotes:optional(form,'internalNotes'),
    boothId,templateId,numberOfPhotos:photos,maxPrints,
    copiesPerPrint:1,printingEnabled,displayPrintButton:printingEnabled,qrSharingEnabled,
-   theme:mergeExperience(current.theme,form),status
+   theme,status
   }});
   if(current.customerId)await tx.customer.update({where:{id:current.customerId},data:{name:customerName,email,phone:optional(form,'customerPhone')}});
  });

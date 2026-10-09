@@ -10,10 +10,13 @@ import {renderClassicPhotoStrip} from './classic-photo-strip.mjs';
 import {renderLamarrFour,renderLamarrOne} from './lamarr-graduation.mjs';
 import {applySvgPhotoFinish} from './svg-photo-finish.mjs';
 import {applyEventPaletteTrim} from './setup-lookbook.mjs';
+import {renderCustomDesign} from './custom-design.mjs';
 export {getDesigns,getDesign,TEMPLATE_FAMILIES} from './template-registry.mjs';
 export {EVENT_LABELS,eventCopy,fitText} from './keepsake-model.mjs';
 const renderers={wedding:renderWeddingBirthday,birthday:renderWeddingBirthday,mitzvah:renderMitzvah,graduation:renderGraduation,corporate:renderCorporate,other:renderCelebration};
 export function renderKeepsake(input={}){
+ if((input.template??input.cfg?.defaultTemplate)==='custom')
+  return applySvgPhotoFinish(renderCustomDesign(input),input.filter,input.id);
  // This is an actual selectable design, never silently triggered by a
  // customer's name. The captured images stay distinct and in their order.
  if(input.cfg?.type==='graduation'&&input.template==='grad-gala'){

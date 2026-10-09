@@ -1,6 +1,6 @@
 'use client';
 import {useEffect,useState} from 'react';
-import {decodeBoothHandoff,applyBoothHandoff} from '../lib/booth-handoff.mjs';
+import {resolveBoothHandoff,applyBoothHandoff} from '../lib/booth-handoff.mjs';
 import {workspace,usage} from '../lib/event-workspace.mjs';
 import {assignActiveEvent} from '../lib/active-event.mjs';
 import './handoff.css';
@@ -8,15 +8,17 @@ export default function HandoffPage(){
  const [state,setState]=useState({loading:true,payload:null,error:'',previous:null,used:0});
  const [saving,setSaving]=useState(false);
  useEffect(()=>{
-  try{
-   const payload=decodeBoothHandoff(window.location.hash);
+  let active=true;const controller=new AbortController();
+  async function open(){try{
+   const payload=await resolveBoothHandoff(window.location.hash,{signal:controller.signal});
    const scope=workspace('?booth_event='+encodeURIComponent(payload.id));
    const raw=localStorage.getItem(scope.config);
    let previous=null;
    if(raw!==null){try{previous=JSON.parse(raw);}catch{throw new Error('Saved local event settings are unreadable. Nothing has been changed.');}}
    const used=usage(localStorage,scope);
-   setState({loading:false,payload,error:'',previous,used});
-  }catch(error){setState({loading:false,payload:null,error:error.message||'Could not open this event link.',previous:null,used:0});}
+   if(active)setState({loading:false,payload,error:'',previous,used});
+  }catch(error){if(active)setState({loading:false,payload:null,error:error.message||'Could not open this event link.',previous:null,used:0});}}
+  void open();return()=>{active=false;controller.abort();};
  },[]);
  function apply(){
   if(!state.payload||saving)return;
@@ -45,7 +47,7 @@ export default function HandoffPage(){
     <div className="hbInfo">
      <div><small>Guests can choose</small><strong>1 Photo or 4 Photos</strong><p>{p.f==='one'?'1 Photo':'4 Photos'} featured first</p></div>
      <div><small>Four-photo pose break</small><strong>{p.p} seconds</strong><p>Guests can start sooner</p></div>
-     <div><small>Approved event artwork</small><strong>{p.design==='grad-gala'?'Navy & Gold Grad Party':p.design==='ivory'?'Classic White':p.design==='blush'?'Midnight':'Celebration'}</strong><p>Automatically used for one-photo and four-photo prints</p></div>
+     <div><small>Approved event artwork</small><strong>{p.design==='custom'?'Your custom event design':p.design==='grad-gala'?'Navy & Gold Grad Party':p.design==='ivory'?'Classic White':p.design==='blush'?'Midnight':'Celebration'}</strong><p>Automatically used for one-photo and four-photo prints</p></div>
      <div><small>Physical print allowance</small><strong>{p.limit} sheets</strong><p>{p.on?'Printing enabled':'Digital only / printing off'}</p></div>
     </div>
     <div className="hbColors"><span>Event colors</span><div className="hbPaint" aria-hidden="true"><i style={{background:p.a}}/><i style={{background:p.b}}/></div><span>Photo framing: {p.fit==='fill'?'fill each slot':'show whole photo'}</span></div>

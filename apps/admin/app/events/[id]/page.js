@@ -31,7 +31,7 @@ export default async function EventDetailPage({params}){
     <div className="ownerEventDetailFacts">
      <div><small>Customer</small><strong>{event.customer?.name||'Customer details needed'}</strong></div>
      <div><small>Location</small><strong>{event.venueName||'Venue not entered'}</strong><span>{event.venueAddress||'Address not entered'}</span></div>
-     <div><small>Selected design</small><strong>{ownerApprovedDesigns(event.eventType).find(design=>design.id===experience.approvedDesign)?.name||'Choose your customer’s design'}</strong><span>{experience.nameOnPrint||event.name}</span></div>
+     <div><small>Selected design</small><strong>{experience.approvedDesign==='custom'?'Custom artwork':ownerApprovedDesigns(event.eventType).find(design=>design.id===experience.approvedDesign)?.name||'Choose your customer’s design'}</strong><span>{experience.nameOnPrint||event.name}</span></div>
      <div><small>Guests choose</small><strong>1 Photo or 4 Photos</strong><span>Same design · one 4×6 sheet</span></div>
     </div>
     {!progress.ready&&<p className="ownerSetupReminder">Still needed: {progress.checks.filter(check=>!check.ready).map(check=>check.title).join(', ')}. <Link href={edit+'#'+progress.next?.href}>Complete event setup →</Link></p>}

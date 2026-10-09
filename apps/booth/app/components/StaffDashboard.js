@@ -145,7 +145,7 @@ export default function StaffDashboard({onClose,onReset,onVoiceTest,onRecover,on
      {managed&&<a className="operatorTextLink" href="/event-prep">Photo archive and event backups →</a>}
     </div>
    </details>
-   {!managed&&<details className="operatorFold">
+   {!managed&&!eventScope?.imported&&<details className="operatorFold">
     <summary>Advanced local event settings <span>Staff only</span></summary>
     <div className="operatorFoldContent">
      <p>Use Event setup above for normal changes. These advanced settings affect this browser only.</p>

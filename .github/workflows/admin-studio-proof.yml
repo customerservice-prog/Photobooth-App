@@ -38,6 +38,7 @@ jobs:
           echo "ADMIN_PROOF_PASSWORD=$p" >> "$GITHUB_ENV"
           echo "PHOTOBOOTH_ADMIN_PASSWORD_SHA256=$(printf %s "$p" | sha256sum | cut -d' ' -f1)" >> "$GITHUB_ENV"
           echo "PHOTOBOOTH_AUTH_SECRET=$(openssl rand -hex 32)" >> "$GITHUB_ENV"
+          echo "PHOTOBOOTH_EVENT_SYNC_SECRET=$(openssl rand -hex 32)" >> "$GITHUB_ENV"
       - name: Install admin dependencies
         working-directory: apps/admin
         run: npm install --no-audit --no-fund
@@ -80,6 +81,7 @@ jobs:
           echo "ADMIN_PROOF_PASSWORD=$p" >> "$GITHUB_ENV"
           echo "PHOTOBOOTH_ADMIN_PASSWORD_SHA256=$(printf %s "$p" | sha256sum | cut -d' ' -f1)" >> "$GITHUB_ENV"
           echo "PHOTOBOOTH_AUTH_SECRET=$(openssl rand -hex 32)" >> "$GITHUB_ENV"
+          echo "PHOTOBOOTH_EVENT_SYNC_SECRET=$(openssl rand -hex 32)" >> "$GITHUB_ENV"
       - name: Install admin and browser tools
         working-directory: apps/admin
         run: |

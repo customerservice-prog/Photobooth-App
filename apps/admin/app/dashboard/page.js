@@ -24,7 +24,7 @@ export default async function DashboardPage(){
     <div className="ownerEventTop"><span className="eyebrow">{after?'FINISH YOUR LAST RENTAL':'YOUR NEXT EVENT'}</span><span className={'statusChip'+(setup.ready?'':' warning')}>{setup.ready?'Event details saved':'Needs setup'}</span></div>
     <h2>{next.name}</h2>
     <p className="ownerEventDate">{dateLabel(next.date)} · {next.customer?.name||'Customer details needed'}</p>
-    <div className="ownerEventFacts"><div><small>Selected look</small><strong>{ownerApprovedDesigns(next.eventType).find(d=>d.id===next.theme?.boothExperience?.approvedDesign)?.name||'Choose your customer’s design'}</strong></div><div><small>Print allowance</small><strong>{next.printingEnabled===false?'Digital only':(next.maxPrints??108)+' sheets'}</strong></div></div>
+    <div className="ownerEventFacts"><div><small>Selected look</small><strong>{next.theme?.boothExperience?.approvedDesign==='custom'?'Custom artwork':ownerApprovedDesigns(next.eventType).find(d=>d.id===next.theme?.boothExperience?.approvedDesign)?.name||'Choose your customer’s design'}</strong></div><div><small>Print allowance</small><strong>{next.printingEnabled===false?'Digital only':(next.maxPrints??108)+' sheets'}</strong></div></div>
     <div className="buttonRow"><Link className="btn" href={eventUrl+(after?'#after-event':'')}>{after?'Save photos & finish →':'Continue this event →'}</Link><Link className="btnPlain" href="/events">All events</Link></div>
    </div>
    <div className="ownerNextAction">

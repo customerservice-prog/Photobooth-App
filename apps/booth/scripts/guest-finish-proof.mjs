@@ -5,6 +5,7 @@ import sharp from 'sharp';
 import {BOOTH_RELEASE} from '../app/lib/booth-launch.mjs';
 import {octoberPreset,EVENT_KEYS,LEGACY_KEYS,PREP_CHECKS} from '../app/lib/event-workspace.mjs';
 import {assertFinishedGuest} from './assert-finished-guest.mjs';
+import {createCustomDesign,validateCustomDesign} from '../app/lib/custom-design.mjs';
 
 // Actual capture/render flow in isolated browser storage with a fake camera.
 // Safe for the public deployed booth: no printing, native share, delivery POST,
@@ -14,6 +15,7 @@ const base=(process.env.GUEST_FINISH_BASE_URL||process.env.WELCOME_BASE_URL||'ht
 const origin=new URL(base).origin,flag=name=>process.env[name]==='1';
 const ignoreHTTPSErrors=flag('WELCOME_LIVE_IGNORE_HTTPS_ERRORS');
 const mockDelivery=flag('GUEST_FINISH_MOCK_DELIVERY');
+const customProof=flag('CUSTOM_DESIGN_PROOF');
 assert(!ignoreHTTPSErrors||origin===production,'TLS-ignore smoke is limited to the known public Railway booth');
 let proxy;
 if(flag('WELCOME_LIVE_PROXY')){
@@ -21,7 +23,7 @@ if(flag('WELCOME_LIVE_PROXY')){
  const url=new URL(value);proxy={server:`${url.protocol}//${url.host}`,...(url.username?{username:decodeURIComponent(url.username),password:decodeURIComponent(url.password)}:{})};
 }
 const engines=flag('GUEST_FINISH_CHROMIUM_ONLY')||flag('WELCOME_LIVE_CHROMIUM_ONLY')?[['chromium',chromium]]:[['chromium',chromium],['webkit',webkit]];
-const out='guest-finish-proof',results=[];await mkdir(out,{recursive:true});
+const out=customProof?'custom-design-proof':'guest-finish-proof',results=[];await mkdir(out,{recursive:true});
 const archiveSource=await readFile(new URL('../app/lib/event-photo-archive.mjs',import.meta.url),'utf8');
 
 async function checkGeometry(page,label){
@@ -47,6 +49,18 @@ async function runCase(browser,engine,scope,total){
   // No guestMode setting: old local events and unapproved rehearsal configs
   // must receive the identical simple finish screen too.
   preparation:{colorsConfirmed:true,checks:Object.fromEntries(Object.keys(PREP_CHECKS).map(key=>[key,true]))}};
+ if(customProof){
+  const spec=createCustomDesign(scope==='legacy'?'build':'upload');
+  spec.background='#162e48';spec.accent='#ed9c37';spec.ink='#fff5dd';
+  spec.heading='CUSTOM CELEBRATION';spec.footer='Made for this event';
+  if(scope==='managed'){
+   for(const key of ['one','four']){
+    const bytes=await sharp({create:{width:1200,height:1800,channels:3,background:key==='one'?'#633165':'#162e48'}}).jpeg({quality:85}).toBuffer();
+    spec.layouts[key].image='data:image/jpeg;base64,'+bytes.toString('base64');
+   }
+  }
+  config.defaultTemplate='custom';config.customDesign=validateCustomDesign(spec);
+ }
  const context=await browser.newContext({viewport:{width:1024,height:768},hasTouch:true,isMobile:true,reducedMotion:'reduce',acceptDownloads:true,serviceWorkers:'block',ignoreHTTPSErrors});
  const writes=[],protectedVisits=[],errors=[];
  await context.route('**/*',route=>{
@@ -93,6 +107,11 @@ async function runCase(browser,engine,scope,total){
   }
   const bytes=await assertFinishedGuest(page,total),metadata=await sharp(bytes).metadata();
   assert.equal(metadata.width,1200);assert.equal(metadata.height,1800);
+  if(customProof){
+   const pixel=await sharp(bytes).extract({left:40,top:500,width:1,height:1}).raw().toBuffer();
+   const expected=scope==='managed'&&total===1?[99,49,101]:[22,46,72];
+   expected.forEach((channel,i)=>assert(Math.abs(pixel[i]-channel)<12,'custom approved background survives finished JPEG'));
+  }
   assert.equal(await page.getByTestId('approved-guest-preview').getAttribute('data-template'),config.defaultTemplate);
   await checkGeometry(page,label);
   const stored=await page.evaluate(async({source,archive})=>{

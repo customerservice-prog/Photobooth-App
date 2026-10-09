@@ -1,8 +1,7 @@
 'use client';
 import {useEffect} from 'react';
 import {workspace} from '../lib/event-workspace.mjs';
-import {applyBoothHandoff} from '../lib/booth-handoff.mjs';
-const ADMIN='https://photobooth-app-production.up.railway.app';
+import {applyBoothHandoff,fetchBoothSetup} from '../lib/booth-handoff.mjs';
 export default function EventAutoSync(){
  useEffect(()=>{
   let stopped=false,busy=false;
@@ -18,9 +17,7 @@ export default function EventAutoSync(){
    if(!ticket)return;
    busy=true;
    try{
-    const res=await fetch(ADMIN+'/api/booth/sync/'+encodeURIComponent(scope.id),{headers:{Authorization:'Bearer '+ticket},cache:'no-store'});
-    if(!res.ok)return;
-    const fresh=await res.json();
+    const fresh=await fetchBoothSetup({v:2,id:scope.id,sync:ticket});
     if(fresh.id!==scope.id||Date.parse(fresh.rev)<=Date.parse(old.adminHandoff.revision))return;
     applyBoothHandoff(localStorage,fresh);
     sessionStorage.setItem('friendly-booth-settings-reload','yes');
