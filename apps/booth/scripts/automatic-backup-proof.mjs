@@ -57,6 +57,15 @@ async function capture(page,total){
  return Buffer.from(src.split(',')[1],'base64');
 }
 async function done(page){await page.getByTestId('approved-done').click();await page.getByTestId('welcome-four-photo').waitFor();}
+async function localImageProbe(page){
+ return page.evaluate(async()=>{
+  const canvas=document.createElement('canvas');canvas.width=10;canvas.height=10;canvas.getContext('2d').fillRect(0,0,10,10);
+  const svg='<svg xmlns="http://www.w3.org/2000/svg" width="10" height="10"><image href="'+canvas.toDataURL('image/jpeg')+'" width="10" height="10"/></svg>';
+  const blob=URL.createObjectURL(new Blob([svg],{type:'image/svg+xml;charset=utf-8'})),data='data:image/svg+xml;charset=utf-8,'+encodeURIComponent(svg);
+  const load=src=>new Promise(resolve=>{const image=new Image(),timer=setTimeout(()=>finish(false),2000);const finish=ok=>{clearTimeout(timer);image.onload=null;image.onerror=null;resolve(ok);};image.onload=()=>finish(true);image.onerror=()=>finish(false);image.src=src;});
+  try{return {blobSVG:await load(blob),dataSVG:await load(data)};}finally{URL.revokeObjectURL(blob);}
+ });
+}
 
 // A bounded readiness wait allows the CI server to start in the same shell.
 let ready=false;
@@ -73,6 +82,7 @@ try{
   const saved=new Map(),attempts=[],authorizations=[],unexpectedWrites=[],errors=[],boundaryErrors=[],requestFailures=[];
   let networkAllowed=true,expireFirstUpload=true;
   let proofOrigin;
+  let offlineImageProbe;
   // WebKit does not expose Blob request bodies in Playwright's intercepted
   // request metadata. Serve the application through a same-origin loopback
   // proxy, receiving backup POST bytes directly and forwarding only GET/HEAD
@@ -116,6 +126,9 @@ try{
   proofOrigin='http://127.0.0.1:'+backupServer.address().port;
   await context.route('**/*',async route=>{
    const request=route.request(),url=new URL(request.url());
+   // Embedded captured JPEGs and generated SVG documents are local files,
+   // including when WebKit routes their loads through its network delegate.
+   if(['data:','blob:'].includes(url.protocol))return route.continue();
    if(url.origin!==proofOrigin)return route.abort();
    if(request.method()==='POST'&&['/api/backup/authorize','/api/backup/image'].includes(url.pathname)){
     if(!networkAllowed)return route.abort('internetdisconnected');
@@ -169,6 +182,8 @@ try{
 
    // Genuine browser offline mode must preserve and finish a session locally.
    await context.setOffline(true);networkAllowed=false;
+   offlineImageProbe=await localImageProbe(page);
+   console.log(engine+': offline local SVG probe '+JSON.stringify(offlineImageProbe));
    const four=await capture(page,4);
    const offlineRows=await waitForArchive(page,rows=>rows.length===2&&rows[1].keepsake,'Offline four-photo keepsake');
    assert.equal(offlineRows[1].poses.length,4);
@@ -214,8 +229,8 @@ try{
    assert.deepEqual(await archive(page),archived,'upload acknowledgments never remove the local archive');
    assert.deepEqual(await page.evaluate(({config,usage})=>({config:localStorage.getItem(config),usage:localStorage.getItem(usage)}),scope),before,'automatic backup leaves the approved design and print allowance unchanged');
    assert.deepEqual(unexpectedWrites,[]);assert.deepEqual(errors,[]);assert.deepEqual(boundaryErrors,[]);
-   results.push({engine,passed:true,release,browserVersion:browser.version(),sessions:3,originals:6,collages:2,finishedDesigns:2,backendFiles:saved.size,exactJPEGBytes:true,automaticWithoutStaff:true,expiredTicketRenewed:true,offlineCaptureAndReload:true,interruptedOriginalRetained:true,acknowledgmentsDeduplicated:true,serverBoundary:'local HTTP fixture with actual wire bytes; authorization and database verified by separate tests',unexpectedWrites});
-  }catch(error){await page.screenshot({path:out+'/'+engine+'-failure.png',fullPage:true}).catch(()=>{});results.push({engine,passed:false,message:error.message,stack:error.stack,unexpectedWrites,errors,boundaryErrors,requestFailures,authorizations:authorizations.length,attempts,saved:saved.size,status:await page.evaluate(id=>JSON.parse(localStorage.getItem('friendly-booth-backup-status-v1-'+id)||'null'),eventId).catch(()=>null)});throw error;}
+   results.push({engine,passed:true,release,browserVersion:browser.version(),sessions:3,originals:6,collages:2,finishedDesigns:2,backendFiles:saved.size,exactJPEGBytes:true,automaticWithoutStaff:true,expiredTicketRenewed:true,offlineCaptureAndReload:true,interruptedOriginalRetained:true,acknowledgmentsDeduplicated:true,offlineImageProbe,serverBoundary:'local HTTP fixture with actual wire bytes; authorization and database verified by separate tests',unexpectedWrites});
+  }catch(error){await page.screenshot({path:out+'/'+engine+'-failure.png',fullPage:true}).catch(()=>{});results.push({engine,passed:false,message:error.message,stack:error.stack,unexpectedWrites,errors,boundaryErrors,requestFailures,authorizations:authorizations.length,attempts,saved:saved.size,offlineImageProbe,status:await page.evaluate(id=>JSON.parse(localStorage.getItem('friendly-booth-backup-status-v1-'+id)||'null'),eventId).catch(()=>null)});throw error;}
   finally{await context.close();await browser.close();await new Promise(resolve=>backupServer.close(resolve));}
  }
  console.log(JSON.stringify(results,null,2));
