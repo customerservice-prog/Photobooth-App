@@ -37,16 +37,18 @@ test('every owner artwork proof matches both guest layouts after real handoff',(
    designs++;
   }
  }
- assert.equal(designs,22); // Party and Other celebration both use the Other family.
+ assert.equal(designs,25); // Party, Quinceañera and Other celebration use the Other family.
 });
 test('owner preview resolves occasion names and retains stored design IDs',()=>{
  assert.equal(ownerEventFamily('Bar / Bat Mitzvah'),'mitzvah');
  assert.equal(ownerEventFamily('wedding'),'wedding');
  assert.equal(ownerEventFamily('Party'),'other');
+ assert.equal(ownerEventFamily('Quinceañera'),'other');
+ assert.equal(ownerApprovedDesigns('Quinceañera').length,3);
  assert.equal(ownerApprovedDesigns('Graduation').at(-1).id,'grad-gala');
  assert.equal(ownerApprovedDesigns('Wedding')[0].name,'Rosewater Romance');
  const cfg=ownerPreviewConfig({eventType:'Wedding',eventName:'Our wedding',eventDate:'2027-06-10',experience:{approvedDesign:'grad-gala'}});
- assert.equal(cfg.defaultTemplate,'champagne');
+ assert.equal(cfg.defaultTemplate,'ivory');
  assert.equal(cfg.approvedPrintName,'Our wedding');
 });
 test('live blank print name falls back to event title and invalid dates show no invented date',()=>{

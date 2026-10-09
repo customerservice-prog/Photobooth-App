@@ -1,5 +1,6 @@
 // Pure event UI and form helpers. No database migrations: booth experience settings
 // live inside the Event.theme JSON already present in the existing schema.
+import {validateCustomDesign,isValidCustomDesign} from '../../booth/app/lib/custom-design.mjs';
 export const BOOTH_URL='https://photobooth-booth-production.up.railway.app';
 export const BOOTH_SETUP_URL=BOOTH_URL+'/setup';
 export const BOOTH_PREPARATION_URL=BOOTH_URL+'/event-prep';
@@ -12,11 +13,18 @@ export const COLORS=Object.freeze([
  {id:'botanical',name:'Botanical',primary:'#54715b',accent:'#c5bd89'},
  {id:'party',name:'Party Pop',primary:'#673b78',accent:'#e5b458'}
 ]);
-export const EVENT_TYPES=Object.freeze(['Wedding','Birthday','Bar / Bat Mitzvah','Graduation','Corporate','Party','Other celebration']);
+export const EVENT_TYPES=Object.freeze(['Wedding','Birthday','Graduation','Quinceañera','Corporate','Party','Bar / Bat Mitzvah','Other celebration']);
 const get=(data,key)=>String(typeof data?.get==='function'?data.get(key)??'':data?.[key]??'').trim();
 const has=(data,key)=>typeof data?.has==='function'?data.has(key):typeof data?.get==='function'?data.get(key)!==null&&data.get(key)!==undefined:Object.hasOwn(data||{},key);
 const cleanPrintName=(v,n=65)=>String(v??'').replace(/[\u0000-\u001f<>]/g,' ').trim().slice(0,n);
-export function approvedDesignFor(type,choice){return /graduation/i.test(String(type||''))&&choice==='grad-gala'?'grad-gala':['ivory','blush','champagne'].includes(choice)?choice:'champagne';}
+export function standardDesignFor(type){
+ const value=String(type||'').toLowerCase();
+ if(value.includes('graduation'))return 'grad-gala';
+ if(value.includes('mitzvah'))return 'blush';
+ if(value.includes('corporate'))return 'champagne';
+ return 'ivory';
+}
+export function approvedDesignFor(type,choice){return choice==='custom'?'custom':/graduation/i.test(String(type||''))&&choice==='grad-gala'?'grad-gala':['ivory','blush','champagne'].includes(choice)?choice:standardDesignFor(type);}
 export function toLocalDay(value){
  const d=value instanceof Date?value:new Date(value);
  return Number.isFinite(d.getTime())?d.toISOString().slice(0,10):'';
@@ -54,12 +62,13 @@ export function statusText(status){
 }
 export function readiness(event){
  const choice=event.theme?.boothExperience?.approvedDesign;
- const savedDesign=Boolean(choice&&approvedDesignFor(event.eventType,choice)===choice);
+ const custom=choice==='custom';
+ const savedDesign=custom?isValidCustomDesign(event.theme?.boothExperience?.customDesign):Boolean(choice&&approvedDesignFor(event.eventType,choice)===choice);
  const checks=[
   {id:'customer',title:'Customer details',ready:Boolean(event.customer?.name||event.customerId),href:'client'},
   {id:'venue',title:'Venue and address',ready:Boolean(event.venueName?.trim()&&event.venueAddress?.trim()),href:'venue'},
   {id:'booth',title:'Booth assigned',ready:Boolean(event.boothId||event.booth?.id),href:'equipment'},
-  {id:'design',title:'Saved print design',ready:Boolean(event.templateId||event.template?.id||savedDesign),href:'style'}
+  {id:'design',title:'Saved print design',ready:custom?savedDesign:Boolean(event.templateId||event.template?.id||savedDesign),href:'style'}
  ];
  const complete=checks.filter(x=>x.ready).length;
  return {checks,complete,total:checks.length,ready:complete===checks.length,next:checks.find(x=>!x.ready)||null};
@@ -80,6 +89,7 @@ export function experienceFrom(event){
   primary:validColor(e.primary)||pal?.primary||COLORS[0].primary,
   accent:validColor(e.accent)||pal?.accent||COLORS[0].accent,
   approvedDesign:approvedDesignFor(event?.eventType,e.approvedDesign),
+  customDesign:isValidCustomDesign(e.customDesign)?validateCustomDesign(e.customDesign):null,
   nameOnPrint:cleanPrintName(e.nameOnPrint,65),
   classYear:/^\d{4}$/.test(e.classYear||'')?e.classYear:'',
  };
@@ -100,9 +110,15 @@ export function mergeExperience(theme,form){
  const color=(key,fallback)=>/^#[\da-f]{6}$/i.test(get(form,key))?get(form,key).toLowerCase():fallback;
  if(has(form,'primaryColor')||has(form,'paletteId'))e.primary=color('primaryColor',palette.primary);
  if(has(form,'accentColor')||has(form,'paletteId'))e.accent=color('accentColor',palette.accent);
- if(has(form,'approvedDesign')||has(form,'eventType'))e.approvedDesign=approvedDesignFor(get(form,'eventType'),has(form,'approvedDesign')?get(form,'approvedDesign'):e.approvedDesign);
+ if(has(form,'approvedDesign')||has(form,'eventType'))e.approvedDesign=approvedDesignFor(get(form,'eventType'),has(form,'approvedDesign')?get(form,'approvedDesign'):Object.hasOwn(original,'approvedDesign')?original.approvedDesign:undefined);
  if(has(form,'nameOnPrint'))e.nameOnPrint=cleanPrintName(get(form,'nameOnPrint'),65);
  if(has(form,'classYear'))e.classYear=/^\d{4}$/.test(get(form,'classYear'))?get(form,'classYear'):'';
+ if(has(form,'customDesign')){
+  const raw=get(form,'customDesign');
+  if(raw){let spec;try{spec=JSON.parse(raw);}catch{throw new Error('The custom design could not be read. Check both print layouts.');}e.customDesign=validateCustomDesign(spec);}
+  else if(e.approvedDesign==='custom')throw new Error('Add a valid custom design for both 1 Photo and 4 Photos before saving.');
+ }
+ if(e.approvedDesign==='custom')e.customDesign=validateCustomDesign(e.customDesign);
  return {...current,boothExperience:e};
 }
 export function guestHandoffMessage(){

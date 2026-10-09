@@ -8,6 +8,7 @@ const headers={'Access-Control-Allow-Origin':boothOrigin,'Access-Control-Allow-H
 export async function OPTIONS(){return new Response(null,{status:204,headers});}
 export async function GET(request,{params}){
  if(request.headers.get('origin')!==boothOrigin)return new Response('Invalid origin',{status:403,headers});
+ if(!/^[A-Za-z0-9_-]{3,90}$/.test(String(params.id||''))||new URL(request.url).search)return new Response('Invalid event request',{status:400,headers});
  const token=(request.headers.get('authorization')||'').replace(/^Bearer /,'');
  try{
   if(!checkSyncTicket(token,params.id))return new Response('Unauthorized',{status:401,headers});

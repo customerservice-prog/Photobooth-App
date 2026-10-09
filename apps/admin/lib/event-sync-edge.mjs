@@ -1,6 +1,6 @@
 const encoder=new TextEncoder();
 export async function validSyncRequest(token,eventId,secret){
- if(typeof token!=='string'||typeof secret!=='string'||secret.length<32||!/^[A-Za-z0-9_-]{3,90}$/.test(eventId))return false;
+ if(typeof token!=='string'||token.length>512||!/^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]{43}$/.test(token)||typeof secret!=='string'||secret.length<32||!/^[A-Za-z0-9_-]{3,90}$/.test(eventId))return false;
  const parts=token.split('.');
  if(parts.length!==2)return false;
  try{

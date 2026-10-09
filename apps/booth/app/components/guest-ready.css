@@ -5,9 +5,9 @@
 .agGuest .agBody{display:grid;grid-template-rows:auto minmax(0,1fr);min-width:0;min-height:0;width:100%;padding-top:clamp(10px,2vh,22px)}
 .agMessage{text-align:center;padding:0 16px}.agMessage h1{font:500 clamp(27px,3.8vw,43px)/1.1 Georgia,serif;margin:0 0 7px;color:#163b35;letter-spacing:-.6px}.agMessage p{font-size:clamp(12px,1.4vw,16px);line-height:1.4;margin:0;color:#5a7166}
 .agPhotoStage{min-height:0;display:flex;justify-content:center;align-items:center;padding:14px 18px}
-.agPaperWrap{width:min(100%,calc((100dvh - 310px)*.6666667));height:auto;max-height:100%;min-width:0;aspect-ratio:2 / 3;max-width:100%;border:6px solid #fbfaf6;box-shadow:0 12px 32px #112e2830,0 0 0 1px #c2c8b8;background:#fbfaf6;border-radius:3px;overflow:hidden}
+.agPaperWrap{position:relative;width:min(100%,calc((100dvh - 310px)*.6666667));height:auto;max-height:100%;min-width:0;aspect-ratio:2 / 3;max-width:100%;border:6px solid #fbfaf6;box-shadow:0 12px 32px #112e2830,0 0 0 1px #c2c8b8;background:#fbfaf6;border-radius:3px;overflow:hidden}
 @supports(width:1cqh){.agPhotoStage{container-type:size}.agPaperWrap{width:min(100cqw,calc(100cqh*.6666667));height:auto}}
-.agPaperWrap img{width:100%;height:100%;display:block;object-fit:contain}.agPreparing{height:100%;display:grid;place-items:center;padding:24px;color:#294d3d;text-align:center;font-weight:650;font-size:16px}
+.agPaperWrap img{position:absolute;inset:0;width:100%;height:100%;display:block;object-fit:contain}.agPreparing{height:100%;display:grid;place-items:center;padding:24px;color:#294d3d;text-align:center;font-weight:650;font-size:16px}
 .agNotices{padding:0 14px 9px;min-width:0;max-height:35dvh;overflow:auto}.agSaved{font:600 12px/1.45 system-ui,sans-serif;color:#28604a;text-align:center;margin:0}
 .agStatus{max-width:850px;margin:8px auto 0;padding:9px 15px;border:1px solid #a1c2ad;border-radius:10px;background:#e5efe5;color:#294d3d;font-size:12px;line-height:1.4;text-align:center}.agWarning{border-color:#dbb4ab;background:#fff2ee;color:#8c3831}
 .agStatus button{margin:7px 6px 0;border:1px solid currentColor;background:transparent;padding:9px;border-radius:7px;color:inherit;font-weight:700;min-height:44px}

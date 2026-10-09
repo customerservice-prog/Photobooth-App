@@ -1,8 +1,10 @@
 'use client';
 import {useEffect,useRef,useState} from 'react';
-import {COLORS,PHOTO_PAUSES,approvedDesignFor} from '../lib/studio-experience.mjs';
-import {ownerApprovedDesigns,ownerPreviewConfig} from '../lib/owner-design-preview.mjs';
+import {COLORS,PHOTO_PAUSES,approvedDesignFor,standardDesignFor} from '../lib/studio-experience.mjs';
+import {ownerApprovedDesigns,ownerPreviewConfig,ownerRecommendedDesign} from '../lib/owner-design-preview.mjs';
 import OwnerDesignPreview,{OwnerDesignArtwork} from './OwnerDesignPreview';
+import CustomDesignEditor from './CustomDesignEditor';
+import {createCustomDesign,validateCustomDesign} from '../../booth/app/lib/custom-design.mjs';
 
 export default function ExperienceEditor({initial,eventType='Other celebration',eventName='',eventDate=''}){
  const editor=useRef(null);
@@ -13,42 +15,58 @@ export default function ExperienceEditor({initial,eventType='Other celebration',
  const [palette,setPalette]=useState(initial.paletteId);
  const [primary,setPrimary]=useState(initial.primary),[accent,setAccent]=useState(initial.accent);
  const [design,setDesign]=useState(approvedDesignFor(eventType,initial.approvedDesign));
+ const [custom,setCustom]=useState(()=>{try{return validateCustomDesign(initial.customDesign);}catch{return createCustomDesign();}});
+ const [customTouched,setCustomTouched]=useState(false);
  const [printName,setPrintName]=useState(initial.nameOnPrint||''),[year,setYear]=useState(initial.classYear||'');
- const graduation=/graduation/i.test(kind),styles=ownerApprovedDesigns(kind);
- const selectedDesign=approvedDesignFor(kind,design),selected=styles.find(x=>x.id===selectedDesign)||styles[0];
- const experience={...initial,featured,pauseSeconds:pause,photoFit:fit,paletteId:palette,primary,accent,approvedDesign:selected.id,nameOnPrint:printName,classYear:year};
+ const graduation=/graduation/i.test(kind),styles=ownerApprovedDesigns(kind),recommended=ownerRecommendedDesign(kind),isCustom=design==='custom';
+ const selectedDesign=approvedDesignFor(kind,design),selected=styles.find(x=>x.id===selectedDesign)||recommended;
+ const previousKind=useRef(eventType);
+ let customError='',customForPreview=custom;
+ try{validateCustomDesign(custom);}catch(e){customError=e.message||'Review the custom artwork before saving.';}
+ try{customForPreview=validateCustomDesign(custom,{allowIncompleteUpload:true});}catch{customForPreview=createCustomDesign();}
+ const experience={...initial,featured,pauseSeconds:pause,photoFit:fit,paletteId:palette,primary,accent,approvedDesign:isCustom?'custom':selected.id,customDesign:customForPreview,nameOnPrint:printName,classYear:year};
  const cfg=ownerPreviewConfig({eventType:kind,eventName:name,eventDate:date,experience});
+ function changeCustom(next){setCustomTouched(true);setCustom(next);}
  useEffect(()=>{
   const form=editor.current?.closest('form');
   if(!form)return;
   const update=()=>{
-   setKind(form.elements.namedItem('eventType')?.value||eventType);
+   const nextKind=form.elements.namedItem('eventType')?.value||eventType;
+   if(previousKind.current!==nextKind){previousKind.current=nextKind;setDesign(current=>current==='custom'?'custom':standardDesignFor(nextKind));}
+   setKind(nextKind);
    setName(form.elements.namedItem('eventName')?.value||'');
    setDate(form.elements.namedItem('date')?.value||'');
   };
   update();form.addEventListener('input',update);form.addEventListener('change',update);
   return()=>{form.removeEventListener('input',update);form.removeEventListener('change',update);};
  },[eventType]);
- useEffect(()=>{if(!graduation&&design==='grad-gala')setDesign('champagne');},[graduation,design]);
  function choosePalette(p){setPalette(p.id);setPrimary(p.primary);setAccent(p.accent);}
  return <div ref={editor} className="ownerDesignEditor">
   <section id="style" className="card formSection ownerDesignSection">
-   <div className="eyebrow">CUSTOMER DESIGN</div><h2 className="sectionTitle">Choose their artwork</h2>
-   <p className="sectionLead">Approve one look with your customer. It will be ready for both 1 Photo and 4 Photos.</p>
+   <div className="eyebrow">CUSTOMER DESIGN</div><h2 className="sectionTitle">Standard or custom artwork</h2>
+   <p className="sectionLead">Choose one design for this event. Guests’ photos fill the same artwork in the 1-photo and 4-photo layouts.</p>
    <div className="ownerDesignWorkspace"><div className="ownerDesignControls">
-    <fieldset className="ownerDesignChoices"><legend>Choose one design</legend>
-     {styles.map(d=><label className={'ownerDesignChoice'+(selected.id===d.id?' isSelected':'')} key={d.id}>
-      <input type="radio" name="approvedDesign" value={d.id} checked={selected.id===d.id} onChange={()=>setDesign(d.id)}/>
-      <span className="ownerDesignThumb" aria-hidden="true"><OwnerDesignArtwork cfg={{...cfg,defaultTemplate:d.id}}/></span>
-      <span className="ownerDesignChoiceWords"><strong>{d.name}</strong><small>{d.description}</small></span>
-      <span className="ownerDesignCheck" aria-hidden="true">{selected.id===d.id?'✓':''}</span>
-     </label>)}
+    <fieldset className="ownerDesignChoices"><legend>Standard or custom?</legend>
+     <label className={'ownerDesignChoice'+(!isCustom?' isSelected':'')} data-testid="owner-standard-design">
+      <input type="radio" name="approvedDesign" value={!isCustom?selected.id:standardDesignFor(kind)} checked={!isCustom} onChange={()=>{const next=standardDesignFor(kind);setDesign(next);}} data-testid="owner-design-standard"/>
+      <span className="ownerDesignThumb" aria-hidden="true"><OwnerDesignArtwork cfg={{...cfg,defaultTemplate:!isCustom?selected.id:recommended.id,customDesign:undefined}}/></span>
+      <span className="ownerDesignChoiceWords"><strong>Standard {kind.toLowerCase()} design</strong><small>{!isCustom&&selected.id!==recommended.id?'Keeping your saved artwork: '+selected.name:recommended.name}</small></span>
+      <span className="ownerDesignCheck" aria-hidden="true">{!isCustom?'✓':''}</span>
+     </label>
+     <label className={'ownerDesignChoice'+(isCustom?' isSelected':'')} data-testid="owner-custom-design">
+      <input type="radio" name="approvedDesign" value="custom" checked={isCustom} onChange={()=>setDesign('custom')} data-testid="owner-design-custom"/>
+      <span className="ownerCustomIcon" aria-hidden="true">✦</span>
+      <span className="ownerDesignChoiceWords"><strong>Custom design</strong><small>Upload your artwork or build a look.</small></span>
+      <span className="ownerDesignCheck" aria-hidden="true">{isCustom?'✓':''}</span>
+     </label>
     </fieldset>
-    <div className="ownerDesignNames">
+    {isCustom&&custom.mode==='upload'?<div className="ownerDesignNames"><p className="customDesignHint">Uploaded artwork keeps its own name and date. To change that text, replace the artwork.</p><input type="hidden" name="nameOnPrint" value={printName}/><input type="hidden" name="classYear" value={year}/></div>:<div className="ownerDesignNames">
      <label className="formField">Name on the photos<input className="input" name="nameOnPrint" maxLength={65} placeholder={name||'Use event name'} value={printName} onChange={e=>setPrintName(e.target.value)}/><small>Leave empty to use the event name.</small></label>
      {graduation?<label className="formField">Class year<input className="input" name="classYear" maxLength={4} inputMode="numeric" pattern="[0-9]{4}" placeholder="2026" value={year} onChange={e=>setYear(e.target.value.replace(/\D/g,'').slice(0,4))}/></label>:<input type="hidden" name="classYear" value={year}/>}
-    </div>
-   </div><OwnerDesignPreview cfg={cfg} designName={selected.name}/></div>
+    </div>}
+    {isCustom&&<CustomDesignEditor value={custom} onChange={changeCustom}/>}
+    {(isCustom||(customTouched&&!customError))&&<input type="hidden" name="customDesign" value={JSON.stringify(custom)}/>}
+   </div><OwnerDesignPreview cfg={cfg} designName={isCustom?'Your custom design':selected.name} previewNote={isCustom&&customError?customError:''}/></div>
   </section>
   <details id="experience" className="card ownerDesignAdvanced">
    <summary><span>Photo timing, framing &amp; colors</span><small>Optional staff settings</small></summary>

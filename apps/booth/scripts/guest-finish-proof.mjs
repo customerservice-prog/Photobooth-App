@@ -5,6 +5,7 @@ import sharp from 'sharp';
 import {BOOTH_RELEASE} from '../app/lib/booth-launch.mjs';
 import {octoberPreset,EVENT_KEYS,LEGACY_KEYS,PREP_CHECKS} from '../app/lib/event-workspace.mjs';
 import {assertFinishedGuest} from './assert-finished-guest.mjs';
+import {createCustomDesign,validateCustomDesign} from '../app/lib/custom-design.mjs';
 
 // Actual capture/render flow in isolated browser storage with a fake camera.
 // Safe for the public deployed booth: no printing, native share, delivery POST,
@@ -14,6 +15,7 @@ const base=(process.env.GUEST_FINISH_BASE_URL||process.env.WELCOME_BASE_URL||'ht
 const origin=new URL(base).origin,flag=name=>process.env[name]==='1';
 const ignoreHTTPSErrors=flag('WELCOME_LIVE_IGNORE_HTTPS_ERRORS');
 const mockDelivery=flag('GUEST_FINISH_MOCK_DELIVERY');
+const customProof=flag('CUSTOM_DESIGN_PROOF');
 assert(!ignoreHTTPSErrors||origin===production,'TLS-ignore smoke is limited to the known public Railway booth');
 let proxy;
 if(flag('WELCOME_LIVE_PROXY')){
@@ -21,15 +23,52 @@ if(flag('WELCOME_LIVE_PROXY')){
  const url=new URL(value);proxy={server:`${url.protocol}//${url.host}`,...(url.username?{username:decodeURIComponent(url.username),password:decodeURIComponent(url.password)}:{})};
 }
 const engines=flag('GUEST_FINISH_CHROMIUM_ONLY')||flag('WELCOME_LIVE_CHROMIUM_ONLY')?[['chromium',chromium]]:[['chromium',chromium],['webkit',webkit]];
-const out='guest-finish-proof',results=[];await mkdir(out,{recursive:true});
+const out=customProof?'custom-design-proof':'guest-finish-proof',results=[];await mkdir(out,{recursive:true});
 const archiveSource=await readFile(new URL('../app/lib/event-photo-archive.mjs',import.meta.url),'utf8');
 
 async function checkGeometry(page,label){
+ const geometry=[];
  for(const [device,width,height]of [['ipad-landscape',1024,768],['ipad-portrait',768,1024],['phone',390,844]]){
   await page.setViewportSize({width,height});
-  const image=page.getByTestId('approved-finished-jpeg'),imageRect=await image.boundingBox();
-  assert(imageRect&&imageRect.width>=120&&imageRect.height>=180&&imageRect.x>=-1&&imageRect.x+imageRect.width<=width+1&&imageRect.y>=-1&&imageRect.y+imageRect.height<=height+1,label+' '+device+' finished image is fully visible '+JSON.stringify({imageRect,viewport:[width,height]}));
-  assert(Math.abs(imageRect.width/imageRect.height-2/3)<.01,label+' '+device+' keeps the whole 4x6 image');
+  const image=page.getByTestId('approved-finished-jpeg');
+  // WebKit can finish setViewportSize before media/container-query layout has
+  // settled. Wait for two equal frame samples, bounded to four seconds.
+  const metrics=await image.evaluate(async(element,viewport)=>{
+   if(document.fonts)await Promise.race([document.fonts.ready,new Promise(resolve=>setTimeout(resolve,1000))]);
+   const rect=element=>{if(!element)return null;const b=element.getBoundingClientRect();return {x:b.x,y:b.y,width:b.width,height:b.height};};
+   const number=value=>parseFloat(value)||0;
+   function snapshot(){
+    const imageRect=rect(element),style=getComputedStyle(element),paper=element.closest('.agPaperWrap'),paperStyle=paper?getComputedStyle(paper):null;
+    const left=number(style.borderLeftWidth)+number(style.paddingLeft),right=number(style.borderRightWidth)+number(style.paddingRight);
+    const top=number(style.borderTopWidth)+number(style.paddingTop),bottom=number(style.borderBottomWidth)+number(style.paddingBottom);
+    const content={x:imageRect.x+left,y:imageRect.y+top,width:imageRect.width-left-right,height:imageRect.height-top-bottom};
+    const scale=Math.min(content.width/element.naturalWidth,content.height/element.naturalHeight);
+    const drawnWidth=element.naturalWidth*scale,drawnHeight=element.naturalHeight*scale;
+    const drawnRect={x:content.x+(content.width-drawnWidth)/2,y:content.y+(content.height-drawnHeight)/2,width:drawnWidth,height:drawnHeight};
+    const paperRect=rect(paper),paperInner=paperRect&&{x:paperRect.x+number(paperStyle.borderLeftWidth),y:paperRect.y+number(paperStyle.borderTopWidth),width:paperRect.width-number(paperStyle.borderLeftWidth)-number(paperStyle.borderRightWidth),height:paperRect.height-number(paperStyle.borderTopWidth)-number(paperStyle.borderBottomWidth)};
+    return {imageRect,drawnRect,paperInner,natural:[element.naturalWidth,element.naturalHeight],objectFit:style.objectFit,objectPosition:style.objectPosition,complete:element.complete,viewport:[innerWidth,innerHeight]};
+   }
+   const deadline=Date.now()+4000;let previous='',equal=0,current;
+   do{
+    await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
+    current=snapshot();
+    const key=JSON.stringify([current.imageRect,current.paperInner,current.viewport]);
+    equal=key===previous?equal+1:0;previous=key;
+    if(equal>=2&&current.complete&&current.viewport[0]===viewport[0]&&current.viewport[1]===viewport[1])return {...current,settled:true};
+   }while(Date.now()<deadline);
+   return {...current,settled:false};
+  },[width,height]);
+  const {imageRect,drawnRect,paperInner}=metrics,diagnostic=JSON.stringify(metrics);
+  assert(metrics.settled,label+' '+device+' layout settles after resize '+diagnostic);
+  assert.deepEqual(metrics.natural,[1200,1800],label+' '+device+' keeps the full-resolution JPEG '+diagnostic);
+  assert.equal(metrics.objectFit,'contain',label+' '+device+' never crops or stretches the JPEG '+diagnostic);
+  assert.equal(metrics.objectPosition,'50% 50%',label+' '+device+' centers the contained JPEG '+diagnostic);
+  const visible=box=>box&&box.width>=120&&box.height>=180&&box.x>=-1&&box.x+box.width<=width+1&&box.y>=-1&&box.y+box.height<=height+1;
+  assert(visible(imageRect),label+' '+device+' finished image element is fully visible '+diagnostic);
+  // A contained JPEG may have white letterboxing inside its element. Check
+  // the actual drawn photo's 2:3 ratio, not that letterboxed element's ratio.
+  assert(visible(drawnRect)&&Math.abs(drawnRect.width/drawnRect.height-2/3)<.01,label+' '+device+' keeps the whole 4x6 photo '+diagnostic);
+  assert(paperInner&&drawnRect.x>=paperInner.x-1&&drawnRect.y>=paperInner.y-1&&drawnRect.x+drawnRect.width<=paperInner.x+paperInner.width+1&&drawnRect.y+drawnRect.height<=paperInner.y+paperInner.height+1,label+' '+device+' paper frame does not clip the photo '+diagnostic);
   for(const id of ['approved-print','approved-digital-copy','approved-done']){
    const button=page.getByTestId(id),box=await button.boundingBox();
    assert(box&&box.height>=44&&box.x>=-1&&box.x+box.width<=width+1&&box.y>=-1&&box.y+box.height<=height+1,label+' '+device+' '+id+' is visible');
@@ -37,7 +76,9 @@ async function checkGeometry(page,label){
   }
   assert(!await page.locator('.agGuest').evaluate(element=>element.scrollWidth>element.clientWidth+1),label+' '+device+' has no horizontal overflow');
   await page.screenshot({path:`${out}/${label}-${device}.png`});
+  geometry.push({device,...metrics});
  }
+ return geometry;
 }
 
 async function runCase(browser,engine,scope,total){
@@ -47,6 +88,18 @@ async function runCase(browser,engine,scope,total){
   // No guestMode setting: old local events and unapproved rehearsal configs
   // must receive the identical simple finish screen too.
   preparation:{colorsConfirmed:true,checks:Object.fromEntries(Object.keys(PREP_CHECKS).map(key=>[key,true]))}};
+ if(customProof){
+  const spec=createCustomDesign(scope==='legacy'?'build':'upload');
+  spec.background='#162e48';spec.accent='#ed9c37';spec.ink='#fff5dd';
+  spec.heading='CUSTOM CELEBRATION';spec.footer='Made for this event';
+  if(scope==='managed'){
+   for(const key of ['one','four']){
+    const bytes=await sharp({create:{width:1200,height:1800,channels:3,background:key==='one'?'#633165':'#162e48'}}).jpeg({quality:85}).toBuffer();
+    spec.layouts[key].image='data:image/jpeg;base64,'+bytes.toString('base64');
+   }
+  }
+  config.defaultTemplate='custom';config.customDesign=validateCustomDesign(spec);
+ }
  const context=await browser.newContext({viewport:{width:1024,height:768},hasTouch:true,isMobile:true,reducedMotion:'reduce',acceptDownloads:true,serviceWorkers:'block',ignoreHTTPSErrors});
  const writes=[],protectedVisits=[],errors=[];
  await context.route('**/*',route=>{
@@ -93,8 +146,13 @@ async function runCase(browser,engine,scope,total){
   }
   const bytes=await assertFinishedGuest(page,total),metadata=await sharp(bytes).metadata();
   assert.equal(metadata.width,1200);assert.equal(metadata.height,1800);
+  if(customProof){
+   const pixel=await sharp(bytes).extract({left:40,top:500,width:1,height:1}).raw().toBuffer();
+   const expected=scope==='managed'&&total===1?[99,49,101]:[22,46,72];
+   expected.forEach((channel,i)=>assert(Math.abs(pixel[i]-channel)<12,'custom approved background survives finished JPEG'));
+  }
   assert.equal(await page.getByTestId('approved-guest-preview').getAttribute('data-template'),config.defaultTemplate);
-  await checkGeometry(page,label);
+  const geometry=await checkGeometry(page,label);
   const stored=await page.evaluate(async({source,archive})=>{
    const api=new Function(source.replace(/\bexport /g,'')+'\nreturn {listCaptures};')(),rows=await api.listCaptures(archive);
    return {count:rows.length,poses:rows[0].poses.length,hashes:await Promise.all(rows[0].poses.map(async blob=>Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',await blob.arrayBuffer()))).join(','))),finished:Array.from(new Uint8Array(await rows[0].keepsake.arrayBuffer()))};
@@ -116,7 +174,7 @@ async function runCase(browser,engine,scope,total){
   await page.getByTestId('approved-done').click();await page.getByTestId('welcome-four-photo').waitFor({timeout:10000});
   assert.equal(await page.getByTestId('approved-guest-preview').count(),0);
   assert.deepEqual(writes,[]);assert.deepEqual(protectedVisits,[]);assert.deepEqual(errors,[]);
-  results.push({test:label,passed:true,browserVersion:browser.version(),release:release.data.version,state,poses:stored.poses,uniquePoses:new Set(stored.hashes).size,exactArchivedAndDownloadedJPEG:true,mockedDeliveryConfiguration:mockDelivery,writeRequests:writes,protectedVisits});
+  results.push({test:label,passed:true,browserVersion:browser.version(),release:release.data.version,state,poses:stored.poses,uniquePoses:new Set(stored.hashes).size,exactArchivedAndDownloadedJPEG:true,mockedDeliveryConfiguration:mockDelivery,geometry,writeRequests:writes,protectedVisits});
  }catch(error){await page.screenshot({path:`${out}/${label}-failure.png`,fullPage:true}).catch(()=>{});results.push({test:label,passed:false,message:error.message,stack:error.stack,writeRequests:writes,protectedVisits});throw error;}
  finally{await context.close();}
 }

@@ -35,3 +35,6 @@ prisma/generated/
 # Local strip browser proof
 apps/booth/strip-proof/
 apps/booth/local-strip-proof/
+
+# Local custom artwork browser proof
+apps/booth/custom-design-proof/

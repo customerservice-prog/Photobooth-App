@@ -1,8 +1,10 @@
 // Deliberately PII-minimal, explicit cross-device event handoff.
-// The payload is in the URL fragment, so neither service receives the data in
-// HTTP requests or server logs. Treat the link as shareable event information.
+// Standard display settings travel in the fragment. Custom artwork is fetched
+// through the existing signed event endpoint; never include image bytes in a QR.
 import {BOOTH_URL,experienceFrom,toLocalDay,wallTime} from './studio-experience.mjs';
 import {makeSyncTicket} from './event-sync-token.mjs';
+import {validateCustomDesign} from '../../booth/app/lib/custom-design.mjs';
+import {validateBoothHandoff} from '../../booth/app/lib/booth-handoff.mjs';
 const idRe=/^[A-Za-z0-9_-]{3,90}$/;
 const clean=(input,n=96)=>String(input??'').replace(/[\u0000-\u001f<>]/g,' ').trim().slice(0,n);
 const kind=(eventType)=>{
@@ -17,11 +19,12 @@ const kind=(eventType)=>{
 export function buildBoothHandoffPayload(event){
  if(!event||!idRe.test(String(event.id||'')))throw new Error('This event has an invalid ID and cannot be transferred.');
  const e=experienceFrom(event),prints=Number(event.maxPrints??108);
+ const custom=e.approvedDesign==='custom'?validateCustomDesign(e.customDesign):undefined;
  if(!Number.isInteger(prints)||prints<0||prints>10000)throw new Error('Set a valid physical print allowance before transferring.');
  const date=toLocalDay(event.date);
  if(!date)throw new Error('Set a valid event date before sending it to the booth.');
  const revision=event.updatedAt?new Date(event.updatedAt).toISOString():new Date(event.date).toISOString();
- return Object.freeze({
+ return Object.freeze(validateBoothHandoff({
   v:1,id:String(event.id),rev:revision,
   title:clean(event.name,96),date,start:wallTime(event.startTime),end:wallTime(event.endTime),
   type:kind(event.eventType),
@@ -32,12 +35,14 @@ export function buildBoothHandoffPayload(event){
   // Staff approves exactly one graphic before guests arrive; the booth renders
   // this choice as a full card (one pose) or four-photo keepsake (four poses).
   design:e.approvedDesign,name:clean(e.nameOnPrint||event.name,65),
-  year:e.classYear||'',guest:'approved'
- });
+  year:e.classYear||'',guest:'approved',...(custom?{customDesign:custom}:{})
+ }));
 }
 export function makeBoothHandoffLink(event){
  const payload=buildBoothHandoffPayload(event);
- const token=Buffer.from(JSON.stringify(payload),'utf8').toString('base64url');
+ if(payload.design==='custom'&&!payload.sync)throw new Error('Custom iPad setup needs the protected event sync connection. Ask the owner to finish that setup.');
+ const shared=payload.design==='custom'?{v:2,id:payload.id,sync:payload.sync}:payload;
+ const token=Buffer.from(JSON.stringify(shared),'utf8').toString('base64url');
  if(token.length>1500)throw new Error('The event link is too long to share. Shorten the event title.');
  return BOOTH_URL+'/handoff#'+token;
 }

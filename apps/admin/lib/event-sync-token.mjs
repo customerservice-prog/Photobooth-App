@@ -7,7 +7,7 @@ export function makeSyncTicket(id,when){
  return payload+'.'+createHmac('sha256',secret()).update(payload).digest('base64url');
 }
 export function checkSyncTicket(token,id){
- if(secret().length<32||typeof token!=='string')return false;
+ if(secret().length<32||typeof token!=='string'||token.length>512||!/^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]{43}$/.test(token)||!/^[A-Za-z0-9_-]{3,90}$/.test(String(id||'')))return false;
  const part=token.split('.');if(part.length!==2)return false;
  const a=Buffer.from(part[1],'base64url'),b=createHmac('sha256',secret()).update(part[0]).digest();
  if(a.length!==b.length||!timingSafeEqual(a,b))return false;
