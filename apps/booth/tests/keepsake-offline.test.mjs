@@ -34,14 +34,22 @@ test('normal SVG export uses the Blob image and releases its URL and canvas',asy
 test('a Blob image load error retries the identical SVG bytes locally and preserves Unicode and output',async()=>{
  await browserFixture({failBlob:true},async state=>{
   const artifact=await makeKeepsakeExport(input);
-  assert.equal(state.sources.length,2);assert.match(state.sources[1],/^data:image\/svg\+xml;charset=utf-8;base64,/);
-  const decoded=Buffer.from(state.sources[1].split(',')[1],'base64');
+  assert.equal(state.sources.length,2);assert.match(state.sources[1],/^data:image\/svg\+xml;charset=utf-8,/);
+  const decoded=Buffer.from(decodeURIComponent(state.sources[1].split(',')[1]),'utf8');
   assert.deepEqual(decoded,Buffer.from(await state.created[0].arrayBuffer()));
   assert.match(decoded.toString('utf8'),/Zoë &amp; 欢/);assert(decoded.toString('utf8').includes(input.photo));
-  assert.equal(state.serialized[0],state.created[0]);assert.deepEqual(state.drawn,[state.sources[1]]);
+  assert.equal(state.serialized.filter(blob=>blob.type.startsWith('image/svg+xml')).length,0);assert.deepEqual(state.drawn,[state.sources[1]]);
   assert.deepEqual(new Uint8Array(await artifact.blob.arrayBuffer()),new Uint8Array([255,216,255,217]));
   assert.equal(artifact.width,1200);assert.equal(artifact.height,1800);assert.deepEqual(state.revoked,['blob:fixture-svg']);
   assert.equal(state.canvas.width,0);assert.equal(state.canvas.height,0);
+ });
+});
+test('the local SVG fallback handles malformed Unicode like the original UTF-8 Blob',async()=>{
+ await browserFixture({failBlob:true},async state=>{
+  await makeKeepsakeExport({...input,cfg:{...input.cfg,title:'Zoë & 欢 \ud800'}});
+  const decoded=Buffer.from(decodeURIComponent(state.sources[1].split(',')[1]),'utf8');
+  assert.deepEqual(decoded,Buffer.from(await state.created[0].arrayBuffer()));assert.match(decoded.toString('utf8'),/Zoë &amp; 欢 �/);
+  assert.deepEqual(state.revoked,['blob:fixture-svg']);
  });
 });
 test('an SVG image timeout does not retry and still releases the image URL and canvas',async()=>{

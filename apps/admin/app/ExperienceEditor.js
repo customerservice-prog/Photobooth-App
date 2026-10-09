@@ -1,7 +1,8 @@
 'use client';
 import {useEffect,useRef,useState} from 'react';
-import {COLORS,PHOTO_PAUSES,approvedDesignFor,standardDesignFor} from '../lib/studio-experience.mjs';
-import {ownerApprovedDesigns,ownerPreviewConfig,ownerRecommendedDesign} from '../lib/owner-design-preview.mjs';
+import {COLORS,PHOTO_PAUSES,approvedDesignFor} from '../lib/studio-experience.mjs';
+import {ownerPreviewConfig} from '../lib/owner-design-preview.mjs';
+import {FPR_PRINT_PRESETS,isFprPrintPreset,presetForEventType,presetById} from '../../booth/app/lib/fpr-print-presets.mjs';
 import OwnerDesignPreview,{OwnerDesignArtwork} from './OwnerDesignPreview';
 import CustomDesignEditor from './CustomDesignEditor';
 import {createCustomDesign,validateCustomDesign} from '../../booth/app/lib/custom-design.mjs';
@@ -14,12 +15,12 @@ export default function ExperienceEditor({initial,eventType='Other celebration',
  const [fit,setFit]=useState(initial.photoFit);
  const [palette,setPalette]=useState(initial.paletteId);
  const [primary,setPrimary]=useState(initial.primary),[accent,setAccent]=useState(initial.accent);
- const [design,setDesign]=useState(approvedDesignFor(eventType,initial.approvedDesign));
+ const [design,setDesign]=useState(()=>{const saved=approvedDesignFor(eventType,initial.approvedDesign);return saved==='custom'||isFprPrintPreset(saved)?saved:presetForEventType(eventType);});
  const [custom,setCustom]=useState(()=>{try{return validateCustomDesign(initial.customDesign);}catch{return createCustomDesign();}});
  const [customTouched,setCustomTouched]=useState(false);
  const [printName,setPrintName]=useState(initial.nameOnPrint||''),[year,setYear]=useState(initial.classYear||'');
- const graduation=/graduation/i.test(kind),styles=ownerApprovedDesigns(kind),recommended=ownerRecommendedDesign(kind),isCustom=design==='custom';
- const selectedDesign=approvedDesignFor(kind,design),selected=styles.find(x=>x.id===selectedDesign)||recommended;
+ const graduation=design==='fpr-graduation'||/graduation/i.test(kind),isCustom=design==='custom';
+ const selected=presetById(design)||presetById(presetForEventType(kind));
  const previousKind=useRef(eventType);
  let customError='',customForPreview=custom;
  try{validateCustomDesign(custom);}catch(e){customError=e.message||'Review the custom artwork before saving.';}
@@ -32,7 +33,7 @@ export default function ExperienceEditor({initial,eventType='Other celebration',
   if(!form)return;
   const update=()=>{
    const nextKind=form.elements.namedItem('eventType')?.value||eventType;
-   if(previousKind.current!==nextKind){previousKind.current=nextKind;setDesign(current=>current==='custom'?'custom':standardDesignFor(nextKind));}
+   if(previousKind.current!==nextKind){previousKind.current=nextKind;setDesign(current=>current==='custom'?'custom':presetForEventType(nextKind));}
    setKind(nextKind);
    setName(form.elements.namedItem('eventName')?.value||'');
    setDate(form.elements.namedItem('date')?.value||'');
@@ -43,20 +44,20 @@ export default function ExperienceEditor({initial,eventType='Other celebration',
  function choosePalette(p){setPalette(p.id);setPrimary(p.primary);setAccent(p.accent);}
  return <div ref={editor} className="ownerDesignEditor">
   <section id="style" className="card formSection ownerDesignSection">
-   <div className="eyebrow">CUSTOMER DESIGN</div><h2 className="sectionTitle">Standard or custom artwork</h2>
-   <p className="sectionLead">Choose one design for this event. Guests’ photos fill the same artwork in the 1-photo and 4-photo layouts.</p>
+   <div className="eyebrow">CUSTOMER DESIGN</div><h2 className="sectionTitle">Choose your customer’s print design</h2>
+   <p className="sectionLead">Pick one of the five approved print designs below, or choose Custom design. The print previews update immediately for both 1 Photo and 4 Photos.</p>
    <div className="ownerDesignWorkspace"><div className="ownerDesignControls">
-    <fieldset className="ownerDesignChoices"><legend>Standard or custom?</legend>
-     <label className={'ownerDesignChoice'+(!isCustom?' isSelected':'')} data-testid="owner-standard-design">
-      <input type="radio" name="approvedDesign" value={!isCustom?selected.id:standardDesignFor(kind)} checked={!isCustom} onChange={()=>{const next=standardDesignFor(kind);setDesign(next);}} data-testid="owner-design-standard"/>
-      <span className="ownerDesignThumb" aria-hidden="true"><OwnerDesignArtwork cfg={{...cfg,defaultTemplate:!isCustom?selected.id:recommended.id,customDesign:undefined}}/></span>
-      <span className="ownerDesignChoiceWords"><strong>Standard {kind.toLowerCase()} design</strong><small>{!isCustom&&selected.id!==recommended.id?'Keeping your saved artwork: '+selected.name:recommended.name}</small></span>
-      <span className="ownerDesignCheck" aria-hidden="true">{!isCustom?'✓':''}</span>
-     </label>
-     <label className={'ownerDesignChoice'+(isCustom?' isSelected':'')} data-testid="owner-custom-design">
+    <fieldset className="ownerDesignChoices ownerPresetChoices"><legend>Choose ONE photo booth design</legend>
+     {FPR_PRINT_PRESETS.map(preset=><label key={preset.id} className={'ownerDesignChoice ownerPresetChoice'+(design===preset.id?' isSelected':'')} data-testid={'owner-preset-'+preset.key}>
+      <input type="radio" name="approvedDesign" value={preset.id} checked={design===preset.id} onChange={()=>setDesign(preset.id)} aria-label={preset.name+' design'} data-testid={'owner-design-'+preset.key}/>
+      <span className="ownerDesignThumb ownerPresetThumb" aria-hidden="true"><img src={preset.image} alt="" loading="lazy"/></span>
+      <span className="ownerDesignChoiceWords"><strong>{preset.name}</strong><small>{preset.caption}</small></span>
+      <span className="ownerDesignCheck" aria-hidden="true">{design===preset.id?'✓':''}</span>
+     </label>)}
+     <label className={'ownerDesignChoice ownerCustomChoice'+(isCustom?' isSelected':'')} data-testid="owner-custom-design">
       <input type="radio" name="approvedDesign" value="custom" checked={isCustom} onChange={()=>setDesign('custom')} data-testid="owner-design-custom"/>
       <span className="ownerCustomIcon" aria-hidden="true">✦</span>
-      <span className="ownerDesignChoiceWords"><strong>Custom design</strong><small>Upload your artwork or build a look.</small></span>
+      <span className="ownerDesignChoiceWords"><strong>Custom design</strong><small>Upload your own artwork or build a one-of-a-kind layout.</small></span>
       <span className="ownerDesignCheck" aria-hidden="true">{isCustom?'✓':''}</span>
      </label>
     </fieldset>

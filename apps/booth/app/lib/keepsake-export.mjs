@@ -24,9 +24,11 @@ export async function makeKeepsakeExport(input){
   catch(error){
    if(error.code!=='KEEPSAKE_IMAGE_LOAD_FAILED')throw error;
    // Some WebKit offline contexts reject a newly created Blob image URL. A
-   // data URL reads the exact same self-contained SVG bytes without a request.
+   // data URL uses the same self-contained SVG without a request or Blob read.
+   // Match Blob's UTF-8 treatment of malformed surrogate pairs as well.
    // Timeouts do not retry, and the approved artwork/canvas output stays intact.
-   image=await readImage(await dataUrl(svgBlob));
+   const utf8=new TextDecoder().decode(new TextEncoder().encode(svg));
+   image=await readImage('data:image/svg+xml;charset=utf-8,'+encodeURIComponent(utf8));
   }
   const ctx=canvas.getContext('2d');if(!ctx)throw new Error('This device cannot create the keepsake file.');
   ctx.fillStyle='#ffffff';ctx.fillRect(0,0,canvas.width,canvas.height);ctx.drawImage(image,0,0,canvas.width,canvas.height);

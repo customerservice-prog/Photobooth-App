@@ -61,9 +61,12 @@ async function localImageProbe(page){
  return page.evaluate(async()=>{
   const canvas=document.createElement('canvas');canvas.width=10;canvas.height=10;canvas.getContext('2d').fillRect(0,0,10,10);
   const svg='<svg xmlns="http://www.w3.org/2000/svg" width="10" height="10"><image href="'+canvas.toDataURL('image/jpeg')+'" width="10" height="10"/></svg>';
-  const blob=URL.createObjectURL(new Blob([svg],{type:'image/svg+xml;charset=utf-8'})),data='data:image/svg+xml;charset=utf-8,'+encodeURIComponent(svg);
+  const svgBlob=new Blob([svg],{type:'image/svg+xml;charset=utf-8'}),blob=URL.createObjectURL(svgBlob),data='data:image/svg+xml;charset=utf-8,'+encodeURIComponent(svg);
   const load=src=>new Promise(resolve=>{const image=new Image(),timer=setTimeout(()=>finish(false),2000);const finish=ok=>{clearTimeout(timer);image.onload=null;image.onerror=null;resolve(ok);};image.onload=()=>finish(true);image.onerror=()=>finish(false);image.src=src;});
-  try{return {blobSVG:await load(blob),dataSVG:await load(data)};}finally{URL.revokeObjectURL(blob);}
+  const arrayBuffer=async value=>{if(!value)return false;let timer;try{return await Promise.race([value.arrayBuffer().then(bytes=>bytes.byteLength===value.size,()=>false),new Promise(resolve=>{timer=setTimeout(()=>resolve(false),1000);})]);}finally{clearTimeout(timer);}};
+  const fileReader=value=>new Promise(resolve=>{if(!value)return resolve(false);const reader=new FileReader(),timer=setTimeout(()=>finish(false),1000);const finish=ok=>{clearTimeout(timer);reader.onload=null;reader.onerror=null;resolve(ok);};reader.onload=()=>finish(typeof reader.result==='string'&&reader.result.startsWith('data:'));reader.onerror=()=>finish(false);reader.readAsDataURL(value);});
+  const jpeg=await new Promise(resolve=>{const timer=setTimeout(()=>resolve(null),1000);canvas.toBlob(value=>{clearTimeout(timer);resolve(value);},'image/jpeg');});
+  try{return {blobSVG:await load(blob),dataSVG:await load(data),blobArrayBuffer:await arrayBuffer(svgBlob),blobFileReader:await fileReader(svgBlob),canvasToBlob:Boolean(jpeg),canvasBlobArrayBuffer:await arrayBuffer(jpeg),canvasBlobFileReader:await fileReader(jpeg)};}finally{URL.revokeObjectURL(blob);}
  });
 }
 
@@ -80,9 +83,9 @@ try{
   const browser=await api.launch({headless:true,...(engine==='chromium'?{args:['--no-sandbox']}: {})});
   const context=await browser.newContext({viewport:{width:1024,height:768},hasTouch:true,isMobile:true,reducedMotion:'reduce',serviceWorkers:'block'});
   const saved=new Map(),attempts=[],authorizations=[],unexpectedWrites=[],errors=[],boundaryErrors=[],requestFailures=[];
-  let networkAllowed=true,expireFirstUpload=true;
+  let networkAllowed=true,httpUnavailable=false,expireFirstUpload=true;
   let proofOrigin;
-  let offlineImageProbe;
+  let offlineImageProbe,outageImageProbe,offlineMode='context.setOffline';
   // WebKit does not expose Blob request bodies in Playwright's intercepted
   // request metadata. Serve the application through a same-origin loopback
   // proxy, receiving backup POST bytes directly and forwarding only GET/HEAD
@@ -130,12 +133,14 @@ try{
    // including when WebKit routes their loads through its network delegate.
    if(['data:','blob:'].includes(url.protocol))return route.continue();
    if(url.origin!==proofOrigin)return route.abort();
-   if(request.method()==='POST'&&['/api/backup/authorize','/api/backup/image'].includes(url.pathname)){
+   const backupPost=request.method()==='POST'&&['/api/backup/authorize','/api/backup/image'].includes(url.pathname);
+   if(!['GET','HEAD'].includes(request.method())&&!backupPost){unexpectedWrites.push({method:request.method(),path:url.pathname});return route.abort();}
+   if(/^\/(setup|staff|event-prep)(\/|$)/.test(url.pathname)){unexpectedWrites.push({path:url.pathname});return route.abort();}
+   if(httpUnavailable)return route.abort('internetdisconnected');
+   if(backupPost){
     if(!networkAllowed)return route.abort('internetdisconnected');
     return route.continue();
    }
-   if(!['GET','HEAD'].includes(request.method())){unexpectedWrites.push({method:request.method(),path:url.pathname});return route.abort();}
-   if(/^\/(setup|staff|event-prep)(\/|$)/.test(url.pathname)){unexpectedWrites.push({path:url.pathname});return route.abort();}
    return route.continue();
   });
   await context.addInitScript(({config,scope})=>{
@@ -180,10 +185,24 @@ try{
    }
    await done(page);
 
-   // Genuine browser offline mode must preserve and finish a session locally.
-   await context.setOffline(true);networkAllowed=false;
+   // Chromium uses native browser offline emulation. Diagnose WebKit's local
+   // Blob readers before applying the known emulator limitation workaround.
+   await context.setOffline(true);networkAllowed=false;httpUnavailable=true;
    offlineImageProbe=await localImageProbe(page);
    console.log(engine+': offline local SVG probe '+JSON.stringify(offlineImageProbe));
+   if(engine==='webkit'&&(!offlineImageProbe.blobArrayBuffer||!offlineImageProbe.blobFileReader||!offlineImageProbe.canvasBlobFileReader)){
+    // Pinned WebKit's offline switch also rejects native local Blob reads.
+    // Keep every HTTP request blocked and emit the app's real offline signal,
+    // while preserving native local-file APIs needed to finish photography.
+    await context.setOffline(false);
+    await page.evaluate(()=>{window.__automaticBackupOffline=true;Object.defineProperty(navigator,'onLine',{configurable:true,get:()=>!window.__automaticBackupOffline});dispatchEvent(new Event('offline'));});
+    offlineMode='all HTTP blocked with navigator offline signal';
+    outageImageProbe=await localImageProbe(page);
+    assert(outageImageProbe.blobArrayBuffer&&outageImageProbe.canvasBlobFileReader,'local files remain readable during an HTTP-only outage');
+    console.log(engine+': verified HTTP outage with native local files '+JSON.stringify(outageImageProbe));
+   }
+   assert.equal(await page.evaluate(async()=>{try{await fetch('/api/app-version');return true;}catch{return false;}}),false,'all HTTP requests, including ordinary GETs, fail during the outage');
+   assert.equal(await page.evaluate(()=>navigator.onLine),false,'the application observes the offline signal');
    const four=await capture(page,4);
    const offlineRows=await waitForArchive(page,rows=>rows.length===2&&rows[1].keepsake,'Offline four-photo keepsake');
    assert.equal(offlineRows[1].poses.length,4);
@@ -197,7 +216,8 @@ try{
 
    // Reload while the application is reachable but backup requests still fail.
    // The durable queue and all pending originals must survive the new document.
-   await context.setOffline(false);
+   httpUnavailable=false;await context.setOffline(false);
+   if(offlineMode!=='context.setOffline')await page.evaluate(()=>{window.__automaticBackupOffline=false;dispatchEvent(new Event('online'));});
    await page.reload({waitUntil:'networkidle'});
    const reloadedRows=await waitForArchive(page,rows=>rows.length===2&&rows[1].keepsake,'Reloaded pending capture');
    assert.deepEqual(reloadedRows,offlineRows,'reload preserves every queued original and finished JPEG');
@@ -229,8 +249,8 @@ try{
    assert.deepEqual(await archive(page),archived,'upload acknowledgments never remove the local archive');
    assert.deepEqual(await page.evaluate(({config,usage})=>({config:localStorage.getItem(config),usage:localStorage.getItem(usage)}),scope),before,'automatic backup leaves the approved design and print allowance unchanged');
    assert.deepEqual(unexpectedWrites,[]);assert.deepEqual(errors,[]);assert.deepEqual(boundaryErrors,[]);
-   results.push({engine,passed:true,release,browserVersion:browser.version(),sessions:3,originals:6,collages:2,finishedDesigns:2,backendFiles:saved.size,exactJPEGBytes:true,automaticWithoutStaff:true,expiredTicketRenewed:true,offlineCaptureAndReload:true,interruptedOriginalRetained:true,acknowledgmentsDeduplicated:true,offlineImageProbe,serverBoundary:'local HTTP fixture with actual wire bytes; authorization and database verified by separate tests',unexpectedWrites});
-  }catch(error){await page.screenshot({path:out+'/'+engine+'-failure.png',fullPage:true}).catch(()=>{});results.push({engine,passed:false,message:error.message,stack:error.stack,unexpectedWrites,errors,boundaryErrors,requestFailures,authorizations:authorizations.length,attempts,saved:saved.size,offlineImageProbe,status:await page.evaluate(id=>JSON.parse(localStorage.getItem('friendly-booth-backup-status-v1-'+id)||'null'),eventId).catch(()=>null)});throw error;}
+   results.push({engine,passed:true,release,browserVersion:browser.version(),sessions:3,originals:6,collages:2,finishedDesigns:2,backendFiles:saved.size,exactJPEGBytes:true,automaticWithoutStaff:true,expiredTicketRenewed:true,offlineCaptureAndReload:true,interruptedOriginalRetained:true,acknowledgmentsDeduplicated:true,offlineMode,offlineImageProbe,outageImageProbe,serverBoundary:'local HTTP fixture with actual wire bytes; authorization and database verified by separate tests',unexpectedWrites});
+  }catch(error){await page.screenshot({path:out+'/'+engine+'-failure.png',fullPage:true}).catch(()=>{});results.push({engine,passed:false,message:error.message,stack:error.stack,unexpectedWrites,errors,boundaryErrors,requestFailures,authorizations:authorizations.length,attempts,saved:saved.size,offlineMode,offlineImageProbe,outageImageProbe,status:await page.evaluate(id=>JSON.parse(localStorage.getItem('friendly-booth-backup-status-v1-'+id)||'null'),eventId).catch(()=>null)});throw error;}
   finally{await context.close();await browser.close();await new Promise(resolve=>backupServer.close(resolve));}
  }
  console.log(JSON.stringify(results,null,2));
