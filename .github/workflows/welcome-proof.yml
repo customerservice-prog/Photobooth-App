@@ -50,20 +50,19 @@ jobs:
           WELCOME_BASE_URL: https://photobooth-booth-production.up.railway.app
         run: |
           node --input-type=module <<'NODE'
+          import {BOOTH_RELEASE} from './app/lib/booth-launch.mjs';
           let ready=false;
           for(let n=0;n<90;n++){
             try{
-              const r=await fetch(process.env.WELCOME_BASE_URL+'/event-prep',{cache:'no-store',signal:AbortSignal.timeout(8000)});
-              if(r.ok&&(await r.text()).includes('data-studio-version="2026-10-07"')){ready=true;break;}
+              const r=await fetch(process.env.WELCOME_BASE_URL+'/api/app-version',{cache:'no-store',signal:AbortSignal.timeout(8000)});
+              if(r.ok&&(await r.json()).version===BOOTH_RELEASE){ready=true;break;}
             }catch{}
             await new Promise(resolve=>setTimeout(resolve,5000));
           }
-          if(!ready)throw new Error('Event preparation is not live yet; inspect Railway.');
+          if(!ready)throw new Error('Exact booth release '+BOOTH_RELEASE+' is not live yet; inspect Railway.');
           NODE
           mv welcome-proof local-welcome-proof
-          node scripts/welcome-proof.mjs
-          node scripts/preparation-layout-proof.mjs
-          node scripts/event-studio-proof.mjs
+          node scripts/welcome-live-proof.mjs
       - uses: actions/upload-artifact@v4
         if: always()
         with:

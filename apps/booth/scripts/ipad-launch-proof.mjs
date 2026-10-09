@@ -34,6 +34,9 @@ for(const [engine,api] of [['chromium',chromium],['webkit',webkit]]){
    await page.screenshot({path:out+'/ipad-launch-'+engine+'-'+name+'.png'});pass('touch-launcher-'+name,{geometry:g});
   }
   await page.setViewportSize({width:1024,height:768});await page.getByTestId('launch-demo').click();await page.getByTestId('welcome-four-photo').waitFor();await page.waitForFunction(()=>!document.querySelector('[data-testid="welcome-four-photo"]')?.disabled);
+  // Finish the welcome's read-only version check before navigating away.
+  // WebKit reports an aborted fetch during a rapid page change as a page error.
+  await page.waitForLoadState('networkidle');
   assert(new URL(page.url()).searchParams.get('demo')==='1');assert.equal(await page.locator('.workspaceBanner').count(),1);assert((await page.locator('.workspaceBanner').innerText()).includes('OFFICE DEMO'));assert((await page.locator('#bwEventTitle').innerText()).includes('Saved Customer Preview'));assert.deepEqual(await snapshot(),before);assert.deepEqual(await archiveSnapshot(),photos);pass('launch-opens-correct-saved-demo-without-changing-allowance');
   await page.goto(base+'/ipad',{waitUntil:'networkidle'});
   // Graduation artwork must be discoverable and launchable without touching
@@ -45,6 +48,7 @@ for(const [engine,api] of [['chromium',chromium],['webkit',webkit]]){
   assert.equal(await page.getByTestId('graduation-four-proof').locator('[data-guest-photo]').count(),0,'sample placeholders cannot impersonate captured guests');
   await page.getByRole('button',{name:/Use this design — open the Photo Booth/}).click();
   await page.getByTestId('welcome-four-photo').waitFor({timeout:25000});
+  await page.waitForLoadState('networkidle');
   assert.equal(new URL(page.url()).searchParams.get('booth_event'),'graduation-showcase');
   assert((await page.locator('.workspaceBanner').innerText()).includes('SHOWCASE DEMO'));
   assert.equal(await page.evaluate(k=>localStorage.getItem(k),EVENT_KEYS.liveUsage),'17');
