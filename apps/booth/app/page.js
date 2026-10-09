@@ -1,6 +1,5 @@
 'use client';
 import {useCallback,useEffect,useRef,useState} from 'react';
-import PhotoPreview from './components/PhotoPreview';
 import GuestReadyPreview from './components/GuestReadyPreview';
 import WelcomeScreen from './components/WelcomeScreen';
 import StaffDashboard from './components/StaffDashboard';
@@ -12,7 +11,7 @@ import {normalizeEventConfig} from './lib/event-config.mjs';
 import {normalizePrintPackage,printsRemaining,canPrint} from './lib/print-package.mjs';
 import {composePhotoStrip} from './lib/photo-strip.mjs';
 import {workspace,readEventDraft,saveEventDraft,usage,ownPrintUsage,readyForEvent} from './lib/event-workspace.mjs';
-import {saveCapture,saveKeepsake,archiveCount,recentCaptures,openArchive,capturePoses} from './lib/event-photo-archive.mjs';
+import {saveCapture,saveKeepsake,archiveCount,recentCaptures,openArchive,capturePoses,importLegacyCaptures} from './lib/event-photo-archive.mjs';
 import {createScreenAwakeController,readScreenAwakeSetting,saveScreenAwakeSetting} from './lib/screen-awake.mjs';
 import {activeEventDestination} from './lib/active-event.mjs';
 import {backupEnabled,saveBackupToken,syncEventPhotos} from './lib/backup-sync.mjs';
@@ -30,6 +29,7 @@ export default function Booth(){
   const {config:CFG,photos:STORE,usage:PRINT_USAGE}=scope;
   const[step,setStep]=useState('welcome'),[photo,setPhoto]=useState(null),[poses,setPoses]=useState([]),[error,setError]=useState(''),[online,setOnline]=useState(true),[saved,setSaved]=useState(0),[operator,setOperator]=useState(false),[printing,setPrinting]=useState(false),[cfg,setCfg]=useState(defaultCfg),[gallery,setGallery]=useState([]),[filter,setFilter]=useState('original'),[template,setTemplate]=useState('ivory'),[installOpen,setInstallOpen]=useState(false),[installed,setInstalled]=useState(false),[editing,setEditing]=useState(false),[starting,setStarting]=useState(false),[previewActive,setPreviewActive]=useState(false),[capture,setCapture]=useState({phase:'ready',current:1,total:4,completed:0,shots:[]}),[sessionShots,setSessionShots]=useState(4),[printsUsed,setPrintsUsed]=useState(0),[voiceStatus,setVoiceStatus]=useState('idle');
   const video=useRef(null),stream=useRef(null),timer=useRef(null),startGuard=useRef(false),run=useRef(0),printCleanup=useRef(()=>{}),captureId=useRef(null),printGuard=useRef(false),latestPrintRequest=useRef(null),captureAbort=useRef(null),capturePhase=useRef('ready'),resumeGuestPause=useRef(null);
+  const captureStored=useRef(false),capturePayload=useRef(null);
   // The staff preference is per iPad, not per guest or transferred event.
   // Keeping the display awake is best-effort; iPad Guided Access is the OS lock.
   const [backupStatus,setBackupStatus]=useState('not-enabled');
@@ -74,10 +74,15 @@ export default function Booth(){
         // A demo, a transferred event and a real October event never share data.
         if(target.managed&&localStorage.getItem(target.config)===null)saveEventDraft(localStorage,c);
         if(localStorage.getItem(target.usage)===null)localStorage.setItem(target.usage,String(ownPrintUsage(localStorage,target)));
-        const db=await openArchive();db.close();
-        const [n,recent]=await Promise.all([archiveCount(target.archive),recentCaptures(target.archive)]);
-        if(active){setSaved(n);setGallery(recent);}
-      }else{const a=JSON.parse(localStorage.getItem(target.photos)||'[]');if(Array.isArray(a)){setSaved(a.length);setGallery(a);}}
+      }else{
+        // Preserve the original local backup, and import it once into the
+        // larger binary archive. New captures never rewrite a base64 photo list.
+        const a=JSON.parse(localStorage.getItem(target.photos)||'[]');
+        await importLegacyCaptures(target.archive,a,c||defaultCfg);
+      }
+      const db=await openArchive();db.close();
+      const [n,recent]=await Promise.all([archiveCount(target.archive),recentCaptures(target.archive)]);
+      if(active){setSaved(n);setGallery(recent);}
       if(active)setInitialized(true);
     }catch(e){if(active)setError(e.message||'Saved settings could not be read. No photos or counters were reset.');}}
     load();
@@ -90,7 +95,19 @@ export default function Booth(){
     arm();addEventListener('pointerdown',arm);addEventListener('keydown',arm);
     return()=>{clearTimeout(timer.current);removeEventListener('pointerdown',arm);removeEventListener('keydown',arm)};
   },[step,editing,operator,printing,previewActive]);
-  const archiveArtifact=useCallback(async artifact=>{if((scope.managed||scope.imported)&&captureId.current)await saveKeepsake(scope.archive,captureId.current,artifact.blob);},[scope.managed,scope.imported,scope.archive]);
+  const archiveArtifact=useCallback(async artifact=>{
+    if(!captureId.current)throw new Error('The captured photo is not available.');
+    if(!captureStored.current){
+      const pending=capturePayload.current;
+      if(!pending)throw new Error('The original photo could not be recovered.');
+      await saveCapture(scope.archive,captureId.current,pending.data,pending.shots,pending.cfg);
+      captureStored.current=true;
+      setSaved(n=>n+1);
+      setGallery(old=>[{id:captureId.current,createdAt:new Date().toISOString(),data:pending.data},...old].slice(0,8));
+    }
+    await saveKeepsake(scope.archive,captureId.current,artifact.blob);
+    setError(previous=>previous.startsWith('Photo captured, but')?'':previous);
+  },[scope.archive]);
   async function waitForVideo(s){for(let i=0;i<50;i++){if(stream.current!==s)return false;const v=video.current;if(v){if(v.srcObject!==s)v.srcObject=s;v.play().catch(()=>{});if(v.videoWidth>0&&v.readyState>=2)return true}await new Promise(r=>setTimeout(r,80))}return false}
   useEffect(()=>{
     const stopHidden=()=>{if(document.visibilityState==='hidden'&&captureAbort.current&&!['processing','done'].includes(capturePhase.current)){cancelCapture('Photo session stopped when the booth went into the background. Tap Take a Photo to start again.');}};
@@ -140,7 +157,7 @@ export default function Booth(){
           speakCue(cue);return 0;
         }
       });
-      stopTalking();const data=total===1?shots[0]:await composePhotoStrip(shots,cfg);if(id!==run.current)return;
+      stopTalking();const data=total===1?shots[0]:await composePhotoStrip(shots,{...cfg,printPackage:{...cfg.printPackage,shotsPerSession:total}});if(id!==run.current)return;
       stopCamera();await save(data,shots);if(id!==run.current)return;
       capturePhase.current='done';setPoses(shots);setPhoto(data);setCapture({phase:'ready',current:1,total:shots.length,completed:0,shots:[]});setStep('preview');
     }catch(e){
@@ -157,8 +174,9 @@ export default function Booth(){
   function captureFail(){setError('Camera was not ready. Please try again.');stopCamera();setStep('welcome')}
   async function save(data,shots){
     const id=crypto.randomUUID();captureId.current=id;
-    if(scope.managed||scope.imported){try{await saveCapture(scope.archive,id,data,shots,cfg);setSaved(n=>n+1);setGallery(old=>[{id,createdAt:new Date().toISOString(),data},...old].slice(0,8));}catch{setError('Photo captured, but the event archive could not save it. Download this photo now and ask staff to check storage before continuing.');}return;}
-    try{let a=JSON.parse(localStorage.getItem(STORE)||'[]');a.unshift({id,createdAt:new Date().toISOString(),data});a=a.slice(0,20);localStorage.setItem(STORE,JSON.stringify(a));setSaved(a.length);setGallery(a)}catch{setError('Photo captured, but the local backup could not be saved. Please save this photo before leaving.')}
+    captureStored.current=false;capturePayload.current={data,shots,cfg};
+    try{await saveCapture(scope.archive,id,data,shots,cfg);captureStored.current=true;setSaved(n=>n+1);setGallery(old=>[{id,createdAt:new Date().toISOString(),data},...old].slice(0,8));}
+    catch{setError('Photo captured, but the event archive could not save it. Keep this photo open and ask staff to check storage.');}
   }
   function persistConfig(next){try{const plain={...next};delete plain.runtime;if(scope.managed){plain.preparation={...plain.preparation,checks:{},colorsConfirmed:false};saveEventDraft(localStorage,plain);}else localStorage.setItem(CFG,JSON.stringify(plain));setCfg({...plain,runtime:cfg.runtime});setError('');return true}catch{setError('Event details could not be saved on this device. Keep the booth open and ask the attendant for help.');return false}}
   function saveConfig(e){e.preventDefault();const f=new FormData(e.currentTarget),currentPrint=normalizePrintPackage(cfg.printPackage),next={...cfg,title:f.get('title')?.toString().trim()||defaultCfg.title,subtitle:f.get('subtitle')?.toString().trim()||defaultCfg.subtitle,date:f.get('date')?.toString().trim()||defaultCfg.date,type:f.get('type')?.toString()||'other',printPackage:normalizePrintPackage({...currentPrint,includedPrints:f.get('includedPrints'),addOnPrints:f.get('addOnPrints'),shotsPerSession:f.get('shotsPerSession')})};if(next.type!==cfg.type||next.title!==cfg.title||next.subtitle!==cfg.subtitle)next.details={...cfg.details};if(persistConfig(next))setOperator(false)}
@@ -199,18 +217,16 @@ export default function Booth(){
     catch(e){setError(e.message||'Print request could not be updated.');return false;}
   }
   function testSpeaker(){preparePhotoAudio().then(()=>setVoiceStatus('playing')).catch(()=>setVoiceStatus('blocked'));}
-  async function recover(p){const token=++run.current;setError('');let originals=[];try{if(scope.managed||scope.imported)originals=await capturePoses(scope.archive,p.id);}catch{setError('The original poses could not be opened. The saved card is still available; retake to create a photo strip.');}if(token!==run.current)return;captureId.current=p.id;setSessionShots(originals.length===1?1:originals.length===3?3:4);setPoses(originals);setPhoto(p.data);setOperator(false);setEditing(false);setStep('preview')}
+  async function recover(p){const token=++run.current;setError('');let originals=[];try{originals=await capturePoses(scope.archive,p.id);}catch{setError('The original poses could not be opened. The saved photo is still available.');}if(token!==run.current)return;captureId.current=p.id;captureStored.current=true;capturePayload.current=null;setSessionShots(originals.length===4?4:1);setPoses(originals);setPhoto(p.data);setOperator(false);setEditing(false);setStep('preview')}
   const eventMeta=eventTypes[cfg.type]||eventTypes.other;
   const isPreview=step==='preview',isCapturing=['camera','photoSeries'].includes(step);
-  const showWorkspaceBanner=(scope.managed||scope.imported)&&scope.demo&&cfg.guestMode!=='approved';
+  const showWorkspaceBanner=!isPreview&&(scope.managed||scope.imported)&&scope.demo&&cfg.guestMode!=='approved';
   return <>{showWorkspaceBanner&&<div className="workspaceBanner"><span>{scope.id==='graduation-showcase'?'SHOWCASE DEMO · test printing only · paid event unchanged':'OFFICE DEMO · rehearsal only · paid event allowance unchanged'}</span><a href={scope.imported?scope.setup:'/event-prep'}>{scope.imported?'Edit this booth setup →':'Event preparation →'}</a></div>}
   <main className={`booth theme-${cfg.type||'other'}${step==='welcome'?' bwWelcomeMode':''}`} data-build="smile-sequence-v1" data-capture-mode="photo" data-managed-event={showWorkspaceBanner?'true':undefined}>
     {!isPreview&&!isCapturing&&step!=='welcome'&&<a className="floatingHelp" href="/help" aria-label="Photo booth help">Help</a>}
     {step==='welcome'&&<WelcomeScreen cfg={cfg} eventName={eventMeta.name} online={online} starting={starting||!initialized} installed={installed} printsUsed={printsUsed} onStartQuick={()=>begin(1)} onStartFour={()=>begin(4)} onInstall={()=>setInstallOpen(true)} onOperator={()=>setOperator(true)} voiceStatus={voiceStatus} showGraduationPreview={!scope.managed&&!scope.imported}/>}
     {isCapturing&&<PhotoCapture videoRef={video} progress={capture} onCancel={()=>cancelCapture()} onReady={readyForNextPhoto} soundStatus={voiceStatus}/>}
-    {step==='preview'&&photo&&((scope.managed||scope.imported)
-    ?<GuestReadyPreview photo={photo} poses={poses} sessionShots={sessionShots} cfg={cfg} printing={printing} printPackage={normalizePrintPackage(cfg.printPackage)} printsUsed={printsUsed} onSessionActive={setPreviewActive} onPrint={requestPrint} onPrintOutcome={resolveLatestPrint} onRetake={retake} onFinish={finish} onArchive={(scope.managed||scope.imported)?archiveArtifact:undefined}/>
-    :<PhotoPreview photo={photo} poses={poses} sessionShots={sessionShots} cfg={cfg} filter={filter} filters={filters} template={template} printing={printing} editing={editing} printPackage={normalizePrintPackage(cfg.printPackage)} printsUsed={printsUsed} onEdit={setEditing} onCommitEvent={persistConfig} onSessionActive={setPreviewActive} onTemplate={setTemplate} onFilter={setFilter} onPrint={requestPrint} onPrintOutcome={resolveLatestPrint} onRetake={retake} onFinish={finish} onArchive={(scope.managed||scope.imported)?archiveArtifact:undefined}/>)}
+    {step==='preview'&&photo&&<GuestReadyPreview photo={photo} poses={poses} sessionShots={sessionShots} cfg={cfg} printing={printing} printPackage={normalizePrintPackage(cfg.printPackage)} printsUsed={printsUsed} onSessionActive={setPreviewActive} onPrint={requestPrint} onPrintOutcome={resolveLatestPrint} onFinish={finish} onArchive={archiveArtifact}/>}
     {step==='thanks'&&<section className="screen"><div className="check">✓</div><h1 className="hero">Enjoy the celebration.</h1><p className="sub">The booth will be ready for the next guest in a moment.</p></section>}
     {error&&<div className="boothAlert" role="alert"><div className="error">{error}<button onClick={()=>setError('')} aria-label="Dismiss message">×</button></div></div>}
     {installOpen&&<div className="installPanel" role="dialog" aria-modal="true" aria-label="Install on iPad"><div className="installCard"><h2>Add Friendly Booth to your Home Screen.</h2><div className="installSteps"><div><b>1</b><span>Open this booth in Safari.</span></div><div><b>2</b><span>Open Share, then Add to Home Screen.</span></div><div><b>3</b><span>Open the new Friendly Booth icon.</span></div></div><p>This adds the web app. Device locking is a separate iPad setting.</p><button className="action primary" onClick={()=>setInstallOpen(false)}>Close instructions</button></div></div>}

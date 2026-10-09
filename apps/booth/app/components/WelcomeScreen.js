@@ -1,7 +1,7 @@
 'use client';
-import {memo,useEffect,useState} from 'react';
+import {memo,useState} from 'react';
 import PrintCard from './PrintCard';
-import {normalizePrintLayouts} from '../lib/print-layouts.mjs';
+import {guestEventConfig} from '../lib/guest-design.mjs';
 import AppUpdate from './AppUpdate';
 import {normalizePrintPackage,printsRemaining} from '../lib/print-package.mjs';
 import {normalizeGuestPause,normalizePhotoPreference} from '../lib/guest-pause.mjs';
@@ -21,27 +21,10 @@ function Mark({name='camera',size=24}){
  help:<><circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 015 0c0 2-2.5 2-2.5 4M12 16.5h.01"/></>};
  return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.55" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" focusable="false">{paths[name]||paths.camera}</svg>;
 }
-const hex=(v,fallback)=>/^#[0-9a-f]{6}$/i.test(String(v||''))?v:fallback;
-// Numbered samples only. Never show another guest's photos on the welcome.
+// Show the same staff-selected artwork that guests receive after capture.
 const WelcomeProof=memo(function WelcomeProof({cfg,shots}){
- const [sample,setSample]=useState('');
- const primary=hex(cfg.details?.primaryColor,'#284b43'),secondary=hex(cfg.details?.secondaryColor,'#d1b583');
- const approved=cfg.guestMode==='approved';
- useEffect(()=>{
-  if(approved){setSample('');return;}
-  const c=document.createElement('canvas');c.width=900;c.height=900;
-  const x=c.getContext('2d');if(!x)return;
-  x.fillStyle='#f5efe2';x.fillRect(0,0,900,900);
-  const cells=shots===1?[[24,24,852,852]]:shots===3?[[24,24,852,408],[24,450,417,426],[459,450,417,426]]:[[24,24,417,417],[459,24,417,417],[24,459,417,417],[459,459,417,417]];
-  cells.forEach(([left,top,w,h],i)=>{
-   x.save();x.beginPath();x.rect(left,top,w,h);x.clip();
-   const g=x.createLinearGradient(left,top,left+w,top+h);g.addColorStop(0,i%2===0?primary:'#c1c9b7');g.addColorStop(1,i%2===0?'#132e2a':'#697f75');x.fillStyle=g;x.fillRect(left,top,w,h);
-   x.strokeStyle=secondary;x.lineWidth=1.5;x.beginPath();x.arc(left+w*.85,top+h*.15,w*.48,0,Math.PI*2);x.stroke();x.beginPath();x.arc(left+w*.12,top+h*.95,w*.5,0,Math.PI*2);x.stroke();
-   x.fillStyle='rgba(255,255,255,.1)';x.beginPath();x.arc(left+w*.92,top+h*.08,w*.4,0,Math.PI*2);x.fill();
-   x.textAlign='center';x.textBaseline='middle';x.fillStyle='#fffaf0';x.font='italic 110px Georgia, serif';x.fillText(String(i+1).padStart(2,'0'),left+w/2,top+h*.47);x.font='500 19px sans-serif';x.fillText('YOUR POSE',left+w/2,top+h*.72);x.restore();
-  });setSample(c.toDataURL('image/png'));return()=>{c.width=0;c.height=0;};
- },[shots,primary,secondary,approved]);
- return <span className="bwLayoutPreview" aria-hidden="true" data-preview-photos={shots}><PrintCard photo={approved?'':sample} poses={approved?[]:undefined} layout={shots===1?'card':approved?'photo_strip':normalizePrintLayouts(cfg.printLayouts).defaultLayout} stripMode={approved?'single':normalizePrintLayouts(cfg.printLayouts).stripMode} sample cfg={cfg} monogram={eventMonogram(cfg)} template={cfg.defaultTemplate||'ivory'}/></span>;
+ const design=guestEventConfig(cfg);
+ return <span className="bwLayoutPreview" aria-hidden="true" data-preview-photos={shots}><PrintCard photo="" poses={[]} layout={shots===1?'card':'photo_strip'} stripMode="single" sample cfg={design} monogram={eventMonogram(design)} template={design.defaultTemplate}/></span>;
 });
 export default function WelcomeScreen({cfg,eventName,online,starting,installed,printsUsed=0,onStartQuick,onStartFour,onInstall,onOperator,voiceStatus='idle',showGraduationPreview=false}){
  const [staffPrompt,setStaffPrompt]=useState(false);

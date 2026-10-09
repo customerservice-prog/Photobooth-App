@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {mkdir,writeFile} from 'node:fs/promises';
 import {chromium,webkit} from 'playwright';
 import {octoberPreset,EVENT_KEYS} from '../app/lib/event-workspace.mjs';
+import {assertFinishedGuest} from './assert-finished-guest.mjs';
 
 const base=process.env.AUDIO_FALLBACK_BASE_URL||'http://127.0.0.1:3000';
 const output='audio-fallback-proof',results=[];
@@ -50,7 +51,7 @@ for(const [name,driver] of [['chromium',chromium],['webkit',webkit]]){
    assert.equal(await page.getByText('Sound could not start',{exact:false}).count(),0);
    await page.locator('.ksStudio').waitFor({timeout:120000});
    assert.equal(await page.evaluate(()=>window.__testCameraStarts),1);
-   await page.getByRole('button',{name:'Digital Copy',exact:true}).waitFor({timeout:20000});
+   await assertFinishedGuest(page,photos);
    assert.deepEqual(errors,[],'No uncaught browser errors');
    await page.screenshot({path:`${output}/${name}-${photos}-photos.png`});
    results.push({browser:name,photos,passed:true});

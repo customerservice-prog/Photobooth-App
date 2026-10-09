@@ -42,6 +42,7 @@ jobs:
           SERVER_PID=$!
           trap 'kill $SERVER_PID 2>/dev/null || true' EXIT
           node scripts/welcome-proof.mjs
+          node scripts/guest-finish-proof.mjs
           node scripts/preparation-layout-proof.mjs
           node scripts/event-studio-proof.mjs
       - name: Browser proof against deployed Railway booth
@@ -63,6 +64,7 @@ jobs:
           NODE
           mv welcome-proof local-welcome-proof
           node scripts/welcome-live-proof.mjs
+          GUEST_FINISH_BASE_URL="$WELCOME_BASE_URL" node scripts/guest-finish-proof.mjs
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -70,4 +72,5 @@ jobs:
           path: |
             apps/booth/welcome-proof/
             apps/booth/local-welcome-proof/
+            apps/booth/guest-finish-proof/
           retention-days: 3

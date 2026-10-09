@@ -78,7 +78,7 @@ export default function StaffDashboard({onClose,onReset,onVoiceTest,onRecover,on
    </section>
    <div className="operatorKioskCard"><span className="operatorOverline">STAFF DEVICE MAINTENANCE</span><h3>Update the Photo Booth when guests are finished</h3><p>App updates are hidden from guests. Update only between sessions, after checking that the event photographs have been saved.</p><AppUpdate/></div>
    <StaffBackupPanel/>
-   {(eventScope?.managed||eventScope?.imported)&&<details className="operatorFold" data-testid="staff-end-event-open"><summary>Finish the event &amp; save all digital photos <span>Export ZIP · safely prepare next rental</span></summary><div className="operatorFoldContent"><StaffEventCloseout scope={eventScope} eventName={cfg.title}/></div></details>}
+   {eventScope?.archive&&<details className="operatorFold" data-testid="staff-end-event-open"><summary>Finish the event &amp; save all digital photos <span>Export ZIP · safely prepare next rental</span></summary><div className="operatorFoldContent"><StaffEventCloseout scope={eventScope} eventName={cfg.title}/></div></details>}
    <StaffPrintPanel onReviewPrint={onReviewPrint}/>
    <StaffDeviceChecklist/>
    <section className="operatorKioskCard" data-testid="operator-kiosk-card" aria-label="iPad guest display">

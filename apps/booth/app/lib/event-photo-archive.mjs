@@ -26,6 +26,42 @@ export async function saveCapture(scope,id,data,shots,cfg){
  const record={key:scope+':'+id,id,scope,createdAt:new Date().toISOString(),revision:crypto.randomUUID(),encoding:'jpeg-arraybuffer',collage:jpeg(data),poses:shots.map(jpeg),keepsake:null,title:String(cfg.title||''),eventDate:String(cfg.date||'')};
  await transaction('readwrite',s=>s.add(record));return materialize(record);
 }
+function identicalImage(left,right){
+ const bytes=value=>value instanceof ArrayBuffer?new Uint8Array(value):ArrayBuffer.isView(value)?new Uint8Array(value.buffer,value.byteOffset,value.byteLength):null;
+ const a=bytes(left),b=bytes(right);
+ return Boolean(a&&b)&&a.length===b.length&&a.every((v,i)=>v===b[i]);
+}
+// Import the old localStorage gallery without writing to or clearing it. Its
+// JPEG may be a multi-photo collage, so unknown original poses stay unknown.
+// One transaction commits every distinct capture or retains the entire source
+// unchanged on failure. Reopening the booth never imports an ID twice.
+export async function importLegacyCaptures(scope,entries,cfg={}){
+ if(typeof scope!=='string'||!scope||!Array.isArray(entries))throw new Error('The older photo backup could not be read. It was left unchanged.');
+ const records=new Map();
+ for(const [index,entry] of entries.entries()){
+  if(!entry||typeof entry!=='object')throw new Error('An older saved photo could not be read. The local backup was left unchanged.');
+  const collage=jpeg(entry.data),id=typeof entry.id==='string'&&entry.id?entry.id:'legacy-'+index+'-'+crc32(new Uint8Array(collage)).toString(16);
+  const previous=records.get(id);
+  if(previous){if(!identicalImage(previous.collage,collage))throw new Error('Older saved photos have conflicting IDs. The local backup was left unchanged.');continue;}
+  const createdAt=typeof entry.createdAt==='string'&&Number.isFinite(Date.parse(entry.createdAt))?new Date(entry.createdAt).toISOString():new Date().toISOString();
+  records.set(id,{key:scope+':'+id,id,scope,createdAt,revision:crypto.randomUUID(),encoding:'jpeg-arraybuffer',collage,poses:[],keepsake:null,
+   originalPosesUnknown:true,importSource:'legacy-localStorage-v1',title:String(cfg.title||''),eventDate:String(cfg.date||'')});
+ }
+ return transaction('readwrite',(store,done,abort)=>{
+  let imported=0,existing=0,remaining=records.size;
+  if(!remaining){done({imported,existing,total:0});return;}
+  for(const record of records.values()){
+   const request=store.get(record.key);
+   request.onsuccess=()=>{
+    if(request.result){
+     if(!identicalImage(request.result.collage,record.collage)){abort(new Error('A saved photo has conflicting data. The older local backup was left unchanged.'));return;}
+     existing++;
+    }else{store.add(record);imported++;}
+    if(--remaining===0)done({imported,existing,total:records.size});
+   };
+  }
+ });
+}
 export async function saveKeepsake(scope,id,blob){
  if(!(blob instanceof Blob)||blob.type!=='image/jpeg')throw new Error('The finished keepsake is not ready.');
  // Resolve asynchronous file reading BEFORE creating the transaction, since

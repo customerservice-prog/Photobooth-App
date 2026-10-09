@@ -14,7 +14,7 @@ try{for(const [name,engine] of [['chromium',chromium],['webkit',webkit]]){
   const events=[];window.addEventListener('unhandledrejection',e=>events.push({type:'rejection',name:e.reason?.name,message:e.reason?.message}));
   // Capture the request's real error before its transaction has aborted.
   const originalOpen=indexedDB.open.bind(indexedDB);indexedDB.open=(...args)=>{const req=originalOpen(...args);req.addEventListener('success',()=>{req.result.addEventListener('error',e=>events.push({type:'idb-error',name:e.target?.error?.name,message:e.target?.error?.message,source:e.target?.source?.name}));});return req;};
-  const api=new Function(source.replace(/\bexport /g,'')+'\nreturn {saveCapture,saveKeepsake,listCaptures,archiveCount,exportPhotos,deleteArchivedEvent,openArchive,crc32};')();
+  const api=new Function(source.replace(/\bexport /g,'')+'\nreturn {saveCapture,saveKeepsake,importLegacyCaptures,listCaptures,archiveCount,exportPhotos,deleteArchivedEvent,openArchive,crc32};')();
   const stages=[];async function step(name,job){try{const result=await job();stages.push({name,ok:true});return result;}catch(e){stages.push({name,ok:false,error:e.message,type:e.name});throw e;}}
   async function expectBlocked(name,job){let error;try{await job();}catch(e){error=e;}if(!error)throw Error(name+' unexpectedly deleted photos.');stages.push({name,ok:true,blocked:true});}
   async function changeStoredImage(field){
@@ -62,6 +62,21 @@ try{for(const [name,engine] of [['chromium',chromium],['webkit',webkit]]){
    const empty=await step('export-empty-event-record',()=>api.exportPhotos('retention',{allowEmpty:true}));
    if(empty.count!==0)throw Error('Empty event ZIP unexpectedly includes photographs.');
    await step('close-empty-event',()=>api.deleteArchivedEvent('retention',0,empty.snapshot));
+   const legacy=[{id:'legacy-one',createdAt:'2026-10-08T12:00:00Z',data:photo},{id:'legacy-two',createdAt:'2026-10-08T12:01:00Z',data:photo},{id:'legacy-one',data:photo}];
+   const originalLegacy=JSON.stringify(legacy);localStorage.setItem('proof-retained-legacy-gallery',originalLegacy);
+   const imported=await step('import-legacy-gallery-without-source-removal',()=>api.importLegacyCaptures('legacy-migration',JSON.parse(localStorage.getItem('proof-retained-legacy-gallery')),{title:'Legacy synthetic event'}));
+   if(imported.imported!==2||imported.total!==2||localStorage.getItem('proof-retained-legacy-gallery')!==originalLegacy)throw Error('Legacy import did not preserve every source photo.');
+   const migrated=await api.listCaptures('legacy-migration');
+   if(migrated.length!==2||migrated.some(record=>record.poses.length!==0||record.originalPosesUnknown!==true))throw Error('Legacy import must not invent original poses.');
+   await step('finish-migrated-legacy-keepsake',()=>api.saveKeepsake('legacy-migration','legacy-one',migrated[0].collage));
+   const repeated=await step('repeat-legacy-import-without-duplicates-or-overwrites',()=>api.importLegacyCaptures('legacy-migration',legacy,{}));
+   if(repeated.imported!==0||repeated.existing!==2||!(await api.listCaptures('legacy-migration')).find(record=>record.id==='legacy-one').keepsake)throw Error('Repeated legacy import duplicated or overwrote saved photos.');
+   ctx.fillStyle='#778899';ctx.fillRect(0,0,32,32);const differentPhoto=canvas.toDataURL('image/jpeg');
+   await expectBlocked('conflicting-legacy-id-aborts-entire-import',()=>api.importLegacyCaptures('legacy-migration',[{id:'new-before-conflict',data:photo},{id:'legacy-one',data:differentPhoto}],{}));
+   if(await api.archiveCount('legacy-migration')!==2||localStorage.getItem('proof-retained-legacy-gallery')!==originalLegacy)throw Error('A failed import changed the saved gallery.');
+   await step('new-legacy-capture-uses-binary-archive',()=>api.saveCapture('legacy-migration','fresh-after-migration',photo,[photo],{}));
+   const legacyZip=await step('export-original-and-new-legacy-captures',()=>api.exportPhotos('legacy-migration'));
+   if(legacyZip.count!==3||legacyZip.finishedKeepsakes!==1)throw Error('Legacy gallery ZIP did not include retained and new captures.');
    return {ok:true,count,stages,events};
   }catch(e){return {ok:false,stages,events};}
  },source);
