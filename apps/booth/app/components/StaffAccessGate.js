@@ -7,18 +7,19 @@ import {STAFF_PIN_LENGTH,isValidStaffPin,normalizeStaffPinInput} from '../lib/st
 export default function StaffAccessGate({onClose,onConfirm}){
  const dialog=useRef(null),cancel=useRef(onClose);
  const [required,setRequired]=useState(true),[ready,setReady]=useState(false);
+ const [configurationError,setConfigurationError]=useState('');
  const [pin,setPin]=useState(''),[busy,setBusy]=useState(false),[error,setError]=useState('');
  cancel.current=onClose;
  useEffect(()=>{
   let alive=true;
-  fetch('/api/staff/unlock',{cache:'no-store'}).then(r=>r.ok?r.json():Promise.reject()).then(x=>{if(alive){setRequired(x.required!==false);setReady(true);}})
+  fetch('/api/staff/unlock',{cache:'no-store'}).then(async r=>({ok:r.ok,data:await r.json()})).then(({ok,data})=>{if(alive){setRequired(data.required!==false);if(data.configured===false||!ok)setConfigurationError(data.error||'Staff sign-in setup is incomplete. Ask the owner to configure this booth.');setReady(true);}})
    .catch(()=>{if(alive){setRequired(true);setReady(true);}});
   const node=dialog.current,previous=document.activeElement;
   if(node&&!node.open)node.showModal();
   return()=>{alive=false;if(node?.open)node.close();previous?.focus?.();};
  },[]);
  async function unlock(e){
-  e.preventDefault();if(busy||!isValidStaffPin(pin))return;
+  e.preventDefault();if(configurationError||busy||!isValidStaffPin(pin))return;
   setBusy(true);setError('');
   try{
    if(navigator.onLine===false){
@@ -44,7 +45,7 @@ export default function StaffAccessGate({onClose,onConfirm}){
    <p className="bwStaffGateEyebrow">FRIENDLY PHOTO BOOTH · STAFF</p>
    <h2>Staff access</h2>
    <p>{required?'Enter the staff PIN to manage this event, recover photos or change printer settings.':'Open staff tools to check the printer, sound and event setup.'}</p>
-   {ready?(required?
+   {ready?(configurationError?<div className="bwStaffGateButtons"><p role="alert" data-testid="staff-configuration-error">{configurationError}</p><button type="button" className="bwStaffGateCancel" data-testid="staff-cancel" onClick={onClose}>Back to guest screen</button></div>:required?
     <form onSubmit={unlock} className="bwStaffPinForm" data-testid="staff-pin-form">
      <label htmlFor="bwStaffPin">4-digit staff PIN</label>
      <input id="bwStaffPin" type="password" inputMode="numeric" autoComplete="off" maxLength={STAFF_PIN_LENGTH} minLength={STAFF_PIN_LENGTH} pattern="[0-9]{4}" value={pin} onChange={e=>setPin(normalizeStaffPinInput(e.target.value))} placeholder="●●●●" required autoFocus/>
