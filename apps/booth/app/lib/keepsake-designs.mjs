@@ -11,10 +11,14 @@ import {renderLamarrFour,renderLamarrOne} from './lamarr-graduation.mjs';
 import {applySvgPhotoFinish} from './svg-photo-finish.mjs';
 import {applyEventPaletteTrim} from './setup-lookbook.mjs';
 import {renderCustomDesign} from './custom-design.mjs';
+import {isFprPrintPreset} from './fpr-print-presets.mjs';
+import {renderFprPrint} from './fpr-print-renderer.mjs';
 export {getDesigns,getDesign,TEMPLATE_FAMILIES} from './template-registry.mjs';
 export {EVENT_LABELS,eventCopy,fitText} from './keepsake-model.mjs';
 const renderers={wedding:renderWeddingBirthday,birthday:renderWeddingBirthday,mitzvah:renderMitzvah,graduation:renderGraduation,corporate:renderCorporate,other:renderCelebration};
 export function renderKeepsake(input={}){
+ const chosen=input.cfg?.guestMode==='approved'&&isFprPrintPreset(input.cfg?.defaultTemplate)?input.cfg.defaultTemplate:(input.template??input.cfg?.defaultTemplate);
+ if(isFprPrintPreset(chosen))return applySvgPhotoFinish(renderFprPrint({...input,template:chosen}),input.filter,input.id);
  if((input.template??input.cfg?.defaultTemplate)==='custom')
   return applySvgPhotoFinish(renderCustomDesign(input),input.filter,input.id);
  // This is an actual selectable design, never silently triggered by a
