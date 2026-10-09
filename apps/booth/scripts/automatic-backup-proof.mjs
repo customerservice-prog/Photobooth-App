@@ -88,9 +88,10 @@ try{
   console.log(engine+': isolated native offline preflight '+JSON.stringify(offlinePreflight));
   const browser=await api.launch({headless:true,...(engine==='chromium'?{args:['--no-sandbox']}: {})});
   const context=await browser.newContext({viewport:{width:1024,height:768},hasTouch:true,isMobile:true,reducedMotion:'reduce',serviceWorkers:'block'});
-  const saved=new Map(),attempts=[],authorizations=[],unexpectedWrites=[],errors=[],boundaryErrors=[],requestFailures=[];
+  const saved=new Map(),attempts=[],authorizations=[],unexpectedWrites=[],errors=[],boundaryErrors=[],requestFailures=[],pageErrorDetails=[];
   const {offlineMode,offlineImageProbe,diagnosticErrors}=offlinePreflight;
   let networkAllowed=true,httpUnavailable=false,expireFirstUpload=true;
+  let proofPhase='boot';
   let proofOrigin;
   let outageImageProbe;
   // WebKit does not expose Blob request bodies in Playwright's intercepted
@@ -155,6 +156,9 @@ try{
    if(!localStorage.getItem(scope.config))localStorage.setItem(scope.config,JSON.stringify(config));
    if(!localStorage.getItem(scope.usage))localStorage.setItem(scope.usage,'17');
    window.__backupCameraDraws=0;window.__backupPrints=0;window.__backupShares=0;
+   window.__backupBlobResources=[];
+   const createObjectURL=URL.createObjectURL.bind(URL);
+   URL.createObjectURL=blob=>{const url=createObjectURL(blob);window.__backupBlobResources.push({url,type:blob.type,stack:new Error().stack});return url;};
    window.print=()=>{window.__backupPrints++;throw new Error('Backup proof must not print');};
    Object.defineProperty(navigator,'share',{configurable:true,value:()=>{window.__backupShares++;throw new Error('Backup proof must not send');}});
    Object.defineProperty(window,'AudioContext',{configurable:true,value:class{constructor(){throw new Error('Use visual countdown in test');}}});
@@ -170,8 +174,8 @@ try{
    }}});
   },{config,scope});
   const page=await context.newPage();page.setDefaultTimeout(15000);
-  page.on('pageerror',error=>errors.push(error.message));
-  page.on('requestfailed',request=>{if(request.url().includes('/api/backup/'))requestFailures.push({path:new URL(request.url()).pathname,error:request.failure()?.errorText});});
+  page.on('pageerror',error=>{errors.push(error.message);pageErrorDetails.push({phase:proofPhase,message:error.message,stack:error.stack});});
+  page.on('requestfailed',request=>requestFailures.push({phase:proofPhase,url:request.url(),error:request.failure()?.errorText}));
   try{
    await page.goto(proofOrigin+scope.home,{waitUntil:'networkidle'});
    await page.getByTestId('welcome-four-photo').waitFor();
@@ -182,7 +186,7 @@ try{
     await waitReady(page,0);assert.equal(authorizations.length,1);assert.deepEqual(boundaryErrors,[]);assert.deepEqual(errors,[]);assert.deepEqual(unexpectedWrites,[]);
     results.push({engine,passed:true,connectionOnly:true,automaticWithoutStaff:true,offlinePreflight});continue;
    }
-   const one=await capture(page,1);
+   proofPhase='one-photo';const one=await capture(page,1);
    const first=await waitForArchive(page,rows=>rows.length===1&&rows[0].keepsake,'One-photo keepsake');
    assert.deepEqual(Buffer.from(first[0].keepsake),one,'the preview and saved finished image match exactly');
    await waitReady(page,3);
@@ -194,7 +198,7 @@ try{
    }
    await done(page);
 
-   networkAllowed=false;httpUnavailable=true;
+   proofPhase='offline';networkAllowed=false;httpUnavailable=true;
    if(offlineMode==='context.setOffline')await context.setOffline(true);
    else{
     // Pinned WebKit's offline switch also rejects native local Blob reads.
@@ -207,7 +211,7 @@ try{
    }
    assert.equal(await page.evaluate(async()=>{try{await fetch('/api/app-version');return true;}catch{return false;}}),false,'all HTTP requests, including ordinary GETs, fail during the outage');
    assert.equal(await page.evaluate(()=>navigator.onLine),false,'the application observes the offline signal');
-   const four=await capture(page,4);
+   proofPhase='offline-four-photo';const four=await capture(page,4);
    const offlineRows=await waitForArchive(page,rows=>rows.length===2&&rows[1].keepsake,'Offline four-photo keepsake');
    assert.equal(offlineRows[1].poses.length,4);
    assert.deepEqual(Buffer.from(offlineRows[1].keepsake),four);
@@ -220,7 +224,7 @@ try{
 
    // Reload while the application is reachable but backup requests still fail.
    // The durable queue and all pending originals must survive the new document.
-   httpUnavailable=false;if(offlineMode==='context.setOffline')await context.setOffline(false);
+   proofPhase='pending-reload';httpUnavailable=false;if(offlineMode==='context.setOffline')await context.setOffline(false);
    // The new document already observes online. Dispatching just before reload
    // would start a Blob fingerprint scan in the document being destroyed.
    await page.reload({waitUntil:'networkidle'});
@@ -233,7 +237,7 @@ try{
    assert.equal(saved.size,9,'reconnection uploads all six offline files');
 
    // An interrupted four-photo sequence still keeps its first original.
-   await page.getByTestId('welcome-four-photo').click();
+   proofPhase='interrupted-four-photo';await page.getByTestId('welcome-four-photo').click();
    await page.getByTestId('welcome-start-session').click();
    await page.waitForFunction(()=>document.querySelector('.pcStage')?.getAttribute('data-completed')==='1',null,{timeout:35000});
    await page.getByRole('button',{name:'Cancel session',exact:true}).click();
@@ -256,7 +260,7 @@ try{
    assert.deepEqual(await page.evaluate(({config,usage})=>({config:localStorage.getItem(config),usage:localStorage.getItem(usage)}),scope),before,'automatic backup leaves the approved design and print allowance unchanged');
    assert.deepEqual(unexpectedWrites,[]);assert.deepEqual(errors,[]);assert.deepEqual(boundaryErrors,[]);
    results.push({engine,passed:true,release,browserVersion:browser.version(),sessions:3,originals:6,collages:2,finishedDesigns:2,backendFiles:saved.size,exactJPEGBytes:true,automaticWithoutStaff:true,expiredTicketRenewed:true,offlineCaptureAndReload:true,interruptedOriginalRetained:true,acknowledgmentsDeduplicated:true,offlineMode,offlineImageProbe,outageImageProbe,diagnosticErrors,offlinePreflight,serverBoundary:'local HTTP fixture with actual wire bytes; authorization and database verified by separate tests',unexpectedWrites});
-  }catch(error){await page.screenshot({path:out+'/'+engine+'-failure.png',fullPage:true}).catch(()=>{});results.push({engine,passed:false,message:error.message,stack:error.stack,unexpectedWrites,errors,diagnosticErrors,offlinePreflight,boundaryErrors,requestFailures,authorizations:authorizations.length,attempts,saved:saved.size,offlineMode,offlineImageProbe,outageImageProbe,status:await page.evaluate(id=>JSON.parse(localStorage.getItem('friendly-booth-backup-status-v1-'+id)||'null'),eventId).catch(()=>null)});throw error;}
+  }catch(error){await page.screenshot({path:out+'/'+engine+'-failure.png',fullPage:true}).catch(()=>{});results.push({engine,passed:false,message:error.message,stack:error.stack,unexpectedWrites,errors,pageErrorDetails,blobResources:await page.evaluate(()=>window.__backupBlobResources).catch(()=>[]),diagnosticErrors,offlinePreflight,boundaryErrors,requestFailures,authorizations:authorizations.length,attempts,saved:saved.size,offlineMode,offlineImageProbe,outageImageProbe,status:await page.evaluate(id=>JSON.parse(localStorage.getItem('friendly-booth-backup-status-v1-'+id)||'null'),eventId).catch(()=>null)});throw error;}
   finally{await context.close();await browser.close();await new Promise(resolve=>backupServer.close(resolve));}
  }
  console.log(JSON.stringify(results,null,2));
