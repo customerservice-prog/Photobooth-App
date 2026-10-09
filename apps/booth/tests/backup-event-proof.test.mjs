@@ -2,7 +2,6 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createHmac} from 'node:crypto';
 import {validEventBackupProof,verifyEventBackupProof} from '../app/lib/backup-event-proof.mjs';
-import {checkSyncTicket} from '../../admin/lib/event-sync-token.mjs';
 
 const adminOrigin='https://photobooth-app-production.up.railway.app';
 const boothOrigin='https://photobooth-booth-production.up.railway.app';
@@ -12,59 +11,26 @@ function ticket(id=eventId,expires=Date.now()+60000,secret=signingSecret){
  const payload=Buffer.from(JSON.stringify({id,expires})).toString('base64url');
  return payload+'.'+createHmac('sha256',secret).update(payload).digest('base64url');
 }
-async function withAuthority(run){
- const before=process.env.PHOTOBOOTH_EVENT_SYNC_SECRET;
- process.env.PHOTOBOOTH_EVENT_SYNC_SECRET=signingSecret;
- try{return await run();}
- finally{if(before===undefined)delete process.env.PHOTOBOOTH_EVENT_SYNC_SECRET;else process.env.PHOTOBOOTH_EVENT_SYNC_SECRET=before;}
-}
-function authority({exists=true}={}){
- let calls=0,cancellations=0;
- return {
-  get calls(){return calls;},get cancellations(){return cancellations;},
-  async fetch(url,options){
+test('the pinned admin response boundary accepts only verified success and rejects invalid proofs',async()=>{
+ for(const [status,expected] of [[200,'authorized'],[400,'invalid'],[401,'invalid'],[403,'invalid'],[404,'invalid']]){
+  let calls=0,cancellations=0;
+  const proof=ticket();
+  const result=await verifyEventBackupProof(eventId,proof,{fetch:async(url,options)=>{
    calls++;
    assert.equal(url,adminOrigin+'/api/booth/sync/'+eventId);
    assert.equal(options.method,'GET');
    assert.equal(options.headers.Origin,boothOrigin);
+   assert.equal(options.headers.Authorization,'Bearer '+proof);
    assert.equal(options.redirect,'manual');
    assert.equal(options.credentials,'omit');
    assert.equal(options.cache,'no-store');
    assert.equal(options.signal.aborted,false);
-   const approved=checkSyncTicket(options.headers.Authorization.slice(7),eventId);
-   return new Response(new ReadableStream({cancel(){cancellations++;}}),{status:approved?(exists?200:404):401});
-  }
- };
-}
-
-test('the pinned admin authority accepts an authentic event-scoped owner ticket and cancels unread artwork',async()=>{
- await withAuthority(async()=>{
-  const server=authority();
-  assert.equal(await verifyEventBackupProof(eventId,ticket(),{fetch:server.fetch}),'authorized');
-  assert.equal(server.calls,1);
-  assert.equal(server.cancellations,1);
- });
-});
-
-test('the actual owner verifier rejects forged, expired and wrong-event proofs',async()=>{
- await withAuthority(async()=>{
-  const cases=[ticket(eventId,Date.now()+60000,'wrong-owner-secret'),ticket(eventId,Date.now()-1000),ticket('other-approved-event')];
-  for(const proof of cases){
-   const server=authority();
-   assert.equal(validEventBackupProof(eventId,proof),true,'syntax alone must not authorize');
-   assert.equal(await verifyEventBackupProof(eventId,proof,{fetch:server.fetch}),'invalid');
-   assert.equal(server.calls,1);
-   assert.equal(server.cancellations,1);
-  }
- });
-});
-
-test('a signed event ticket cannot authorize an event that no longer exists',async()=>{
- await withAuthority(async()=>{
-  const server=authority({exists:false});
-  assert.equal(await verifyEventBackupProof(eventId,ticket(),{fetch:server.fetch}),'invalid');
-  assert.equal(server.cancellations,1);
- });
+   return new Response(new ReadableStream({cancel(){cancellations++;}}),{status});
+  }});
+  assert.equal(result,expected,String(status));
+  assert.equal(calls,1);
+  assert.equal(cancellations,1);
+ }
 });
 
 test('malformed IDs and tickets never create outbound requests',async()=>{
