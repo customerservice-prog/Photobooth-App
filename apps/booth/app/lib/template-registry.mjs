@@ -36,7 +36,8 @@ export const TEMPLATE_FAMILIES=Object.freeze({
  other:family('other',['eventName','honoree','subtitle','date'],[
   ['botanical','Celebration Blooms','Painted florals · personal occasion title','#f7ece3','#624839','#bc9d6f'],
   ['evening-soiree','Evening Soirée','Champagne stardust · evening inscription','#232a29','#f5ebd4','#c5a46a'],
-  ['confetti-moment','Confetti Moment','Painterly confetti · warm contemporary type','#f8f2e6','#315465','#b49153']])
+  ['confetti-moment','Confetti Moment','Painterly confetti · warm contemporary type','#f8f2e6','#315465','#b49153'],
+  ['quince-royal','Royal Quinceañera','Lilac celebration · gold crown · personal name','#e9d8f5','#442057','#bc915c']])
 });
 export function resolveFamily(type){return Object.hasOwn(TEMPLATE_FAMILIES,type)?TEMPLATE_FAMILIES[type]:TEMPLATE_FAMILIES.other;}
 export function getDesigns(type='other'){return resolveFamily(type).templates;}

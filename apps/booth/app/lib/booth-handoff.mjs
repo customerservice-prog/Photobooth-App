@@ -42,7 +42,7 @@ export function validateBoothHandoff(payload){
   ![6,9,12].includes(payload.p)||!['card','strip'].includes(payload.mode)||
   ![1,2].includes(payload.s)||!['fill','fit'].includes(payload.fit)||typeof payload.a!=='string'||typeof payload.b!=='string'||!hex.test(payload.a)||!hex.test(payload.b)||
   !finiteInt(payload.limit,10000)||typeof payload.on!=='boolean'||typeof payload.qr!=='boolean'||
-  !(['ivory','blush','champagne','custom'].includes(payload.design)||(payload.type==='graduation'&&payload.design==='grad-gala'))||
+  !(['ivory','blush','champagne','custom'].includes(payload.design)||(payload.type==='graduation'&&payload.design==='grad-gala')||(payload.type==='other'&&payload.design==='quince-royal'))||
   (payload.name!==undefined&&(typeof payload.name!=='string'||payload.name.length>65||/[\u0000-\u001f<>]/.test(payload.name)))||
   (payload.year!==undefined&&(typeof payload.year!=='string'||(payload.year!==''&&!/^\d{4}$/.test(payload.year))))||
   (payload.guest!==undefined&&payload.guest!=='approved')||

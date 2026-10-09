@@ -20,11 +20,12 @@ const cleanPrintName=(v,n=65)=>String(v??'').replace(/[\u0000-\u001f<>]/g,' ').t
 export function standardDesignFor(type){
  const value=String(type||'').toLowerCase();
  if(value.includes('graduation'))return 'grad-gala';
+ if(value.includes('quince'))return 'quince-royal';
  if(value.includes('mitzvah'))return 'blush';
- if(value.includes('corporate'))return 'champagne';
+ if(value.includes('corporate'))return 'blush';
  return 'ivory';
 }
-export function approvedDesignFor(type,choice){return choice==='custom'?'custom':/graduation/i.test(String(type||''))&&choice==='grad-gala'?'grad-gala':['ivory','blush','champagne'].includes(choice)?choice:standardDesignFor(type);}
+export function approvedDesignFor(type,choice){return choice==='custom'?'custom':/graduation/i.test(String(type||''))&&choice==='grad-gala'?'grad-gala':/quince/i.test(String(type||''))&&choice==='quince-royal'?'quince-royal':['ivory','blush','champagne'].includes(choice)?choice:standardDesignFor(type);}
 export function toLocalDay(value){
  const d=value instanceof Date?value:new Date(value);
  return Number.isFinite(d.getTime())?d.toISOString().slice(0,10):'';

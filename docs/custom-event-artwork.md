@@ -11,4 +11,8 @@ Save the event and use Load on iPad. Custom artwork is stored in the existing ev
 
 The guest still sees only 1 Photo or 4 Photos, followed by one finished JPEG with Print, Send and Done. That same finished JPEG is saved in the event archive and included in the gallery ZIP. Uploading artwork does not prove physical printing or send email/SMS.
 
+The finished-photo screen follows the selected artwork's colors and shows the whole JPEG at a larger size. Uploaded artwork supplies the surrounding screen palette from its outer edges, excluding photo openings; this styling never changes the print or archived file.
+
+New Quinceañera events use purple-and-gold crown artwork with matching one-photo and four-photo layouts. New corporate events use Corporate Gala. Existing saved design choices remain selected.
+
 Artwork is decoded and prepared on the owner device. Only PNG/JPEG data images are accepted, with 300 KB per prepared image and 800 KB per normalized design. The shared renderer rejects external/SVG images, incomplete pairs and invalid or overlapping photo windows. Setup downloads are bounded, and device storage failures restore the previous settings.

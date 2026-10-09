@@ -1,4 +1,5 @@
-import {context,begin,finish,R,P,L,T,G,C,label,tiny,name,photo,frame,blooms,foliage,glint,dust,footer} from './svg-kit.mjs';
+import {context,begin,finish,R,P,L,T,G,C,label,tiny,name,photo,frame,blooms,foliage,glint,dust,footer,esc} from './svg-kit.mjs';
+import {validateShotSet} from '../photo-strip.mjs';
 function flowers(q){const {d,c,cfg,gold}=q;let a=begin(q)+frame(gold)+R(0,0,1200,1800,`url(#${q.id}-wash)`);
  a+=blooms(-77,-29,.58,-12)+blooms(1168,1797,.71,175);
  a+=tiny('A CELEBRATION OF',610,174,792,d.ink)+name(c.title,610,309,845,149,d.accent,{bounds:[205,365]});
@@ -21,4 +22,32 @@ function confettiMoment(q){const {d,c,cfg,gold}=q;let a=begin(q);const colors=['
  a+=photo(q,{x:125,y:354,w:950,h:1007});
  a+=name(c.title,600,1505,970,119,d.ink,{face:'serif',bounds:[1410,1610]})+footer(q,{y:1650});
  return finish(q,a);}
-export function renderCelebration(input,spec){const q=context(input,spec);return ({botanical:flowers,'evening-soiree':evening,'confetti-moment':confettiMoment})[spec.layout](q);}
+function quinceRoyal(q){
+ const {d,c,cfg,gold,id}=q;
+ let a=begin(q)+R(30,30,1140,1740,'none',d.ink,4,22)+R(48,48,1104,1704,'none',gold,3,16)+R(62,62,1076,1676,'none',d.accent,1,10);
+ const crown=P('M-108-30-77 14-40-51 0 8 40-51 77 14 108-30 88 51H-88Z','none',gold,5)
+  +P('M-85 51H85V70H-85Z',gold)+[-108,-40,40,108].map((x,i)=>C(x,i===0||i===3?-30:-51,7,gold)).join('')+C(0,8,7,gold);
+ a+=`<g data-artwork="quince-crown">${G(600,115,.88,crown)}</g>`;
+ a+=T('Mis XV',600,278,930,157,d.ink,{face:'script',lines:1})+L(440,310,760,310,d.accent,3)+glint(600,310,9,gold);
+ for(const [x,y,s,rotation]of [[51,300,.35,-15],[1150,1450,.35,165]])
+  a+=foliage(x,y,s,d.ink,d.accent,rotation);
+ for(let i=0;i<12;i++){
+  const y=350+i*88;
+  a+=C(77,y,3.8,d.accent)+C(1123,y,3.8,d.accent);
+ }
+ const four=q.approvedFour,originals=four?(q.sample&&(!q.poses||q.poses.length===0)?null:validateShotSet(q.poses,4)):q.photo?[q.photo]:null;
+ const cells=four?Array.from({length:4},(_,i)=>({x:108,y:350+i*267,w:984,h:239})):[{x:108,y:350,w:984,h:1040}];
+ const fit=cfg.photoFit==='fit'?'xMidYMid meet':'xMidYMid slice';
+ const clips=cells.map((cell,i)=>`<clipPath id="${id}-quince-pose-${i+1}">${R(cell.x,cell.y,cell.w,cell.h,'white')}</clipPath>`).join('');
+ const panels=cells.map((cell,i)=>{
+  const content=originals?`<image data-guest-photo="true" data-pose="${i+1}" href="${esc(originals[i])}" x="${cell.x}" y="${cell.y}" width="${cell.w}" height="${cell.h}" preserveAspectRatio="${fit}" style="filter:${q.filter}"/>`
+   :T(four?'PHOTO '+(i+1):'YOUR PHOTO',600,cell.y+cell.h/2+14,cell.w*.8,42,'#725584',{face:'sans',lines:1});
+  return R(cell.x-6,cell.y-6,cell.w+12,cell.h+12,'none',gold,4)
+   +`<g clip-path="url(#${id}-quince-pose-${i+1})">${R(cell.x,cell.y,cell.w,cell.h,'#d4c2e0')}${content}</g>`;
+ }).join('');
+ a+=`<g data-quince-photo-region="true" data-pose-count="${four?4:1}"><defs>${clips}</defs>${panels}</g>`;
+ a+=name(c.title,600,1537,930,133,d.ink,{bounds:[1450,1645]})+L(405,1680,795,1680,d.accent,2)+T(c.date,600,1730,920,29,d.ink,{face:'sans',tracking:1});
+ for(const [x,y,r]of [[108,1694,12],[1092,1694,12],[126,1420,8],[1074,1420,8]])a+=glint(x,y,r,gold);
+ return finish(q,a);
+}
+export function renderCelebration(input,spec){const q=context(input,spec);return ({botanical:flowers,'evening-soiree':evening,'confetti-moment':confettiMoment,'quince-royal':quinceRoyal})[spec.layout](q);}
