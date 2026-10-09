@@ -45,6 +45,7 @@ for(const [name,driver] of [['chromium',chromium],['webkit',webkit]]){
   for(const photos of name==='chromium'?[1,4]:[1]){
    await page.goto(base+'/?event=oct10-2026&demo=1',{waitUntil:'networkidle'});
    await page.getByTestId(photos===1?'welcome-quick-photo':'welcome-four-photo').click();
+   await page.getByTestId('welcome-start-session').click();
    await page.locator('.pcStage[data-phase="countdown"]').waitFor({timeout:16000});
    assert.match(await page.locator('.pcVoiceBadge').innerText(),/VISUAL PHOTO COUNTDOWN/);
    assert.match(await page.locator('.pcWords').innerText(),/Watch the countdown/);
