@@ -49,7 +49,7 @@ for(const [engine,api] of [['chromium',chromium],['webkit',webkit]]){
   assert.equal(records[0].keepsake,null,'an interrupted session never creates a finished keepsake');
  }
  try{
-  await open();await page.getByTestId('welcome-four-photo').dblclick();await page.locator('.pcStage[data-phase="countdown"]').waitFor();
+  await open();await page.getByTestId('welcome-four-photo').click();await page.getByTestId('welcome-start-session').dblclick();await page.locator('.pcStage[data-phase="countdown"]').waitFor();
   const countdownTones=await page.locator('.pcStage[data-phase="countdown"]').evaluate(stage=>{
     const original=stage.dataset.count,digit=stage.querySelector('.pcDigit');
     const colors=[3,2,1].map(number=>{stage.dataset.count=String(number);return getComputedStyle(digit).color;});
@@ -106,21 +106,21 @@ for(const [engine,api] of [['chromium',chromium],['webkit',webkit]]){
   assert.equal(await page.evaluate(()=>window.__cameraTrack.readyState),'ended');assert.deepEqual(page.__errors,[]);
   await page.screenshot({path:`${out}/${engine}-four-different-photos-preview.png`});pass('four-unique-camera-frames-before-print-page',{draws,events,metadata,photoHashes:saved[0].poses});pass('double-tap-one-camera-session');pass('capture-does-not-print-or-use-allowance');
   if(!smoke){
-   await open();await page.getByTestId('welcome-four-photo').click();await page.locator('.pcStage[data-completed="1"]').waitFor();
+   await open();await page.getByTestId('welcome-four-photo').click();await page.getByTestId('welcome-start-session').click();await page.locator('.pcStage[data-completed="1"]').waitFor();
    const beforeCancel=await archive();assertFirstOriginalOnly(beforeCancel);
    await page.getByRole('button',{name:'Cancel session',exact:true}).click();await page.getByTestId('welcome-four-photo').waitFor();await page.waitForTimeout(4400);
    assert.equal(await page.evaluate(()=>window.__cameraDraws.length),1);assert.equal(await page.locator('.ksStudio').count(),0);
    const canceled=await archive();assertFirstOriginalOnly(canceled);assert.deepEqual(canceled,beforeCancel,'cancellation preserves the exact original and creates no late photos or print files');
    assert.equal(await page.evaluate(()=>window.__cameraTrack.readyState),'ended');pass('cancel-after-first-photo-preserves-original-without-late-captures-or-incomplete-sheet',{photoHash:canceled[0].poses[0]});
-   await open();await page.getByTestId('welcome-quick-photo').click();await assertFinishedGuest(page,1);const quick=await archive();assert.equal(quick.length,1);assert.equal(quick[0].poses.length,1);assert.equal(await page.evaluate(()=>window.__cameraDraws.length),1);assert.equal(await page.getByTestId('layout-strip').count(),0);pass('quick-session-captures-one-photo-and-stays-card-only');
-   await open();await page.getByTestId('welcome-four-photo').click();await page.locator('.pcStage[data-completed="1"]').waitFor();
+   await open();await page.getByTestId('welcome-quick-photo').click();await page.getByTestId('welcome-start-session').click();await assertFinishedGuest(page,1);const quick=await archive();assert.equal(quick.length,1);assert.equal(quick[0].poses.length,1);assert.equal(await page.evaluate(()=>window.__cameraDraws.length),1);assert.equal(await page.getByTestId('layout-strip').count(),0);pass('quick-session-captures-one-photo-and-stays-card-only');
+   await open();await page.getByTestId('welcome-four-photo').click();await page.getByTestId('welcome-start-session').click();await page.locator('.pcStage[data-completed="1"]').waitFor();
    const beforeInterruption=await archive();assertFirstOriginalOnly(beforeInterruption);
    await page.evaluate(()=>window.__stopCamera());/* Spoken next-pose + ready + 3/2/1 + smile prompts run before the next camera-frame check. */await page.getByTestId('welcome-four-photo').waitFor({timeout:40000});
    assert((await page.locator('.boothAlert').innerText()).includes('camera stopped'));
    const interrupted=await archive();assertFirstOriginalOnly(interrupted);assert.deepEqual(interrupted,beforeInterruption,'camera interruption preserves the exact completed original');
    assert.equal(await page.evaluate(()=>window.__cameraDraws.length),1);assert.equal(await page.locator('.ksStudio').count(),0);pass('camera-interruption-preserves-original-without-showing-or-saving-incomplete-sheet',{photoHash:interrupted[0].poses[0]});
    const beforeBackground=await archive();
-   await page.getByTestId('welcome-four-photo').click();await page.locator('.pcStage[data-phase="countdown"]').waitFor();await page.evaluate(()=>{Object.defineProperty(document,'visibilityState',{configurable:true,get:()=> 'hidden'});document.dispatchEvent(new Event('visibilitychange'));});await page.getByTestId('welcome-four-photo').waitFor();await page.waitForTimeout(4400);
+   await page.getByTestId('welcome-four-photo').click();await page.getByTestId('welcome-start-session').click();await page.locator('.pcStage[data-phase="countdown"]').waitFor();await page.evaluate(()=>{Object.defineProperty(document,'visibilityState',{configurable:true,get:()=> 'hidden'});document.dispatchEvent(new Event('visibilitychange'));});await page.getByTestId('welcome-four-photo').waitFor();await page.waitForTimeout(4400);
    assert((await page.locator('.boothAlert').innerText()).includes('background'));assert.equal(await page.evaluate(()=>window.__cameraTrack.readyState),'ended');
    assert.equal(await page.evaluate(()=>window.__cameraDraws.length),1,'a backgrounded countdown never captures a stale or late frame');
    assert.deepEqual(await archive(),beforeBackground,'backgrounding leaves the earlier partial session intact and creates no empty or late session');pass('backgrounding-stops-session-without-bursting-stale-timers-or-changing-earlier-original');

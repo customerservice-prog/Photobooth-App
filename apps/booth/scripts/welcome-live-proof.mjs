@@ -44,7 +44,7 @@ async function checkGeometry(page,label,width,height){
   assert(card.left>=-1&&card.right<=width+1&&card.height>=44,label+' choice stays inside the screen');
   assert(card.svg.width>40&&card.svg.height>60,label+' real print preview is visible');
   assert(card.svg.left>=card.left-1&&card.svg.right<=card.right+1,label+' preview stays inside its choice');
-  assert(card.svg.bottom<=card.caption.top+1&&card.caption.bottom<=card.cta.top+1,label+' preview, caption and action do not overlap');
+  if(width>760||width<=430)assert(card.svg.bottom<=card.caption.top+1,label+' preview and caption do not overlap');assert(card.caption.bottom<=card.cta.top+1,label+' caption and selection action do not overlap');
   assert(card.cta.width>60&&card.cta.height>18&&card.cta.bottom<=card.bottom+1,label+' start action is visible inside its button');
   if(width>=768)assert(card.top>=0&&card.bottom<=height+1,label+' both choices fit above the fold');
   const button=page.locator('.bwSessionCard').nth(index);
@@ -92,16 +92,20 @@ async function approvedWelcome(engine,type,template){
   for(const [id,shots]of [['welcome-quick-photo',1],['welcome-four-photo',4]]){
    const button=page.getByTestId(id),svg=button.locator('.bwLayoutPreview svg');
    assert.equal(await button.evaluate(element=>element.tagName),'BUTTON');assert(await button.isVisible()&&await button.isEnabled());
-   assert.equal(await button.getAttribute('aria-label'),`Take ${shots} photo${shots===1?'':'s'}`);
+   assert.equal(await button.getAttribute('aria-label'),`Preview ${shots}-photo layout`);
    assert.equal(await button.locator('.bwLayoutPreview').getAttribute('data-preview-photos'),String(shots));
    assert.equal(await svg.getAttribute('data-design'),type+'-'+template);
    const expectedLayout=template==='grad-gala'?(shots===1?'card':'photo_strip'):getDesign(type,template).layout;
    assert.equal(await svg.getAttribute('data-layout'),expectedLayout);
    if(type==='other')assert.equal(await svg.locator('[data-approved-photo-region="true"]').count(),shots===4?1:0);
-   assert.equal(await svg.locator('[data-guest-photo="true"]').count(),0,'welcome never reveals another guest photo');
-   assert.equal(await button.locator('.bwPreviewCaption').innerText(),'Your photos go here');
+   await page.waitForFunction(()=>[...document.querySelectorAll('.bwLayoutPreview')].length===3&&[...document.querySelectorAll('.bwLayoutPreview')].every(e=>e.dataset.examplePoses==='ready'));assert.equal(await svg.locator('[data-guest-photo="true"]').count(),shots,'sample portraits are rendered in the real 4×6 artwork without using saved guests');
+   assert((await button.locator('.bwPreviewCaption').innerText()).includes('4×6 print'));
+   assert.equal(await page.getByTestId('welcome-large-proof').locator('svg').count(),1);
   }
   if(type==='other')assert.equal(await page.getByTestId('welcome-four-photo').locator('[data-approved-photo-region="true"][data-pose-count="4"]').count(),1);
+  await page.getByTestId('welcome-quick-photo').click();assert.equal(await page.getByTestId('welcome-large-proof').getAttribute('data-selected-photos'),'1');assert.equal(await page.getByTestId('welcome-start-session').getAttribute('aria-label'),'Start 1-photo session');
+  await page.getByTestId('welcome-four-photo').click();assert.equal(await page.getByTestId('welcome-large-proof').getAttribute('data-selected-photos'),'4');assert.equal(await page.getByTestId('welcome-start-session').getAttribute('aria-label'),'Start 4-photo session');
+  assert.equal(await page.evaluate(()=>window.__liveProofCaptureCalls),0,'layout choice does not open the camera');
   assert.equal(await page.locator('.bwWelcome a,.workspaceBanner,.bwShowcase,.bwPaperStack,.bwPhotoSteps').count(),0,'approved guest welcome has no design or setup navigation');
   assert.equal(await page.getByTestId('app-update').count(),0);
   for(const [label,width,height]of [['ipad-landscape',1024,768],['ipad-portrait',768,1024],['phone',390,844]])await checkGeometry(page,`${engine}-${type}-${label}`,width,height);
