@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {octoberPreset,workspace,demoWorkspace,liveWorkspace,readEventDraft,saveEventDraft,usage,EVENT_KEYS,LEGACY_KEYS,PREP_CHECKS,readyForEvent,validatePreparation,portableSettings,importSettings,scheduleLabel} from '../app/lib/event-workspace.mjs';
 import {finalizeEventSetup} from '../app/lib/event-config.mjs';
-import {crc32,makeZip,saveCapture,archiveSnapshot} from '../app/lib/event-photo-archive.mjs';
+import {crc32,makeZip,saveCapture,archiveSnapshot,importLegacyCaptures} from '../app/lib/event-photo-archive.mjs';
 const memory=()=>{const map=new Map();return {map,getItem:k=>map.has(k)?map.get(k):null,setItem:(k,v)=>map.set(k,String(v))};};
 const source=p=>readFileSync(new URL('../app/'+p,import.meta.url),'utf8');
 
@@ -38,3 +38,9 @@ test('export snapshot changes when same-sized poses, collage or finished keepsak
 test('ZIP CRC matches the standard check vector',()=>assert.equal(crc32(new TextEncoder().encode('123456789')),0xcbf43926));
 test('ZIP has correct UTF-8 headers, file size, CRC and directory counts',async()=>{const blob=new Blob(['hello']),zip=await makeZip([{name:'test.txt',blob}]),b=new Uint8Array(await zip.arrayBuffer()),v=new DataView(b.buffer);assert.equal(v.getUint32(0,true),0x04034b50);assert.equal(v.getUint32(14,true),crc32(new TextEncoder().encode('hello')));assert.equal(v.getUint32(18,true),5);const off=30+8+5;assert.equal(v.getUint32(off,true),0x02014b50);assert.equal(v.getUint32(b.length-22,true),0x06054b50);assert.equal(v.getUint16(b.length-12,true),1);});
 test('archive rejects unsafe filenames and incomplete captures',async()=>{await assert.rejects(()=>makeZip([{name:'../bad.jpg',blob:new Blob(['bad'])}]));await assert.rejects(()=>saveCapture('test','id','x',[],{}));});
+test('malformed old galleries fail before storage and cannot replace existing photos',async()=>{
+ await assert.rejects(()=>importLegacyCaptures('legacy',null),/older photo backup/);
+ await assert.rejects(()=>importLegacyCaptures('legacy',[null]),/older saved photo/);
+ await assert.rejects(()=>importLegacyCaptures('legacy',[{id:'old',data:'not-a-photo'}]),/captured JPEG/);
+ await assert.rejects(()=>importLegacyCaptures('legacy',[{id:'same',data:'data:image/jpeg;base64,AQID'},{id:'same',data:'data:image/jpeg;base64,BAUG'}]),/conflicting IDs/);
+});

@@ -22,7 +22,17 @@ test('out of order rendering never replaces the newest artifact',async()=>{const
 test('invalidated rendering cannot publish after unmount',async()=>{const worker=latestOnly();let release;const results=[];const task=worker.run(()=>new Promise(r=>release=r),r=>results.push(r),()=>{});worker.invalidate();release('old');await task;assert.equal(results.length,0);});
 test('stale failures do not overwrite the current export',async()=>{const worker=latestOnly();let reject;const results=[];const task=worker.run(()=>new Promise((_,r)=>reject=r),()=>{},e=>results.push(e));await worker.run(()=>Promise.resolve('new'),r=>results.push(r),()=>{});reject(new Error('old'));await task;assert.deepEqual(results,['new']);});
 test('main preview idle timer includes the child composition/delivery activity',()=>{const code=readFileSync(new URL('../app/page.js',import.meta.url),'utf8');assert(code.includes('||previewActive)return;'));assert(code.includes('onSessionActive={setPreviewActive}'));});
-test('guest direct delivery receives the rendered JPEG, not the raw capture',()=>{const code=readFileSync(new URL('../app/components/PhotoPreview.js',import.meta.url),'utf8');assert(code.includes('photo={prepared?.dataUrl||null}'));assert(!code.includes('onClick={onShare}'));});
+test('live guest sharing, download, print and archive use the completed design',()=>{
+ const code=readFileSync(new URL('../app/components/GuestReadyPreview.js',import.meta.url),'utf8');
+ assert(code.includes('makeKeepsakeExport(input)'));
+ assert(code.includes('sharePrepared(prepared,cfg.title)'));
+ assert(code.includes('downloadPrepared(prepared)'));
+ assert(code.includes('onArchive(prepared)'));
+ assert.match(code,/data-testid="approved-finished-jpeg" src=\{prepared.dataUrl\}/);
+ assert.match(code,/className="ksExactPrintImage" src=\{prepared.dataUrl\}/);
+ assert.doesNotMatch(code,/onClick=\{onShare\}/);
+ assert.match(code,/DeliveryPanel photo=\{prepared\?\.dataUrl\|\|null\}/);
+});
 
 test('legacy Bryan test caption is repaired only when details are missing on another type',()=>{assert.equal(normalizeEventConfig({type:'birthday',title:'Bryan Wedding',details:{}}).title,'Birthday Celebration');assert.equal(normalizeEventConfig(wedding).title,'Bryan Wedding');assert.equal(normalizeEventConfig({type:'birthday',title:'Custom title',details:{honoree:'Bryan'}}).title,'Custom title');});
 

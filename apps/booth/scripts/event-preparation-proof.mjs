@@ -3,6 +3,7 @@ import {mkdir,readFile,writeFile} from 'node:fs/promises';
 import {execFileSync} from 'node:child_process';
 import {chromium,webkit} from 'playwright';
 import {EVENT_KEYS,PREP_CHECKS,octoberPreset,portableSettings} from '../app/lib/event-workspace.mjs';
+import {assertFinishedGuest} from './assert-finished-guest.mjs';
 const base=process.env.WELCOME_BASE_URL||'http://127.0.0.1:3000',out='welcome-proof';
 await mkdir(out,{recursive:true});
 const archiveSource=await readFile(new URL('../app/lib/event-photo-archive.mjs',import.meta.url),'utf8');
@@ -39,10 +40,11 @@ try{
   if(engine==='chromium'){
    await page.getByTestId('welcome-four-photo').click();await page.getByTestId('approved-guest-preview').waitFor({timeout:100000});
    await page.getByTestId('approved-finished-jpeg').waitFor({timeout:30000});
-   assert.equal(await page.getByRole('button',{name:'Digital Copy',exact:true}).count(),1,'guests can download the approved digital picture');
+   await assertFinishedGuest(page,4);
+   assert.equal(await page.getByRole('button',{name:'Send',exact:true}).count(),1,'guests can send the preloaded finished picture');
    assert.equal(await page.locator('.deliveryForm').count(),0,'guest preview has no contact-entry tools');
    assert.equal(await page.getByTestId('layout-strip').count(),0,'approved design is fixed before the event');
-   await page.waitForFunction(()=>document.querySelector('[data-testid="approved-gallery-status"]')?.textContent?.includes('Digital copy saved'),null,{timeout:25000});
+   await page.waitForFunction(()=>document.querySelector('[data-testid="approved-gallery-status"]')?.textContent?.includes('Saved to the event gallery'),null,{timeout:25000});
    await page.getByTestId('approved-print').click();
    assert.equal(await page.evaluate(()=>window.__printCalls),1);
    assert.equal(await page.evaluate(k=>localStorage.getItem(k),EVENT_KEYS.liveUsage),'17');

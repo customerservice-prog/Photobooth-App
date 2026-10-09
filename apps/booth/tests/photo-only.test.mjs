@@ -24,7 +24,7 @@ test('guest runtime has no recording encoder, motion state or motion preview rou
   assert(source.includes('onStartFour={()=>begin(4)}'));
   assert(source.includes('const shots=await runPhotoSequence('));
   assert(source.includes('takeFreshPhoto(video.current,options)'));
-  assert(source.includes("function retake(){setPhoto(null);begin(sessionShots)}"));
+  assert(!source.includes('onRetake={retake}'),'Finished guests return with Done and choose the next session from welcome');
   assert(source.includes('audio:false'));
   assert(read('lib/photo-sequence.mjs').includes("canvas.toDataURL('image/jpeg',.92)"));
 });
@@ -41,5 +41,5 @@ test('photo-only presentation keeps configured poses and the existing allowance 
 
 test('late still-photo composition cannot revive an abandoned guest session',()=>{
   const source=read('page.js');
-  assert(source.includes("const data=total===1?shots[0]:await composePhotoStrip(shots,cfg);if(id!==run.current)return;"));
+  assert.match(source,/const data=total===1\?shots\[0\]:await composePhotoStrip\(shots,[^\n]+\);if\(id!==run\.current\)return;/);
 });

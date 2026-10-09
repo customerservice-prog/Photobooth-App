@@ -45,8 +45,15 @@ test('strip samples must be explicitly requested and are never export substitute
 test('export identity changes with format, strip arrangement or any original pose',()=>{const input={photo:poses[0],poses,cfg,layout:'card',stripMode:'double'};for(const change of [{layout:'photo_strip'},{stripMode:'single'},{poses:[...poses.slice(0,3),poses[0]]}])assert.notEqual(exportKey(input),exportKey({...input,...change}));});
 test('October backups preserve layout settings and never add counters or photos',()=>{const configured=validatePreparation({...cfg,printLayouts:{cardEnabled:false,defaultLayout:'photo_strip',stripMode:'single',footerText:'Have fun',useEventColors:false}});const imported=importSettings(portableSettings(configured));assert.deepEqual(imported.printLayouts,configured.printLayouts);assert.equal(imported.printPackage.includedPrints+imported.printPackage.addOnPrints,216);assert.doesNotMatch(portableSettings(configured),/poses|liveUsage|demoUsage/);});
 test('general event setup persists selected strip layout without changing allowance',()=>{const event={...cfg,printLayouts:{cardEnabled:false,defaultLayout:'photo_strip'},details:{...cfg.details,eventName:'Office party'}};const saved=finalizeEventSetup(event);assert.equal(saved.printLayouts.defaultLayout,'photo_strip');assert.deepEqual(saved.printPackage,event.printPackage);});
-test('print gallery, print-only card and digital export receive the selected layout and raw poses',async()=>{const source=await readFile(new URL('../app/components/PhotoPreview.js',import.meta.url),'utf8');assert.match(source,/input=\{photo,poses,layout,stripMode/);assert.match(source,/photoPane ksPrintOnly/);assert.match(source,/poses=\{poses\} layout=\{layout\} stripMode=\{stripMode\}/);assert.match(source,/if\(!busy&&!printed/);assert.match(source,/disabled=\{busy\|\|printed\}/);});
-test('new captures carry all raw poses into preview and clear them between sessions',async()=>{const source=await readFile(new URL('../app/page.js',import.meta.url),'utf8');assert.match(source,/setPoses\(shots\);setPhoto\(data\)/);assert.match(source,/<PhotoPreview photo=\{photo\} poses=\{poses\}/);assert.match(source,/setPhoto\(null\);setPoses\(\[\]\)/);});
+test('retained legacy preview passes selected layout and raw poses to its renderer and export',async()=>{const source=await readFile(new URL('../app/components/PhotoPreview.js',import.meta.url),'utf8');assert.match(source,/input=\{photo,poses,layout,stripMode/);assert.match(source,/photoPane ksPrintOnly/);assert.match(source,/poses=\{poses\} layout=\{layout\} stripMode=\{stripMode\}/);assert.match(source,/if\(!busy&&!printed/);assert.match(source,/disabled=\{busy\|\|printed\}/);});
+test('every new capture carries raw poses into the simplified guest preview and clears them between sessions',async()=>{
+ const source=await readFile(new URL('../app/page.js',import.meta.url),'utf8');
+ assert.match(source,/setPoses\(shots\);setPhoto\(data\)/);
+ assert.match(source,/\{step==='preview'&&photo&&<GuestReadyPreview photo=\{photo\} poses=\{poses\} sessionShots=\{sessionShots\}/);
+ assert.doesNotMatch(source,/<PhotoPreview\b/);
+ assert.match(source,/onArchive=\{archiveArtifact\}/);
+ assert.match(source,/setPhoto\(null\);setPoses\(\[\]\)/);
+});
 
 test('choosing two strips remains available, preserves original order and uses one 4x6 sheet',()=>{
  const single=strip(),double=strip({stripMode:'double'});

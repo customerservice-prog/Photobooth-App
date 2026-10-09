@@ -47,14 +47,22 @@ test('new template cannot be smuggled into an unrelated event',()=>{
  assert.throws(()=>decodeBoothHandoff(encode({...BASE,name:'<img onerror=bad>'})),/not a valid/i);
  assert.throws(()=>decodeBoothHandoff(encode({...BASE,year:'20<script>'})),/not a valid/i);
 });
-test('guest print screen only exposes Retake, Print and Done, no design gallery',async()=>{
+test('guest print screen only exposes Print, Send and Done, no design gallery',async()=>{
  const source=await readFile(new URL('../app/components/GuestReadyPreview.js',import.meta.url),'utf8');
  assert.match(source,/data-testid="approved-guest-preview"/);
  assert.match(source,/data-testid="approved-finished-jpeg"/);
  assert.match(source,/data-testid="approved-done"/);
+ assert.match(source,/data-testid="approved-print"/);
+ assert.match(source,/data-testid="approved-digital-copy"/);
+ assert(!source.includes('data-testid="approved-retake"'));
  for(const item of ['ksGallery','onTemplate','onCommitEvent','onFilter','Photo adjustments','layout-card','strip-arrangement','Edit event'])assert(!source.includes(item),item+' must not appear for guests');
  assert.match(source,/makeKeepsakeExport/);
  assert.match(source,/onArchive\(prepared\)/);
+});
+test('every captured guest session uses the simplified finished preview, including saved local events',async()=>{
+ const source=await readFile(new URL('../app/page.js',import.meta.url),'utf8');
+ assert.match(source,/<GuestReadyPreview photo=\{photo\} poses=\{poses\}/);
+ assert(!source.includes('<PhotoPreview'),'legacy event routes must not reopen the design gallery');
 });
 test('closing one event never touches the saved files or counters of another event',()=>{
  const scope=workspace('?booth_event='+BASE.id),other=workspace('?booth_event=another-customer');

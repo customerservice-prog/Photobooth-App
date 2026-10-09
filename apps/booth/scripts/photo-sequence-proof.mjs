@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import {mkdir,readFile,writeFile} from 'node:fs/promises';
 import {chromium,webkit} from 'playwright';
 import {octoberPreset,EVENT_KEYS} from '../app/lib/event-workspace.mjs';
+import {assertFinishedGuest} from './assert-finished-guest.mjs';
 const base=process.env.SEQUENCE_BASE_URL||'http://127.0.0.1:3000',out='sequence-proof',smoke=process.env.SEQUENCE_SMOKE==='1',results=[];
 const archiveSource=await readFile(new URL('../app/lib/event-photo-archive.mjs',import.meta.url),'utf8');
 await mkdir(out,{recursive:true});
@@ -84,7 +85,7 @@ for(const [engine,api] of [['chromium',chromium],['webkit',webkit]]){
   await page.getByRole('button',{name:/I’m ready — start countdown/}).click();
   await page.locator('.pcStage[data-phase="countdown"][data-shot="2"]').waitFor({timeout:15000});
   pass('guest-can-pause-between-photos-and-start-countdown-when-ready');
-  await page.locator('.ksStudio').waitFor({timeout:100000});const draws=await page.evaluate(()=>window.__cameraDraws),events=await page.evaluate(()=>window.__captureEvents);
+  await assertFinishedGuest(page,4);const draws=await page.evaluate(()=>window.__cameraDraws),events=await page.evaluate(()=>window.__captureEvents);
   assert.equal(draws.length,4);const voice=await page.evaluate(()=>window.__voiceStarts);assert.equal(voice.length,23);assert(voice.every(v=>v.state==='running'&&v.duration>0));assert.deepEqual(events.filter(e=>e.phase==='next').map(e=>[e.shot,e.completed]),[[2,1],[3,2],[4,3]]);pass('decoded-voice-playback-and-three-next-photo-announcements',{voice});for(let i=1;i<4;i++){assert(draws[i].at-draws[i-1].at>=3000);}
   assert.deepEqual([...new Set(events.filter(e=>e.phase==='smile').map(e=>e.shot))],[1,2,3,4]);assert(events.every(e=>!e.printVisible));assert.equal(await page.evaluate(()=>window.__cameraCalls),1);
   const metadata=await page.evaluate(()=>window.__frameMetadata);assert(metadata.length>=4);assert(new Set(metadata.map(m=>m.presentedFrames)).size>=4||new Set(metadata.map(m=>m.mediaTime)).size>=4,'four new presented frames');
@@ -94,7 +95,7 @@ for(const [engine,api] of [['chromium',chromium],['webkit',webkit]]){
   await page.screenshot({path:`${out}/${engine}-four-different-photos-preview.png`});pass('four-unique-camera-frames-before-print-page',{draws,events,metadata,photoHashes:saved[0].poses});pass('double-tap-one-camera-session');pass('capture-does-not-print-or-use-allowance');
   if(!smoke){
    await open();await page.getByTestId('welcome-four-photo').click();await page.locator('.pcStage[data-completed="1"]').waitFor();await page.getByRole('button',{name:'Cancel session',exact:true}).click();await page.getByTestId('welcome-four-photo').waitFor();await page.waitForTimeout(4400);assert.equal(await page.evaluate(()=>window.__cameraDraws.length),1);assert.equal(await page.locator('.ksStudio').count(),0);assert.equal((await archive()).length,0);assert.equal(await page.evaluate(()=>window.__cameraTrack.readyState),'ended');pass('cancel-after-first-photo-prevents-late-captures-or-partial-archive');
-   await open();await page.getByTestId('welcome-quick-photo').click();await page.locator('.ksStudio').waitFor({timeout:30000});const quick=await archive();assert.equal(quick.length,1);assert.equal(quick[0].poses.length,1);assert.equal(await page.evaluate(()=>window.__cameraDraws.length),1);assert.equal(await page.getByTestId('layout-strip').count(),0);pass('quick-session-captures-one-photo-and-stays-card-only');
+   await open();await page.getByTestId('welcome-quick-photo').click();await assertFinishedGuest(page,1);const quick=await archive();assert.equal(quick.length,1);assert.equal(quick[0].poses.length,1);assert.equal(await page.evaluate(()=>window.__cameraDraws.length),1);assert.equal(await page.getByTestId('layout-strip').count(),0);pass('quick-session-captures-one-photo-and-stays-card-only');
    await open();await page.getByTestId('welcome-four-photo').click();await page.locator('.pcStage[data-completed="1"]').waitFor();await page.evaluate(()=>window.__stopCamera());/* Spoken next-pose + ready + 3/2/1 + smile prompts run before the next camera-frame check. */await page.getByTestId('welcome-four-photo').waitFor({timeout:40000});assert((await page.locator('.boothAlert').innerText()).includes('camera stopped'));assert.equal((await archive()).length,0);assert.equal(await page.locator('.ksStudio').count(),0);pass('camera-interruption-does-not-show-or-save-incomplete-sheet');
    await page.getByTestId('welcome-four-photo').click();await page.locator('.pcStage[data-phase="countdown"]').waitFor();await page.evaluate(()=>{Object.defineProperty(document,'visibilityState',{configurable:true,get:()=> 'hidden'});document.dispatchEvent(new Event('visibilitychange'));});await page.getByTestId('welcome-four-photo').waitFor();await page.waitForTimeout(800);assert((await page.locator('.boothAlert').innerText()).includes('background'));assert.equal(await page.evaluate(()=>window.__cameraTrack.readyState),'ended');assert.equal((await archive()).length,0);pass('backgrounding-stops-session-without-bursting-stale-timers');
   }

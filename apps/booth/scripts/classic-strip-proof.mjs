@@ -4,6 +4,7 @@ import {chromium,webkit} from 'playwright';
 import sharp from 'sharp';
 import {octoberPreset,EVENT_KEYS} from '../app/lib/event-workspace.mjs';
 import {BOOTH_RELEASE} from '../app/lib/booth-launch.mjs';
+import {assertFinishedGuest} from './assert-finished-guest.mjs';
 const base=process.env.STRIP_BASE_URL||'http://127.0.0.1:3000',out='strip-proof',results=[];
 await mkdir(out,{recursive:true});
 const archiveSource=await readFile(new URL('../app/lib/event-photo-archive.mjs',import.meta.url),'utf8');
@@ -41,7 +42,7 @@ for(const [engine,api] of engines){
   await page.locator('.pcStage').waitFor();
   await page.getByTestId('approved-guest-preview').waitFor({timeout:110000});
   await page.getByTestId('approved-finished-jpeg').waitFor({timeout:35000});
-  if(saved)await page.waitForFunction(()=>document.querySelector('[data-testid="approved-gallery-status"]')?.textContent?.includes('Digital copy saved'),null,{timeout:25000});
+  if(saved)await page.waitForFunction(()=>document.querySelector('[data-testid="approved-gallery-status"]')?.textContent?.includes('Saved to the event gallery'),null,{timeout:25000});
  }
  async function records(scope){return page.evaluate(async ({source,scope})=>{
    const api=new Function(source.replace(/\bexport /g,'')+'\nreturn {listCaptures};')();
@@ -51,7 +52,7 @@ for(const [engine,api] of engines){
  try{
   const version=await (await fetch(base+'/api/app-version')).json();assert.equal(version.version,BOOTH_RELEASE);
   await open();await capture(4);
-  assert.equal(await page.locator('.agGuest').getAttribute('data-output-layout'),'photo_strip');
+  await assertFinishedGuest(page,4);
   assert.equal(await page.getByTestId('layout-strip').count(),0);
   assert.equal(await page.locator('.ksGallery').count(),0);
   assert.equal(await page.getByRole('button',{name:/Event setup/}).count(),0);
@@ -66,7 +67,7 @@ for(const [engine,api] of engines){
   pass('four distinct photos become one approved 4x6 JPEG without guest template picker');
   for(const [name,width,height]of[['ipad-landscape',1024,768],['ipad-portrait',768,1024],['phone',390,844],['small-phone',320,640]]){
    await page.setViewportSize({width,height});await page.waitForTimeout(100);
-   for(const testId of ['approved-print','approved-done','approved-retake','approved-digital-copy']){
+   for(const testId of ['approved-print','approved-done','approved-digital-copy']){
     const box=await page.getByTestId(testId).boundingBox();
     assert(box&&box.height>=40&&box.x>=-1&&box.x+box.width<=width+1&&box.y>=-1&&box.y+box.height<=height+1,name+' '+testId+' visible');
    }
@@ -77,7 +78,7 @@ for(const [engine,api] of engines){
   assert(await page.locator('.ksPrintOnly img.ksExactPrintImage').isVisible());
   await page.emulateMedia({media:'screen'});
   await page.getByTestId('approved-digital-copy').click();
-  await page.getByRole('dialog',{name:'Get a digital copy.',exact:true}).waitFor();
+  await page.getByRole('dialog',{name:'Send your photo.',exact:true}).waitFor();
   const downloadWait=page.waitForEvent('download');await page.getByTestId('approved-download-photo').click();
   const download=await downloadWait;assert.deepEqual(await readFile(await download.path()),bytes);
   assert.equal(await page.locator('.deliveryForm').count(),0);
@@ -93,6 +94,7 @@ for(const [engine,api] of engines){
   await page.getByTestId('welcome-four-photo').waitFor({timeout:12000});
   pass('one-tap done returns to guest welcome without editing event artwork');
   await open();await capture(1);
+  await assertFinishedGuest(page,1);
   assert.equal(await page.locator('.agGuest').getAttribute('data-output-layout'),'card');
   assert.equal((await records('oct10-2026:demo'))[0].poses,1);
   assert.equal(await page.getByTestId('layout-strip').count(),0);
@@ -105,7 +107,7 @@ for(const [engine,api] of engines){
   await page.getByTestId('approved-retry-save').waitFor();
   assert(await page.getByTestId('approved-done').isDisabled());
   await page.getByTestId('approved-retry-save').click();
-  await page.waitForFunction(()=>document.querySelector('[data-testid="approved-gallery-status"]')?.textContent?.includes('Digital copy saved'),null,{timeout:25000});
+  await page.waitForFunction(()=>document.querySelector('[data-testid="approved-gallery-status"]')?.textContent?.includes('Saved to the event gallery'),null,{timeout:25000});
   assert(await page.getByTestId('approved-done').isEnabled());
   pass('archive-write-failure-keeps-the-photo-until-retry-succeeds');
   await page.getByTestId('approved-print').click();
