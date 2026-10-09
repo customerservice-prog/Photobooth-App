@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import {mkdir,readFile,writeFile} from 'node:fs/promises';
-import {createServer} from 'node:http';
+import {createServer,request as httpRequest} from 'node:http';
 import {chromium,webkit} from 'playwright';
 import {octoberPreset,workspace} from '../app/lib/event-workspace.mjs';
 import {BOOTH_RELEASE} from '../app/lib/booth-launch.mjs';
@@ -10,7 +10,6 @@ import {BOOTH_RELEASE} from '../app/lib/booth-launch.mjs';
 // are covered separately by the route and real-database tests. Never use this
 // write-capable fixture against a deployed booth or a customer's event.
 const base=(process.env.AUTOMATIC_BACKUP_BASE_URL||'http://127.0.0.1:3000').replace(/\/$/,'');
-const origin=new URL(base).origin;
 assert(new URL(base).protocol==='http:'&&['127.0.0.1','localhost','[::1]'].includes(new URL(base).hostname),'Automatic backup fixtures are restricted to a local HTTP test server');
 const engines=process.env.AUTOMATIC_BACKUP_CHROMIUM_ONLY==='1'?[['chromium',chromium]]:[['chromium',chromium],['webkit',webkit]];
 const out='automatic-backup-proof',results=[];
@@ -71,14 +70,23 @@ try{
  for(const [engine,api] of engines){
   const browser=await api.launch({headless:true,...(engine==='chromium'?{args:['--no-sandbox']}: {})});
   const context=await browser.newContext({viewport:{width:1024,height:768},hasTouch:true,isMobile:true,reducedMotion:'reduce',serviceWorkers:'block'});
-  const saved=new Map(),attempts=[],authorizations=[],unexpectedWrites=[],errors=[],boundaryErrors=[];
+  const saved=new Map(),attempts=[],authorizations=[],unexpectedWrites=[],errors=[],boundaryErrors=[],requestFailures=[];
   let networkAllowed=true,expireFirstUpload=true;
+  let proofOrigin;
   // WebKit does not expose Blob request bodies in Playwright's intercepted
-  // request metadata. Receive the real HTTP stream instead; an unchanged
-  // route.continue body preserves the browser's original upload bytes.
+  // request metadata. Serve the application through a same-origin loopback
+  // proxy, receiving backup POST bytes directly and forwarding only GET/HEAD
+  // requests to Next. No Blob interception or CORS rewriting is needed.
   const backupServer=createServer(async(request,response)=>{
-   const reply=(status,data)=>{response.writeHead(status,{'Content-Type':'application/json','Access-Control-Allow-Origin':origin,'Access-Control-Allow-Credentials':'true','Access-Control-Allow-Methods':'POST, OPTIONS','Access-Control-Allow-Headers':'Content-Type, Authorization, X-Booth-Event, X-Booth-Capture, X-Booth-Kind'});response.end(JSON.stringify(data));};
+   const reply=(status,data)=>{response.writeHead(status,{'Content-Type':'application/json','Access-Control-Allow-Origin':proofOrigin,'Access-Control-Allow-Credentials':'true','Access-Control-Allow-Methods':'POST, OPTIONS','Access-Control-Allow-Headers':'Content-Type, Authorization, X-Booth-Event, X-Booth-Capture, X-Booth-Kind'});response.end(JSON.stringify(data));};
    try{
+    if(['GET','HEAD'].includes(request.method)){
+     const path=new URL(request.url,proofOrigin),upstream=new URL(base);
+     upstream.pathname=path.pathname;upstream.search=path.search;
+     const forwarded=httpRequest(upstream,{method:request.method,headers:{...request.headers,host:upstream.host}},incoming=>{response.writeHead(incoming.statusCode,incoming.headers);incoming.pipe(response);});
+     forwarded.on('error',error=>{boundaryErrors.push(error.message);if(!response.headersSent)reply(502,{error:'Local application proxy unavailable'});else response.destroy();});
+     request.pipe(forwarded);return;
+    }
     if(request.method==='OPTIONS')return reply(204,{});
     const chunks=[];for await(const chunk of request)chunks.push(chunk);
     const bytes=Buffer.concat(chunks);
@@ -105,13 +113,13 @@ try{
    }catch(error){boundaryErrors.push(error.message);return reply(500,{error:'Backup fixture rejected request'});}
   });
   await new Promise((resolve,reject)=>{backupServer.once('error',reject);backupServer.listen(0,'127.0.0.1',resolve);});
-  const backupOrigin='http://127.0.0.1:'+backupServer.address().port;
+  proofOrigin='http://127.0.0.1:'+backupServer.address().port;
   await context.route('**/*',async route=>{
    const request=route.request(),url=new URL(request.url());
-   if(url.origin!==origin)return route.abort();
+   if(url.origin!==proofOrigin)return route.abort();
    if(request.method()==='POST'&&['/api/backup/authorize','/api/backup/image'].includes(url.pathname)){
     if(!networkAllowed)return route.abort('internetdisconnected');
-    return route.continue({url:backupOrigin+url.pathname});
+    return route.continue();
    }
    if(!['GET','HEAD'].includes(request.method())){unexpectedWrites.push({method:request.method(),path:url.pathname});return route.abort();}
    if(/^\/(setup|staff|event-prep)(\/|$)/.test(url.pathname)){unexpectedWrites.push({path:url.pathname});return route.abort();}
@@ -136,18 +144,27 @@ try{
    }}});
   },{config,scope});
   const page=await context.newPage();page.setDefaultTimeout(15000);page.on('pageerror',error=>errors.push(error.message));
+  page.on('requestfailed',request=>{if(request.url().includes('/api/backup/'))requestFailures.push({path:new URL(request.url()).pathname,error:request.failure()?.errorText});});
   try{
-   await page.goto(base+scope.home,{waitUntil:'networkidle'});
+   await page.goto(proofOrigin+scope.home,{waitUntil:'networkidle'});
    await page.getByTestId('welcome-four-photo').waitFor();
    const before=await page.evaluate(({config,usage})=>({config:localStorage.getItem(config),usage:localStorage.getItem(usage)}),scope);
    const release=await page.evaluate(async()=>{const response=await fetch('/api/app-version');return (await response.json()).version;});
    assert.equal(release,BOOTH_RELEASE);
+   if(process.env.AUTOMATIC_BACKUP_CONNECT_ONLY==='1'){
+    await waitReady(page,0);assert.equal(authorizations.length,1);assert.deepEqual(boundaryErrors,[]);
+    results.push({engine,passed:true,connectionOnly:true,automaticWithoutStaff:true});continue;
+   }
    const one=await capture(page,1);
    const first=await waitForArchive(page,rows=>rows.length===1&&rows[0].keepsake,'One-photo keepsake');
    assert.deepEqual(Buffer.from(first[0].keepsake),one,'the preview and saved finished image match exactly');
    await waitReady(page,3);
    assert.equal(authorizations.length,2,'expired ticket renews automatically once without staff');
    assert.equal(saved.size,3,'one photo saves its original, collage and finished design');
+   console.log(engine+': one-photo wire upload and automatic ticket renewal passed');
+   if(process.env.AUTOMATIC_BACKUP_ONE_PHOTO_ONLY==='1'){
+    assert.deepEqual(boundaryErrors,[]);results.push({engine,passed:true,onePhotoOnly:true,backendFiles:3,automaticWithoutStaff:true,expiredTicketRenewed:true});continue;
+   }
    await done(page);
 
    // Genuine browser offline mode must preserve and finish a session locally.
@@ -198,7 +215,7 @@ try{
    assert.deepEqual(await page.evaluate(({config,usage})=>({config:localStorage.getItem(config),usage:localStorage.getItem(usage)}),scope),before,'automatic backup leaves the approved design and print allowance unchanged');
    assert.deepEqual(unexpectedWrites,[]);assert.deepEqual(errors,[]);assert.deepEqual(boundaryErrors,[]);
    results.push({engine,passed:true,release,browserVersion:browser.version(),sessions:3,originals:6,collages:2,finishedDesigns:2,backendFiles:saved.size,exactJPEGBytes:true,automaticWithoutStaff:true,expiredTicketRenewed:true,offlineCaptureAndReload:true,interruptedOriginalRetained:true,acknowledgmentsDeduplicated:true,serverBoundary:'local HTTP fixture with actual wire bytes; authorization and database verified by separate tests',unexpectedWrites});
-  }catch(error){await page.screenshot({path:out+'/'+engine+'-failure.png',fullPage:true}).catch(()=>{});results.push({engine,passed:false,message:error.message,stack:error.stack,unexpectedWrites,errors,boundaryErrors});throw error;}
+  }catch(error){await page.screenshot({path:out+'/'+engine+'-failure.png',fullPage:true}).catch(()=>{});results.push({engine,passed:false,message:error.message,stack:error.stack,unexpectedWrites,errors,boundaryErrors,requestFailures,authorizations:authorizations.length,attempts,saved:saved.size,status:await page.evaluate(id=>JSON.parse(localStorage.getItem('friendly-booth-backup-status-v1-'+id)||'null'),eventId).catch(()=>null)});throw error;}
   finally{await context.close();await browser.close();await new Promise(resolve=>backupServer.close(resolve));}
  }
  console.log(JSON.stringify(results,null,2));
