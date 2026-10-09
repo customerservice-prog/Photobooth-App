@@ -1,25 +1,18 @@
-name: Premium welcome proof
+name: Focused Birthday WebKit verification
 on:
   push:
-    branches: [main]
+    branches: [codex/verify-birthday-webkit-20261009]
     paths:
-      - 'apps/booth/**'
-      - '.github/workflows/welcome-proof.yml'
-  workflow_dispatch:
-  pull_request:
-    branches: [main]
-    paths:
-      - 'apps/booth/**'
       - '.github/workflows/welcome-proof.yml'
 permissions:
   contents: read
 concurrency:
-  group: welcome-${{ github.event.pull_request.number || github.ref }}
+  group: birthday-webkit-${{ github.ref }}
   cancel-in-progress: true
 jobs:
   proof:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 12
     defaults:
       run:
         working-directory: apps/booth
@@ -31,67 +24,60 @@ jobs:
           node-version: '22'
       - run: npm install --no-audit --no-fund
       - run: npm install --no-save playwright@1.55.0
-      - run: npx playwright install --with-deps chromium webkit
-      - name: Existing unit regressions
-        run: mkdir -p welcome-proof && npm run test:delivery 2>&1 | tee welcome-proof/unit-tests.log
-      - name: Real production build
-        run: npm run build 2>&1 | tee welcome-proof/build.log
-      - name: Welcome and event-setup browser proof
-        run: |
-          BOOTH_PROOF_NEXT_CLI=$(node -p 'require.resolve("next/dist/bin/next")')
-          node "$BOOTH_PROOF_NEXT_CLI" start -p 3000 > welcome-proof/server.log 2>&1 &
-          SERVER_PID=$!
-          trap 'kill $SERVER_PID 2>/dev/null || true' EXIT
-          for i in $(seq 1 60); do
-            if curl -fsS http://127.0.0.1:3000/api/app-version > /dev/null; then break; fi
-            sleep 1
-          done
-          node scripts/welcome-proof.mjs
-          node scripts/preparation-layout-proof.mjs
-          node scripts/event-studio-proof.mjs
-      - name: Finished-photo and custom-artwork browser proof
-        run: |
-          BOOTH_PROOF_NEXT_CLI=$(node -p 'require.resolve("next/dist/bin/next")')
-          node "$BOOTH_PROOF_NEXT_CLI" start -p 3000 > welcome-proof/finished-server.log 2>&1 &
-          SERVER_PID=$!
-          trap 'kill $SERVER_PID 2>/dev/null || true' EXIT
-          for i in $(seq 1 60); do
-            if curl -fsS http://127.0.0.1:3000/api/app-version > /dev/null; then break; fi
-            sleep 1
-          done
-          node scripts/guest-finish-proof.mjs
-          CUSTOM_DESIGN_PROOF=1 node scripts/guest-finish-proof.mjs
-          EVENT_DESIGN_PROOF=1 node scripts/guest-finish-proof.mjs
-      - name: Browser proof against deployed Railway booth
-        if: github.ref == 'refs/heads/main'
-        env:
-          WELCOME_BASE_URL: https://photobooth-booth-production.up.railway.app
+      - run: npx playwright install --with-deps webkit
+      - name: Build unchanged main product
+        run: mkdir -p birthday-webkit-proof && npm run build 2>&1 | tee birthday-webkit-proof/build.log
+      - name: Verify Birthday 1 and 4 in WebKit
         run: |
           node --input-type=module <<'NODE'
-          import {BOOTH_RELEASE} from './app/lib/booth-launch.mjs';
-          let ready=false;
-          for(let n=0;n<90;n++){
-            try{
-              const r=await fetch(process.env.WELCOME_BASE_URL+'/api/app-version',{cache:'no-store',signal:AbortSignal.timeout(8000)});
-              if(r.ok&&(await r.json()).version===BOOTH_RELEASE){ready=true;break;}
-            }catch{}
-            await new Promise(resolve=>setTimeout(resolve,5000));
-          }
-          if(!ready)throw new Error('Exact booth release '+BOOTH_RELEASE+' is not live yet; inspect Railway.');
+          import assert from 'node:assert/strict';
+          import {readFile,writeFile} from 'node:fs/promises';
+          const source=await readFile('scripts/guest-finish-proof.mjs','utf8');
+          const engine=/^const engines=.*$/m;
+          assert(engine.test(source),'engine declaration exists');
+          const cases='standardEvents.flatMap(fixture=>';
+          assert.equal(source.split(cases).length,2,'one standard fixture selector');
+          const focused=source.replace(engine,"const engines=[['webkit',webkit]];")
+            .replace(cases,"standardEvents.filter(fixture=>fixture.label==='birthday').flatMap(fixture=>");
+          const runCase=text=>text.slice(text.indexOf('async function runCase('),text.indexOf('\ntry{\n for(const [engine,api]of engines)'));
+          assert.equal(runCase(focused),runCase(source),'actual runCase assertions stay identical');
+          await writeFile('scripts/.birthday-webkit-proof.mjs',focused);
           NODE
-          mv welcome-proof local-welcome-proof
-          node scripts/welcome-live-proof.mjs
-          GUEST_FINISH_BASE_URL="$WELCOME_BASE_URL" node scripts/guest-finish-proof.mjs
-          CUSTOM_DESIGN_PROOF=1 GUEST_FINISH_BASE_URL="$WELCOME_BASE_URL" node scripts/guest-finish-proof.mjs
-          EVENT_DESIGN_PROOF=1 GUEST_FINISH_BASE_URL="$WELCOME_BASE_URL" node scripts/guest-finish-proof.mjs
+          node --check scripts/.birthday-webkit-proof.mjs
+          BOOTH_PROOF_NEXT_CLI=$(node -p 'require.resolve("next/dist/bin/next")')
+          node "$BOOTH_PROOF_NEXT_CLI" start -p 3000 > birthday-webkit-proof/server.log 2>&1 &
+          SERVER_PID=$!
+          trap 'kill "$SERVER_PID" 2>/dev/null || true; rm -f scripts/.birthday-webkit-proof.mjs' EXIT
+          for i in $(seq 1 60); do
+            if curl -fsS http://127.0.0.1:3000/api/app-version > /dev/null; then break; fi
+            sleep 1
+          done
+          EVENT_DESIGN_PROOF=1 node scripts/.birthday-webkit-proof.mjs 2>&1 | tee birthday-webkit-proof/browser.log
+          node --input-type=module <<'NODE'
+          import assert from 'node:assert/strict';
+          import {readFile} from 'node:fs/promises';
+          const report=JSON.parse(await readFile('event-design-proof/results.json','utf8'));
+          assert.equal(report.results.length,2);
+          assert.deepEqual(report.results.map(item=>item.test).sort(),['webkit-birthday-1-photo','webkit-birthday-4-photo']);
+          for(const item of report.results){
+            assert(item.passed);
+            assert.equal(item.selectedDesign,'birthday/ivory');
+            assert.equal(item.exactArchivedAndDownloadedJPEG,true);
+            assert.equal(item.uniquePoses,item.poses);
+            assert.equal(item.geometry.length,3);
+            assert.deepEqual(item.writeRequests,[]);
+            assert.deepEqual(item.protectedVisits,[]);
+            assert.equal(item.state.usage,'19');
+            assert.equal(item.state.prints,0);
+            assert.equal(item.state.shares,0);
+          }
+          console.log('WebKit Birthday 2/2 PASS; 6 responsive views; exact JPEGs; distinct poses; zero writes/prints/shares.');
+          NODE
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: premium-welcome-proof-${{ github.run_id }}
+          name: birthday-webkit-proof-${{ github.run_id }}
           path: |
-            apps/booth/welcome-proof/
-            apps/booth/local-welcome-proof/
-            apps/booth/guest-finish-proof/
-            apps/booth/custom-design-proof/
+            apps/booth/birthday-webkit-proof/
             apps/booth/event-design-proof/
           retention-days: 3
