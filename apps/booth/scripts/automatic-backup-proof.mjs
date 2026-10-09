@@ -100,6 +100,10 @@ try{
   const backupServer=createServer(async(request,response)=>{
    const reply=(status,data)=>{response.writeHead(status,{'Content-Type':'application/json','Access-Control-Allow-Origin':proofOrigin,'Access-Control-Allow-Credentials':'true','Access-Control-Allow-Methods':'POST, OPTIONS','Access-Control-Allow-Headers':'Content-Type, Authorization, X-Booth-Event, X-Booth-Capture, X-Booth-Kind'});response.end(JSON.stringify(data));};
    try{
+    // A real loopback connection failure models an HTTP outage while leaving
+    // local-file APIs intact.
+    const backupPost=request.method==='POST'&&['/api/backup/authorize','/api/backup/image'].includes(request.url);
+    if(httpUnavailable||backupPost&&!networkAllowed){request.socket.destroy();return;}
     if(['GET','HEAD'].includes(request.method)){
      const path=new URL(request.url,proofOrigin),upstream=new URL(base);
      upstream.pathname=path.pathname;upstream.search=path.search;
@@ -143,11 +147,8 @@ try{
    const backupPost=request.method()==='POST'&&['/api/backup/authorize','/api/backup/image'].includes(url.pathname);
    if(!['GET','HEAD'].includes(request.method())&&!backupPost){unexpectedWrites.push({method:request.method(),path:url.pathname});return route.abort();}
    if(/^\/(setup|staff|event-prep)(\/|$)/.test(url.pathname)){unexpectedWrites.push({path:url.pathname});return route.abort();}
-   if(httpUnavailable)return route.abort('internetdisconnected');
-   if(backupPost){
-    if(!networkAllowed)return route.abort('internetdisconnected');
-    return route.continue();
-   }
+   // Network failures belong to the actual HTTP fixture above. Continuing
+   // native Blob loads here preserves the browser's local-file APIs.
    return route.continue();
   });
   await context.addInitScript(({config,scope})=>{
@@ -197,7 +198,7 @@ try{
    if(offlineMode==='context.setOffline')await context.setOffline(true);
    else{
     // Pinned WebKit's offline switch also rejects native local Blob reads.
-    // Keep every HTTP request blocked and emit the app's real offline signal,
+    // Fail every real HTTP connection and emit the app's offline signal,
     // while preserving native local-file APIs needed to finish photography.
     await page.evaluate(()=>{window.__automaticBackupOffline=true;Object.defineProperty(navigator,'onLine',{configurable:true,get:()=>!window.__automaticBackupOffline});dispatchEvent(new Event('offline'));});
     outageImageProbe=await localImageProbe(page);
@@ -220,7 +221,8 @@ try{
    // Reload while the application is reachable but backup requests still fail.
    // The durable queue and all pending originals must survive the new document.
    httpUnavailable=false;if(offlineMode==='context.setOffline')await context.setOffline(false);
-   if(offlineMode!=='context.setOffline')await page.evaluate(()=>{window.__automaticBackupOffline=false;dispatchEvent(new Event('online'));});
+   // The new document already observes online. Dispatching just before reload
+   // would start a Blob fingerprint scan in the document being destroyed.
    await page.reload({waitUntil:'networkidle'});
    const reloadedRows=await waitForArchive(page,rows=>rows.length===2&&rows[1].keepsake,'Reloaded pending capture');
    assert.deepEqual(reloadedRows,offlineRows,'reload preserves every queued original and finished JPEG');
