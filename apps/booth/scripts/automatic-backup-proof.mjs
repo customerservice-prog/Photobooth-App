@@ -40,6 +40,7 @@ async function waitReady(page,total){
 }
 async function capture(page,total){
  await page.getByTestId(total===1?'welcome-quick-photo':'welcome-four-photo').click();
+  await page.getByTestId('welcome-start-session').click();
  const deadline=Date.now()+110000;
  while(!await page.getByTestId('approved-guest-preview').count()){
   assert(Date.now()<deadline,total+' photo capture did not finish');
@@ -239,6 +240,7 @@ try{
 
    // An interrupted four-photo sequence still keeps its first original.
    await page.getByTestId('welcome-four-photo').click();
+   await page.getByTestId('welcome-start-session').click();
    await page.waitForFunction(()=>document.querySelector('.pcStage')?.getAttribute('data-completed')==='1',null,{timeout:35000});
    await page.getByRole('button',{name:'Cancel session',exact:true}).click();
    await page.getByTestId('welcome-four-photo').waitFor();

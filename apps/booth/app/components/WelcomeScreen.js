@@ -119,7 +119,7 @@ export default function WelcomeScreen({cfg,eventName,online,starting,installed,p
         <span className="bwCardCTA">{choice==='four'?'Selected':'See this layout'} <Mark name={choice==='four'?'check':'arrow'} size={16}/></span>
        </button>
       </div>
-      <p className="bwChoiceNote"><Mark name={available?'print':'share'} size={17}/>{available?'4×6 printing is included. Digital copies are available.':'Digital copies are available. Ask staff about printing.'}</p>
+      <p className="bwChoiceNote"><Mark name={available?'print':'share'} size={17}/>{available?'4×6 printing is included. Digital copies are available.':'Digital photos and digital copies are available. Ask staff about printing.'}</p>
      </div>
      <div className="bwProofPanel" data-testid="welcome-proof-panel" aria-live="polite">
       <div className="bwProofHeading"><div className="bwStep"><span>02</span> YOUR REAL PRINT PREVIEW</div><span className="bwPaperSize"><Mark name="print" size={15}/> 4 × 6 KEEPSAKE</span></div>
