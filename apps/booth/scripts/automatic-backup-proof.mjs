@@ -86,6 +86,7 @@ try{
   const browser=await api.launch({headless:true,...(engine==='chromium'?{args:['--no-sandbox']}: {})});
   const context=await browser.newContext({viewport:{width:1024,height:768},hasTouch:true,isMobile:true,reducedMotion:'reduce',serviceWorkers:'block'});
   const saved=new Map(),attempts=[],authorizations=[],unexpectedWrites=[],errors=[],boundaryErrors=[],requestFailures=[],diagnosticErrors=[];
+  const exportedSvgBlobURLs=new Set();
   const probeBlobURLs=new Set();
   let networkAllowed=true,httpUnavailable=false,expireFirstUpload=true;
   let proofOrigin;
@@ -155,6 +156,13 @@ try{
    Object.defineProperty(navigator,'share',{configurable:true,value:()=>{window.__backupShares++;throw new Error('Backup proof must not send');}});
    Object.defineProperty(window,'AudioContext',{configurable:true,value:class{constructor(){throw new Error('Use visual countdown in test');}}});
    Object.defineProperty(window,'webkitAudioContext',{configurable:true,value:undefined});
+   const nativeCreateObjectURL=URL.createObjectURL.bind(URL);
+   URL.createObjectURL=blob=>{
+    const result=nativeCreateObjectURL(blob);
+    if(blob?.type?.startsWith('image/svg+xml'))
+     Promise.resolve(window.__automaticBackupRecordExportBlob?.(result)).catch(()=>{});
+    return result;
+   };
    const original=CanvasRenderingContext2D.prototype.drawImage;
    CanvasRenderingContext2D.prototype.drawImage=function(source,...args){if(source instanceof HTMLVideoElement)window.__backupCameraDraws++;return original.call(this,source,...args);};
    Object.defineProperty(navigator,'mediaDevices',{configurable:true,value:{getUserMedia:async options=>{
@@ -166,6 +174,7 @@ try{
    }}});
   },{config,scope});
   const page=await context.newPage();page.setDefaultTimeout(15000);
+  await page.exposeFunction('__automaticBackupRecordExportBlob',url=>{if(typeof url!=='string'||!url.startsWith('blob:'+proofOrigin+'/'))throw new Error('Unexpected SVG export origin');exportedSvgBlobURLs.add(url);});
   page.on('pageerror',error=>{
    // WebKit occasionally attributes a native diagnostic Blob error to this
    // page. Its exact registered URL remains diagnostic even if delivered late.
@@ -266,9 +275,18 @@ try{
    assert.equal(attempts.length,attemptsBeforeReload,'acknowledged images are not uploaded again after reload');
    assert.deepEqual(await archive(page),archived,'upload acknowledgments never remove the local archive');
    assert.deepEqual(await page.evaluate(({config,usage})=>({config:localStorage.getItem(config),usage:localStorage.getItem(usage)}),scope),before,'automatic backup leaves the approved design and print allowance unchanged');
-   assert.deepEqual(unexpectedWrites,[]);assert.deepEqual(errors,[]);assert.deepEqual(boundaryErrors,[]);
-   results.push({engine,passed:true,release,browserVersion:browser.version(),sessions:3,originals:6,collages:2,finishedDesigns:2,backendFiles:saved.size,exactJPEGBytes:true,automaticWithoutStaff:true,expiredTicketRenewed:true,offlineCaptureAndReload:true,interruptedOriginalRetained:true,acknowledgmentsDeduplicated:true,offlineMode,offlineImageProbe,outageImageProbe,diagnosticErrors,probeBlobURLs:[...probeBlobURLs],serverBoundary:'local HTTP fixture with actual wire bytes; authorization and database verified by separate tests',unexpectedWrites});
-  }catch(error){await page.screenshot({path:out+'/'+engine+'-failure.png',fullPage:true}).catch(()=>{});results.push({engine,passed:false,message:error.message,stack:error.stack,unexpectedWrites,errors,diagnosticErrors,probeBlobURLs:[...probeBlobURLs],boundaryErrors,requestFailures,authorizations:authorizations.length,attempts,saved:saved.size,offlineMode,offlineImageProbe,outageImageProbe,status:await page.evaluate(id=>JSON.parse(localStorage.getItem('friendly-booth-backup-status-v1-'+id)||'null'),eventId).catch(()=>null)});throw error;}
+   // The actual iPad export first attempts a local SVG Blob and uses the
+   // identical SVG via a data URL if WebKit's offline emulator rejects it.
+   // Only a precisely recorded export Blob URL can be recovered; the exact
+   // original JPEGs, finished JPEGs and server acknowledgements above must
+   // all have passed before this exception is classified.
+   const recoveredFallbackErrors=engine==='webkit'&&offlineImageProbe?
+    errors.filter(message=>isRegisteredProbeBlobError(engine,message,exportedSvgBlobURLs)):[];
+   diagnosticErrors.push(...recoveredFallbackErrors);
+   const remainingErrors=errors.filter(message=>!recoveredFallbackErrors.includes(message));
+   assert.deepEqual(unexpectedWrites,[]);assert.deepEqual(remainingErrors,[]);assert.deepEqual(boundaryErrors,[]);
+   results.push({engine,passed:true,release,browserVersion:browser.version(),sessions:3,originals:6,collages:2,finishedDesigns:2,backendFiles:saved.size,exactJPEGBytes:true,automaticWithoutStaff:true,expiredTicketRenewed:true,offlineCaptureAndReload:true,interruptedOriginalRetained:true,acknowledgmentsDeduplicated:true,offlineMode,offlineImageProbe,outageImageProbe,diagnosticErrors,recoveredFallbackErrors,exportedSvgBlobURLs:[...exportedSvgBlobURLs],probeBlobURLs:[...probeBlobURLs],serverBoundary:'local HTTP fixture with actual wire bytes; authorization and database verified by separate tests',unexpectedWrites});
+  }catch(error){await page.screenshot({path:out+'/'+engine+'-failure.png',fullPage:true}).catch(()=>{});results.push({engine,passed:false,message:error.message,stack:error.stack,unexpectedWrites,errors,diagnosticErrors,exportedSvgBlobURLs:[...exportedSvgBlobURLs],probeBlobURLs:[...probeBlobURLs],boundaryErrors,requestFailures,authorizations:authorizations.length,attempts,saved:saved.size,offlineMode,offlineImageProbe,outageImageProbe,status:await page.evaluate(id=>JSON.parse(localStorage.getItem('friendly-booth-backup-status-v1-'+id)||'null'),eventId).catch(()=>null)});throw error;}
   finally{await diagnosticPage.close();await context.close();await browser.close();await new Promise(resolve=>backupServer.close(resolve));}
  }
  console.log(JSON.stringify(results,null,2));
