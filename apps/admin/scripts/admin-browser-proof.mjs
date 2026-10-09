@@ -28,9 +28,17 @@ async function ownerHome(){
  pass('owner-home-three-stages-and-three-primary-links');
 }
 async function preview(design,name,year=''){
- await page.waitForFunction(({design,name,year})=>{const nodes=[...document.querySelectorAll('[data-testid="owner-design-proof"] svg')];return nodes.length===2&&nodes.every(svg=>svg.getAttribute('data-design')?.endsWith('-'+design)&&svg.textContent.includes(name))&&(!year||nodes[1].textContent.includes(year));},{design,name,year});
- for(const n of [1,4]){assert.equal(await page.getByTestId('owner-proof-'+n).locator('svg').count(),1);assert.equal(await page.getByTestId('owner-proof-'+n).locator('[data-guest-photo="true"]').count(),0);}
+ const key=design.replace(/^fpr-/,'');
+ await page.waitForFunction(({key,name,year})=>{
+  const nodes=[...document.querySelectorAll('[data-testid="owner-design-proof"] svg')];
+  return nodes.length===2&&nodes.every(svg=>svg.getAttribute('data-fpr-preset')===key&&svg.textContent.includes(name))&&(!year||nodes[1].textContent.includes(year));
+ },{key,name,year});
+ for(const n of [1,4]){
+  assert.equal(await page.getByTestId('owner-proof-'+n).locator('svg').count(),1);
+  assert.equal(await page.getByTestId('owner-proof-'+n).locator('[data-guest-photo="true"]').count(),0);
+ }
 }
+
 try{
  const context=await browser.newContext({viewport:{width:1440,height:900}});
  if(readonly)await context.route('**/*',route=>{const request=route.request(),url=new URL(request.url());if(url.origin!==new URL(base).origin||!['GET','HEAD'].includes(request.method())&&url.pathname!=='/api/auth/login')return route.abort();return route.continue();});
@@ -52,13 +60,26 @@ try{
  await page.screenshot({animations:'disabled',path:'admin-proof/event-before-desktop.png',fullPage:true});
  await page.getByRole('link',{name:/Edit event/}).first().click();
  await page.getByRole('heading',{name:'Details and approved design',exact:true}).waitFor();
- const original={format:await page.locator('input[name="format"]').inputValue(),strips:await page.locator('input[name="strips"]').inputValue(),booth:await page.locator('select[name="boothId"]').inputValue(),template:await page.locator('select[name="templateId"]').inputValue()};
+ const original={format:await page.locator('input[name="format"]').inputValue(),strips:await page.locator('input[name="strips"]').inputValue(),booth:await page.locator('select[name="boothId"]').inputValue(),template:await page.locator('input[name="templateId"]').inputValue()};
  assert.equal(await page.locator('details#experience').getAttribute('open'),null);assert.equal(await page.getByTestId('owner-event-advanced').getAttribute('open'),null);
- assert.equal(await page.locator('.ownerDesignChoice').count(),2,'only standard or custom');
- await page.locator('input[name="nameOnPrint"]').fill('Test Celebration');await preview('ivory','Test Celebration');
- await page.locator('input[name="date"]').fill('2026-10-12');await page.waitForFunction(()=>[...document.querySelectorAll('[data-testid="owner-design-proof"] svg')].every(svg=>[...svg.querySelectorAll('[data-copy]')].some(node=>node.getAttribute('data-copy')==='October 12, 2026')));await page.locator('input[name="date"]').fill('2026-10-10');
- await page.locator('select[name="eventType"]').selectOption('Graduation');await page.getByTestId('owner-design-standard').click();await page.locator('input[name="classYear"]').fill('2027');await preview('grad-gala','Test Celebration','2027');
- await page.locator('input[name="classYear"]').fill('');await page.locator('select[name="eventType"]').selectOption('Party');await page.getByTestId('owner-design-standard').click();await preview('ivory','Test Celebration');
+ assert.equal(await page.locator('.ownerDesignChoice').count(),6,'exactly five approved presets plus custom');
+ for(const name of ['graduation','wedding','birthday','quince','corporate'])
+  assert(await page.getByTestId('owner-preset-'+name).isVisible());
+ await page.locator('input[name="nameOnPrint"]').fill('Test Celebration');
+ await preview('fpr-birthday','Test Celebration');
+ await page.getByTestId('owner-preset-wedding').click();
+ await preview('fpr-wedding','Test Celebration');
+ await page.locator('input[name="date"]').fill('2026-10-12');
+ await page.waitForFunction(()=>[...document.querySelectorAll('[data-testid="owner-design-proof"] svg')].every(svg=>svg.textContent.includes('October 12, 2026')));
+ await page.locator('input[name="date"]').fill('2026-10-10');
+ await page.locator('select[name="eventType"]').selectOption('Graduation');
+ await page.getByTestId('owner-preset-graduation').click();
+ await page.locator('input[name="classYear"]').fill('2027');
+ await preview('fpr-graduation','Test Celebration','2027');
+ await page.locator('input[name="classYear"]').fill('');
+ await page.locator('select[name="eventType"]').selectOption('Party');
+ await page.getByTestId('owner-preset-birthday').click();
+ await preview('fpr-birthday','Test Celebration');
  const formData=await page.locator('form.ownerEventForm').evaluate(form=>Object.fromEntries(new FormData(form)));for(const [field,key]of [['format','format'],['strips','strips'],['boothId','booth'],['templateId','template']])assert.equal(formData[field],original[key]);
  pass('live-name-date-year-matching-one-four-proofs-and-closed-legacy-fields');
  await page.getByTestId('owner-event-advanced').locator('summary').click();
@@ -84,7 +105,7 @@ try{
  if(!readonly){assert.equal(shareData.limit,0);
  assert.equal(shareData.f,'one');
  assert.equal(shareData.p,9);
- assert.equal(shareData.s,Number(original.strips));assert.equal(shareData.design,'ivory');assert.equal(shareData.name,'Test Celebration');}assert.equal(shareData.guest,'approved');
+ assert.equal(shareData.s,Number(original.strips));assert.equal(shareData.design,'fpr-birthday');assert.equal(shareData.name,'Test Celebration');}assert.equal(shareData.guest,'approved');
  assert(!JSON.stringify(shareData).includes('test@example.invalid'));
  await page.getByTestId('event-handoff-qr').waitFor({timeout:15000});
  await page.screenshot({animations:'disabled',path:'admin-proof/send-to-booth-qr.png'});
@@ -100,7 +121,7 @@ try{
  assert.equal(event.theme.boothExperience.featured,'one');
  assert.equal(event.theme.boothExperience.pauseSeconds,9);
  assert.equal(event.theme.boothExperience.format,original.format);
- assert.equal(String(event.theme.boothExperience.strips),original.strips);assert.equal(event.theme.boothExperience.approvedDesign,'ivory');assert.equal(event.theme.boothExperience.nameOnPrint,'Test Celebration');
+ assert.equal(String(event.theme.boothExperience.strips),original.strips);assert.equal(event.theme.boothExperience.approvedDesign,'fpr-birthday');assert.equal(event.theme.boothExperience.nameOnPrint,'Test Celebration');
  assert.equal(event.boothId,original.booth);assert.equal(event.templateId,original.template);assert.equal(event.customer.email,'test@example.invalid');
  assert.equal(event.theme.boothExperience.primary,'#855665');
  assert.equal(event.theme.boothExperience.accent,'#e4b4a1');
@@ -114,7 +135,7 @@ try{
  await page.getByTestId('custom-heading').fill('Approved customer artwork');
  await page.getByTestId('custom-footer').fill('Celebrate together');
  await page.waitForFunction(()=>[...document.querySelectorAll('[data-testid="owner-design-proof"] svg')].every(svg=>svg.textContent.includes('Approved customer artwork')));
- assert.equal(await page.locator('.ownerDesignChoice').count(),2);
+ assert.equal(await page.locator('.ownerDesignChoice').count(),6);
  const built=JSON.parse(await page.locator('input[name="customDesign"]').inputValue());
  assert.equal(built.mode,'build');assert.equal(built.layouts.one.rects.length,1);assert.equal(built.layouts.four.rects.length,4);
  await page.screenshot({animations:'disabled',path:'admin-proof/custom-built-desktop.png',fullPage:true});

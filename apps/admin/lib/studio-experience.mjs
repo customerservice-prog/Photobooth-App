@@ -1,6 +1,7 @@
 // Pure event UI and form helpers. No database migrations: booth experience settings
 // live inside the Event.theme JSON already present in the existing schema.
 import {validateCustomDesign,isValidCustomDesign} from '../../booth/app/lib/custom-design.mjs';
+import {isFprPrintPreset} from '../../booth/app/lib/fpr-print-presets.mjs';
 export const BOOTH_URL='https://photobooth-booth-production.up.railway.app';
 export const BOOTH_SETUP_URL=BOOTH_URL+'/setup';
 export const BOOTH_PREPARATION_URL=BOOTH_URL+'/event-prep';
@@ -25,7 +26,7 @@ export function standardDesignFor(type){
  if(value.includes('corporate'))return 'blush';
  return 'ivory';
 }
-export function approvedDesignFor(type,choice){return choice==='custom'?'custom':/graduation/i.test(String(type||''))&&choice==='grad-gala'?'grad-gala':/quince/i.test(String(type||''))&&choice==='quince-royal'?'quince-royal':['ivory','blush','champagne'].includes(choice)?choice:standardDesignFor(type);}
+export function approvedDesignFor(type,choice){return choice==='custom'?'custom':isFprPrintPreset(choice)?choice:/graduation/i.test(String(type||''))&&choice==='grad-gala'?'grad-gala':/quince/i.test(String(type||''))&&choice==='quince-royal'?'quince-royal':['ivory','blush','champagne'].includes(choice)?choice:standardDesignFor(type);}
 export function toLocalDay(value){
  const d=value instanceof Date?value:new Date(value);
  return Number.isFinite(d.getTime())?d.toISOString().slice(0,10):'';

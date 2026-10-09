@@ -45,7 +45,7 @@ export default async function EditEventPage({params}){
     <div className="formSection ownerAdvancedFields">
      <div className="formGrid">
       <F label="Physical photo booth"><select className="input" name="boothId" defaultValue={event.boothId||''}><option value="">Choose a booth…</option>{booths.map(booth=><option key={booth.id} value={booth.id}>{booth.name} · {booth.status==='MAINTENANCE'?'Maintenance':booth.status==='ONLINE'?'Marked online':'Marked offline'}</option>)}</select></F>
-      <F label="Legacy print design record (optional)" hint="The approved design above is used for guest photos."><select className="input" name="templateId" defaultValue={event.templateId||''}><option value="">No legacy record</option>{event.templateId&&!templates.some(template=>template.id===event.templateId)&&<option value={event.templateId}>{event.template?.name||'Existing saved design record'} · saved with this event</option>}{templates.map(template=><option key={template.id} value={template.id}>{template.name} · {template.format.replaceAll('_',' ')}</option>)}</select></F>
+      <input type="hidden" name="templateId" value={event.templateId||''}/>
      </div>
      {!booths.length&&<p className="warningNote">No booth is registered yet. <Link href="/booths/new">Register the photo booth →</Link></p>}
      <div className="formGrid ownerVenueFields" id="printing">
