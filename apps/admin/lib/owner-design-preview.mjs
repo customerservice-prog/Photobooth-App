@@ -11,7 +11,7 @@ export function ownerEventFamily(eventType){
  const type=String(eventType||'').toLowerCase();
  return ['wedding','birthday','mitzvah','graduation','corporate'].find(kind=>type.includes(kind))||'other';
 }
-export function ownerApprovedDesigns(eventType){return getDesigns(ownerEventFamily(eventType));}
+export function ownerApprovedDesigns(eventType){return getDesigns(ownerEventFamily(eventType)).filter(design=>design.id!=='quince-royal'||/quince/i.test(String(eventType||'')));}
 export function ownerRecommendedDesign(eventType){return ownerApprovedDesigns(eventType).find(design=>design.id===standardDesignFor(eventType));}
 export function ownerPreviewConfig({eventType,eventName,eventDate,experience={}}={}){
  const day=String(eventDate||''),date=new Date(day+'T12:00:00.000Z');

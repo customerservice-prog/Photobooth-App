@@ -48,6 +48,7 @@ jobs:
           done
           node scripts/guest-finish-proof.mjs
           CUSTOM_DESIGN_PROOF=1 node scripts/guest-finish-proof.mjs
+          EVENT_DESIGN_PROOF=1 node scripts/guest-finish-proof.mjs
       - name: Welcome and event-setup browser proof
         run: |
           BOOTH_PROOF_NEXT_CLI=$(node -p 'require.resolve("next/dist/bin/next")')
@@ -78,6 +79,7 @@ jobs:
           node scripts/welcome-live-proof.mjs
           GUEST_FINISH_BASE_URL="$WELCOME_BASE_URL" node scripts/guest-finish-proof.mjs
           CUSTOM_DESIGN_PROOF=1 GUEST_FINISH_BASE_URL="$WELCOME_BASE_URL" node scripts/guest-finish-proof.mjs
+          EVENT_DESIGN_PROOF=1 GUEST_FINISH_BASE_URL="$WELCOME_BASE_URL" node scripts/guest-finish-proof.mjs
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -87,4 +89,5 @@ jobs:
             apps/booth/local-welcome-proof/
             apps/booth/guest-finish-proof/
             apps/booth/custom-design-proof/
+            apps/booth/event-design-proof/
           retention-days: 3

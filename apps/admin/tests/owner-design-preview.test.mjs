@@ -37,14 +37,16 @@ test('every owner artwork proof matches both guest layouts after real handoff',(
    designs++;
   }
  }
- assert.equal(designs,25); // Party, Quinceañera and Other celebration use the Other family.
+ assert.equal(designs,26); // Quinceañera adds its royal artwork without changing saved Other designs.
 });
 test('owner preview resolves occasion names and retains stored design IDs',()=>{
  assert.equal(ownerEventFamily('Bar / Bat Mitzvah'),'mitzvah');
  assert.equal(ownerEventFamily('wedding'),'wedding');
  assert.equal(ownerEventFamily('Party'),'other');
  assert.equal(ownerEventFamily('Quinceañera'),'other');
- assert.equal(ownerApprovedDesigns('Quinceañera').length,3);
+ assert.equal(ownerApprovedDesigns('Quinceañera').length,4);
+ assert.equal(ownerApprovedDesigns('Quinceañera').at(-1).id,'quince-royal');
+ assert.equal(ownerApprovedDesigns('Party').length,3);
  assert.equal(ownerApprovedDesigns('Graduation').at(-1).id,'grad-gala');
  assert.equal(ownerApprovedDesigns('Wedding')[0].name,'Rosewater Romance');
  const cfg=ownerPreviewConfig({eventType:'Wedding',eventName:'Our wedding',eventDate:'2027-06-10',experience:{approvedDesign:'grad-gala'}});

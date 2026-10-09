@@ -7,7 +7,7 @@ const poses=[1,2,3,4].map(n=>'data:image/jpeg;base64,/9j/AA'+n+'=');
 const guestImages=svg=>Array.from(svg.matchAll(/<image\b(?=[^>]*data-guest-photo="true")[^>]*\/>/g),m=>m[0]);
 const attr=(tag,name)=>tag.match(new RegExp(' '+name+'="([^"]*)"'))?.[1];
 function outsidePhotoRegion(svg){
- const start=svg.indexOf('<g clip-path="url(#proof-photo)">');
+ const start=svg.includes('data-design="other-quince-royal"')?svg.indexOf('<g data-quince-photo-region="true"'):svg.indexOf('<g clip-path="url(#proof-photo)">');
  assert(start>=0,'template has its original photo frame');
  const groups=/<\/?g\b[^>]*>/g;groups.lastIndex=start;
  let depth=0,end=-1,match;

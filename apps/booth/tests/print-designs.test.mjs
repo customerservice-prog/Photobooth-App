@@ -2,10 +2,10 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {getDesigns,getDesign,eventCopy,fitText,renderKeepsake,EVENT_LABELS} from '../app/lib/keepsake-designs.mjs';
 for(const type of Object.keys(EVENT_LABELS)){
- test(type+' has distinct selectable compositions',()=>{const d=getDesigns(type),expected=type==='graduation'?4:3;assert.equal(d.length,expected);assert.equal(new Set(d.map(x=>x.layout)).size,expected);assert.deepEqual(d.map(x=>x.id),type==='graduation'?['ivory','blush','champagne','grad-gala']:['ivory','blush','champagne']);});
+ test(type+' has distinct selectable compositions',()=>{const d=getDesigns(type),expected=['graduation','other'].includes(type)?4:3;assert.equal(d.length,expected);assert.equal(new Set(d.map(x=>x.layout)).size,expected);assert.deepEqual(d.map(x=>x.id),type==='graduation'?['ivory','blush','champagne','grad-gala']:type==='other'?['ivory','blush','champagne','quince-royal']:['ivory','blush','champagne']);});
  test(type+' renders three stationary self-contained 4x6 SVGs',()=>{for(const d of getDesigns(type)){const s=renderKeepsake({cfg:{type,title:'Test event',date:'September 21, 2026'},template:d.id});assert(s.includes('viewBox="0 0 1200 1800"'));assert(s.includes('data-design="'+type+'-'+d.id+'"'));assert(!/<animate|<script|<foreignObject|@keyframes|\banimation:/.test(s));}});
 }
-test('all 19 design names are unique',()=>assert.equal(new Set(Object.keys(EVENT_LABELS).flatMap(t=>getDesigns(t).map(d=>d.name))).size,19));
+test('all 20 design names are unique',()=>assert.equal(new Set(Object.keys(EVENT_LABELS).flatMap(t=>getDesigns(t).map(d=>d.name))).size,20));
 test('unknown inputs resolve to safe default design',()=>assert.equal(getDesign('nonsense','bad').layout,'botanical'));
 test('wedding spouse names and venue personalize every layout',()=>{const cfg={type:'wedding',title:'old',details:{partner1:'Alex',partner2:'Jordan',venue:'The Garden House'}};for(const d of getDesigns('wedding')){const s=renderKeepsake({cfg,template:d.id});assert(s.includes('Alex &amp; Jordan'));assert(s.includes('The Garden House'));}});
 test('birthday age and name drive actual artwork',()=>{const c=eventCopy({type:'birthday',details:{honoree:'Taylor',age:'30'}});assert.equal(c.title,'Taylor');assert.equal(c.seal,'30');assert.equal(c.eyebrow,'HAPPY BIRTHDAY');});

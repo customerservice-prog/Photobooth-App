@@ -33,7 +33,7 @@ async function withSyncSecret(work){
 }
 test('new event defaults match each occasion and valid saved design IDs remain selected',()=>{
  const cases=[['Graduation','grad-gala'],['Wedding','ivory'],['Birthday','ivory'],
-  ['Bar / Bat Mitzvah','blush'],['Corporate','champagne'],['Party','ivory'],['Quinceañera','ivory']];
+  ['Bar / Bat Mitzvah','blush'],['Corporate','blush'],['Party','ivory'],['Quinceañera','quince-royal']];
  for(const [eventType,expected]of cases){
   assert.equal(standardDesignFor(eventType),expected,eventType);
   assert.equal(experienceFrom({eventType}).approvedDesign,expected,eventType+' default view');
@@ -47,6 +47,8 @@ test('new event defaults match each occasion and valid saved design IDs remain s
  }
  assert.equal(approvedDesignFor('Wedding','grad-gala'),'ivory');
  assert.equal(approvedDesignFor('Graduation','grad-gala'),'grad-gala');
+ assert.equal(approvedDesignFor('Wedding','quince-royal'),'ivory');
+ assert.equal(approvedDesignFor('Quinceañera','quince-royal'),'quince-royal');
 });
 test('paired custom artwork persists without changing metadata or saved fields omitted by the editor',()=>{
  const spec=artwork('upload'),before=JSON.stringify(spec);
