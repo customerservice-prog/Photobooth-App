@@ -4,6 +4,7 @@ import {createServer,request as httpRequest} from 'node:http';
 import {chromium,webkit} from 'playwright';
 import {octoberPreset,workspace} from '../app/lib/event-workspace.mjs';
 import {BOOTH_RELEASE} from '../app/lib/booth-launch.mjs';
+import {isRegisteredProbeBlobError} from './automatic-backup-diagnostics.mjs';
 
 // Exercise the real capture, IndexedDB queue and coordinator in isolated storage.
 // Only the backup HTTP boundary is mocked; server authorization and PostgreSQL
@@ -63,6 +64,7 @@ async function localImageProbe(page){
   const canvas=document.createElement('canvas');canvas.width=10;canvas.height=10;canvas.getContext('2d').fillRect(0,0,10,10);
   const svg='<svg xmlns="http://www.w3.org/2000/svg" width="10" height="10"><image href="'+canvas.toDataURL('image/jpeg')+'" width="10" height="10"/></svg>';
   const svgBlob=new Blob([svg],{type:'image/svg+xml;charset=utf-8'}),blob=URL.createObjectURL(svgBlob),data='data:image/svg+xml;charset=utf-8,'+encodeURIComponent(svg);
+  await window.__automaticBackupProbeBlobURL(blob);
   const load=src=>new Promise(resolve=>{const image=new Image(),timer=setTimeout(()=>finish(false),2000);const finish=ok=>{clearTimeout(timer);image.onload=null;image.onerror=null;resolve(ok);};image.onload=()=>finish(true);image.onerror=()=>finish(false);image.src=src;});
   const arrayBuffer=async value=>{if(!value)return false;let timer;try{return await Promise.race([value.arrayBuffer().then(bytes=>bytes.byteLength===value.size,()=>false),new Promise(resolve=>{timer=setTimeout(()=>resolve(false),1000);})]);}finally{clearTimeout(timer);}};
   const fileReader=value=>new Promise(resolve=>{if(!value)return resolve(false);const reader=new FileReader(),timer=setTimeout(()=>finish(false),1000);const finish=ok=>{clearTimeout(timer);reader.onload=null;reader.onerror=null;resolve(ok);};reader.onload=()=>finish(typeof reader.result==='string'&&reader.result.startsWith('data:'));reader.onerror=()=>finish(false);reader.readAsDataURL(value);});
@@ -84,6 +86,7 @@ try{
   const browser=await api.launch({headless:true,...(engine==='chromium'?{args:['--no-sandbox']}: {})});
   const context=await browser.newContext({viewport:{width:1024,height:768},hasTouch:true,isMobile:true,reducedMotion:'reduce',serviceWorkers:'block'});
   const saved=new Map(),attempts=[],authorizations=[],unexpectedWrites=[],errors=[],boundaryErrors=[],requestFailures=[],diagnosticErrors=[];
+  const probeBlobURLs=new Set();
   let networkAllowed=true,httpUnavailable=false,expireFirstUpload=true;
   let proofOrigin;
   let offlineImageProbe,outageImageProbe,offlineMode='context.setOffline';
@@ -163,11 +166,16 @@ try{
    }}});
   },{config,scope});
   const page=await context.newPage();page.setDefaultTimeout(15000);
-  page.on('pageerror',error=>errors.push(error.message));
+  page.on('pageerror',error=>{
+   // WebKit occasionally attributes a native diagnostic Blob error to this
+   // page. Its exact registered URL remains diagnostic even if delivered late.
+   (isRegisteredProbeBlobError(engine,error.message,probeBlobURLs)?diagnosticErrors:errors).push(error.message);
+  });
   // Native-file diagnostics run in a separate document with no application
   // code, under the same context/network state. WebKit may emit deferred
   // internal Blob-reader errors here; every actual app error still fails.
   const diagnosticPage=await context.newPage();
+  await diagnosticPage.exposeFunction('__automaticBackupProbeBlobURL',url=>{assert(url.startsWith('blob:'+proofOrigin+'/'));probeBlobURLs.add(url);});
   diagnosticPage.on('pageerror',error=>diagnosticErrors.push(error.message));
   const probeLocalFiles=()=>localImageProbe(diagnosticPage);
   page.on('requestfailed',request=>{if(request.url().includes('/api/backup/'))requestFailures.push({path:new URL(request.url()).pathname,error:request.failure()?.errorText});});
@@ -259,8 +267,8 @@ try{
    assert.deepEqual(await archive(page),archived,'upload acknowledgments never remove the local archive');
    assert.deepEqual(await page.evaluate(({config,usage})=>({config:localStorage.getItem(config),usage:localStorage.getItem(usage)}),scope),before,'automatic backup leaves the approved design and print allowance unchanged');
    assert.deepEqual(unexpectedWrites,[]);assert.deepEqual(errors,[]);assert.deepEqual(boundaryErrors,[]);
-   results.push({engine,passed:true,release,browserVersion:browser.version(),sessions:3,originals:6,collages:2,finishedDesigns:2,backendFiles:saved.size,exactJPEGBytes:true,automaticWithoutStaff:true,expiredTicketRenewed:true,offlineCaptureAndReload:true,interruptedOriginalRetained:true,acknowledgmentsDeduplicated:true,offlineMode,offlineImageProbe,outageImageProbe,diagnosticErrors,serverBoundary:'local HTTP fixture with actual wire bytes; authorization and database verified by separate tests',unexpectedWrites});
-  }catch(error){await page.screenshot({path:out+'/'+engine+'-failure.png',fullPage:true}).catch(()=>{});results.push({engine,passed:false,message:error.message,stack:error.stack,unexpectedWrites,errors,diagnosticErrors,boundaryErrors,requestFailures,authorizations:authorizations.length,attempts,saved:saved.size,offlineMode,offlineImageProbe,outageImageProbe,status:await page.evaluate(id=>JSON.parse(localStorage.getItem('friendly-booth-backup-status-v1-'+id)||'null'),eventId).catch(()=>null)});throw error;}
+   results.push({engine,passed:true,release,browserVersion:browser.version(),sessions:3,originals:6,collages:2,finishedDesigns:2,backendFiles:saved.size,exactJPEGBytes:true,automaticWithoutStaff:true,expiredTicketRenewed:true,offlineCaptureAndReload:true,interruptedOriginalRetained:true,acknowledgmentsDeduplicated:true,offlineMode,offlineImageProbe,outageImageProbe,diagnosticErrors,probeBlobURLs:[...probeBlobURLs],serverBoundary:'local HTTP fixture with actual wire bytes; authorization and database verified by separate tests',unexpectedWrites});
+  }catch(error){await page.screenshot({path:out+'/'+engine+'-failure.png',fullPage:true}).catch(()=>{});results.push({engine,passed:false,message:error.message,stack:error.stack,unexpectedWrites,errors,diagnosticErrors,probeBlobURLs:[...probeBlobURLs],boundaryErrors,requestFailures,authorizations:authorizations.length,attempts,saved:saved.size,offlineMode,offlineImageProbe,outageImageProbe,status:await page.evaluate(id=>JSON.parse(localStorage.getItem('friendly-booth-backup-status-v1-'+id)||'null'),eventId).catch(()=>null)});throw error;}
   finally{await diagnosticPage.close();await context.close();await browser.close();await new Promise(resolve=>backupServer.close(resolve));}
  }
  console.log(JSON.stringify(results,null,2));
