@@ -36,6 +36,19 @@ jobs:
         run: mkdir -p welcome-proof && npm run test:delivery 2>&1 | tee welcome-proof/unit-tests.log
       - name: Real production build
         run: npm run build 2>&1 | tee welcome-proof/build.log
+      - name: Welcome and event-setup browser proof
+        run: |
+          BOOTH_PROOF_NEXT_CLI=$(node -p 'require.resolve("next/dist/bin/next")')
+          node "$BOOTH_PROOF_NEXT_CLI" start -p 3000 > welcome-proof/server.log 2>&1 &
+          SERVER_PID=$!
+          trap 'kill $SERVER_PID 2>/dev/null || true' EXIT
+          for i in $(seq 1 60); do
+            if curl -fsS http://127.0.0.1:3000/api/app-version > /dev/null; then break; fi
+            sleep 1
+          done
+          node scripts/welcome-proof.mjs
+          node scripts/preparation-layout-proof.mjs
+          node scripts/event-studio-proof.mjs
       - name: Finished-photo and custom-artwork browser proof
         run: |
           BOOTH_PROOF_NEXT_CLI=$(node -p 'require.resolve("next/dist/bin/next")')
@@ -49,15 +62,6 @@ jobs:
           node scripts/guest-finish-proof.mjs
           CUSTOM_DESIGN_PROOF=1 node scripts/guest-finish-proof.mjs
           EVENT_DESIGN_PROOF=1 node scripts/guest-finish-proof.mjs
-      - name: Welcome and event-setup browser proof
-        run: |
-          BOOTH_PROOF_NEXT_CLI=$(node -p 'require.resolve("next/dist/bin/next")')
-          node "$BOOTH_PROOF_NEXT_CLI" start -p 3000 > welcome-proof/server.log 2>&1 &
-          SERVER_PID=$!
-          trap 'kill $SERVER_PID 2>/dev/null || true' EXIT
-          node scripts/welcome-proof.mjs
-          node scripts/preparation-layout-proof.mjs
-          node scripts/event-studio-proof.mjs
       - name: Browser proof against deployed Railway booth
         if: github.ref == 'refs/heads/main'
         env:

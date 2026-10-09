@@ -121,7 +121,7 @@ try{
   assert.equal(await page.getByTestId('setup-one-photo').getAttribute('aria-pressed'),'false');
   await page.getByTestId('setup-pause-seconds').selectOption('9');
   await page.getByRole('button',{name:/Next: personalize/}).click();
-  assert.equal(await page.locator('.ksLookCard').count(),3);
+  assert.equal(await page.locator('.ksLookCard').count(),4,'Other keeps its three saved designs plus Royal Quinceañera');
   assert.equal(await page.locator('.ksPaletteGrid button').count(),6);
   await page.getByTestId('setup-preview-strip').click();
   await page.waitForFunction(()=>document.querySelector('.ksPreviewPaper svg')?.getAttribute('data-layout')==='photo_strip');
