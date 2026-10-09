@@ -11,7 +11,7 @@ export async function assertFinishedGuest(page,total){
  assert.equal(await preview.locator('.agDock button').count(),3,'guest has only Print, Send and Done');
  assert.equal(await page.getByTestId('approved-retake').count(),0,'retake is not another guest design control');
  assert.match(await page.getByTestId('approved-print').innerText(),/^Print/);
- assert.equal(await page.getByTestId('approved-digital-copy').innerText(),'Send');
+ assert.equal((await page.getByTestId('approved-digital-copy').innerText()).trim(),'Send');
  assert.match(await page.getByTestId('approved-done').innerText(),/^Done/);
  assert.equal(await page.locator('.ksGallery,.ksAdjustments,.ksPhotoTools,[data-testid="layout-card"],[data-testid="layout-strip"]').count(),0,'guest cannot change the preloaded look or photo layout');
  assert.equal(await preview.locator('input,select,textarea').count(),0,'finished preview has no adjustment forms');
