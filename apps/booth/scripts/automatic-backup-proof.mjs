@@ -167,9 +167,9 @@ try{
   const page=await context.newPage();page.setDefaultTimeout(15000);
   await page.exposeFunction('__automaticBackupProbeBlobURL',url=>{assert(url.startsWith('blob:'+proofOrigin+'/'));probeBlobURLs.add(url);});
   page.on('pageerror',error=>{
-   // Only the active diagnostic's exact local Blob URL may be classified as
-   // an expected emulation error. Application errors always remain failures.
-   const knownProbe=engine==='webkit'&&probingLocalFiles&&error.message.endsWith('due to access control checks.')&&[...probeBlobURLs].some(url=>error.message.includes(url.slice(url.indexOf('127.0.0.1'))));
+   // WebKit may deliver a registered diagnostic Blob error after its probe ends.
+   // Ignore only that exact registered URL. All unrelated app errors still fail.
+   const knownProbe=engine==='webkit'&&error.message.endsWith('due to access control checks.')&&[...probeBlobURLs].some(url=>error.message.includes(url.slice(url.indexOf('127.0.0.1'))));
    (knownProbe?diagnosticErrors:errors).push(error.message);
   });
   const probeLocalFiles=async()=>{probingLocalFiles=true;try{return await localImageProbe(page);}finally{probingLocalFiles=false;}};

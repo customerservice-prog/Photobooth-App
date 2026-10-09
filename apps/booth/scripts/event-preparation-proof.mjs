@@ -38,7 +38,7 @@ try{
    assert.equal(await page.getByRole('dialog',{name:'Operator controls'}).count(),0);assert((await page.locator('.bwEventMeta').innerText()).includes('4 PM–8 PM'));assert.equal(await page.locator('.bwSessionChoices button').count(),2);assert.equal(await page.getByTestId('welcome-quick-photo').count(),1);assert.equal(await page.getByTestId('welcome-four-photo').count(),1);pass(engine+'-demo-navigation-and-new-york-event-time');
   await page.screenshot({path:`${out}/prep-${engine}-office-demo.png`,fullPage:true});
   if(engine==='chromium'){
-   await page.getByTestId('welcome-four-photo').click();await page.getByTestId('approved-guest-preview').waitFor({timeout:100000});
+   await page.getByTestId('welcome-four-photo').click();await page.getByTestId('welcome-start-session').click();await page.getByTestId('approved-guest-preview').waitFor({timeout:100000});
    await page.getByTestId('approved-finished-jpeg').waitFor({timeout:30000});
    await assertFinishedGuest(page,4);
    assert.equal(await page.getByRole('button',{name:'Send',exact:true}).count(),1,'guests can send the preloaded finished picture');
