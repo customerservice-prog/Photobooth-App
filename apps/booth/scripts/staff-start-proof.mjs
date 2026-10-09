@@ -129,7 +129,10 @@ try{
    const before=await page.evaluate(({scope,other,activeKey})=>Object.fromEntries([scope.config,scope.usage,other.config,other.usage,other.photos,activeKey].map(key=>[key,localStorage.getItem(key)])),{scope,other,activeKey:ACTIVE_EVENT_KEY});
    await page.evaluate(async({source,target})=>{const api=new Function(source.replace(/\bexport /g,'')+'\nreturn {savePose};')();const canvas=document.createElement('canvas');canvas.width=8;canvas.height=8;await api.savePose(target,'other-event-original',1,canvas.toDataURL('image/jpeg'),{title:'Untouched original'});},{source:archiveSource,target:other.archive});
    const otherArchiveBefore=await archive(page,other.archive);
-   await pin(page);assert.equal(await page.getByTestId('staff-event-select').inputValue(),eventId,'owner link selects only the intended booking');
+   await pin(page);
+   await page.waitForFunction(id=>document.querySelector('[data-testid="staff-event-select"]')?.value===id,eventId);
+   await page.getByTestId('staff-start-event').waitFor();
+   assert.equal(await page.getByTestId('staff-event-select').inputValue(),eventId,'owner link selects only the intended booking');
    for(const id of ['fpr-graduation','fpr-wedding','fpr-birthday','fpr-quince','fpr-corporate','custom'])assert(await page.getByTestId('staff-layout-'+id).isVisible());
    assert.equal(await page.locator('[data-testid^="staff-layout-fpr-"]').count(),5);await readyProofs(page);
    for(const id of ['fpr-graduation','fpr-wedding','fpr-birthday','fpr-quince','fpr-corporate']){

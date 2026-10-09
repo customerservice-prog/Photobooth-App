@@ -12,7 +12,8 @@ const pass=name=>results.push({test:name,passed:true});
 const tab=async name=>page.getByRole('tab',{name,exact:true}).click();
 function inspectZip(buffer,count){execFileSync('python3',['-c',"import io,json,sys,zipfile\nz=zipfile.ZipFile(io.BytesIO(sys.stdin.buffer.read()))\nassert z.testzip() is None\nm=json.loads(z.read('manifest.json'))\nassert m['sessions']==int(sys.argv[1])\nassert len(z.namelist())==1+5*m['sessions']\nassert all(not n.startswith('/') and '..' not in n for n in z.namelist())",String(count)],{input:buffer});}
 try{
- for(const [engine,api] of [['chromium',chromium],['webkit',webkit]]){
+ const engines=process.env.WELCOME_CHROMIUM_ONLY==='1'?[['chromium',chromium]]:[['chromium',chromium],['webkit',webkit]];
+ for(const [engine,api] of engines){
   browser=await api.launch({headless:true,...(engine==='chromium'?{args:['--use-fake-ui-for-media-stream','--use-fake-device-for-media-stream']}: {})});
   const context=await browser.newContext({viewport:{width:1366,height:768},acceptDownloads:true,reducedMotion:'reduce',...(engine==='chromium'?{permissions:['camera']}: {})});
   await context.addInitScript(keys=>{if(localStorage.getItem(keys.liveUsage)===null)localStorage.setItem(keys.liveUsage,'17');if(localStorage.getItem(keys.demoUsage)===null)localStorage.setItem(keys.demoUsage,'2');window.__printCalls=0;window.print=()=>{window.__printCalls++;window.dispatchEvent(new Event('afterprint'));};},EVENT_KEYS);
@@ -33,7 +34,8 @@ try{
    await page.getByRole('dialog',{name:'Staff access',exact:true}).waitFor();
    await page.getByTestId('staff-confirm').click();
    await page.getByRole('dialog',{name:'Operator controls',exact:true}).waitFor();
-   assert.equal(await page.getByRole('link',{name:/Event setup/}).getAttribute('href'),'/event-prep');
+   assert.equal(await page.getByTestId('operator-load-event').getAttribute('href'),'/staff/start','staff primary action opens direct event/layout start');
+   assert.equal(await page.getByRole('link',{name:/Advanced local setup/}).getAttribute('href'),'/event-prep','legacy office rehearsal retains its advanced preparation tools');
    await page.getByRole('button',{name:'Close controls',exact:true}).click();
    assert.equal(await page.getByRole('dialog',{name:'Operator controls'}).count(),0);assert((await page.locator('.bwEventMeta').innerText()).includes('4 PM–8 PM'));assert.equal(await page.locator('.bwSessionChoices button').count(),2);assert.equal(await page.getByTestId('welcome-quick-photo').count(),1);assert.equal(await page.getByTestId('welcome-four-photo').count(),1);pass(engine+'-demo-navigation-and-new-york-event-time');
   await page.screenshot({path:`${out}/prep-${engine}-office-demo.png`,fullPage:true});

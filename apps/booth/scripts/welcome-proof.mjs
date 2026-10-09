@@ -64,7 +64,8 @@ async function approvedWelcome(browser,engine){
 }
 let browser;
 try{
- for(const [engine,api] of [['chromium',chromium],['webkit',webkit]]){
+ const engines=process.env.WELCOME_CHROMIUM_ONLY==='1'?[['chromium',chromium]]:[['chromium',chromium],['webkit',webkit]];
+ for(const [engine,api] of engines){
   browser=await api.launch({headless:true,...(engine==='chromium'?{args:['--use-fake-ui-for-media-stream','--use-fake-device-for-media-stream']}: {})});
   const context=await browser.newContext({viewport:{width:1440,height:900},reducedMotion:'reduce',...(engine==='chromium'?{permissions:['camera']}: {})});await setup(context);
   const page=await context.newPage(),errors=[];page.on('pageerror',e=>errors.push(e.message));
@@ -116,7 +117,9 @@ try{
   await page.unroute('**/api/staff/unlock');
   results.push({test:engine+'-four-digit-staff-gate-without-exposing-credential',passed:true});
   await staff.click();await page.getByTestId('staff-confirm').click();
-  await page.getByRole('link',{name:/Event setup/}).click();await page.waitForURL('**/setup');
+  // The primary action above opens direct staff start. Preserve the separate
+  // local rehearsal editor and its saved settings regression coverage.
+  await page.getByRole('link',{name:/Advanced local setup/}).click();await page.waitForURL('**/setup');
   await page.getByTestId('premium-event-setup').waitFor();
   assert.equal(await page.getByTestId('setup-one-photo').getAttribute('aria-pressed'),'false');
   await page.getByTestId('setup-pause-seconds').selectOption('9');
