@@ -63,11 +63,12 @@ export function renderFprPrint(input={}){
   art+=rectOnArt([93,4,232,108],theme.bg);
   art+=caption(ox+210*scale,oy+50*scale,'Class of',Math.round(33*scale),theme.caption,'Georgia,serif')+
    caption(ox+210*scale,oy+95*scale,rw(year||'GRAD',8),Math.round(45*scale),'#ffffff');
-  art+=rectOnArt([59,668,301,77],theme.bg)+caption(ox+210*scale,oy+701*scale,'DREAM BIG',Math.round(22*scale),'#ffffff')+
+  art+=rectOnArt([59,668,301,77],theme.bg)+caption(ox+210*scale,oy+701*scale,rw(name,24),Math.round((name.length>18?15:22)*scale),'#ffffff')+
    caption(ox+210*scale,oy+722*scale,'THE FUTURE IS BRIGHT',Math.round(13*scale),'#ffffff','Arial,sans-serif');
  }else if(theme.key==='wedding'){
-  art+=rectOnArt([98,910,225,38],'#faf8f2');
-  art+=caption(ox+210*scale,oy+937*scale,rw(eventDay,30),Math.round(21*scale),theme.caption);
+  art+=rectOnArt([80,896,260,59],'#faf8f2');
+  art+=caption(ox+210*scale,oy+919*scale,rw(name,28),Math.round((name.length>18?14:17)*scale),theme.caption);
+  art+=caption(ox+210*scale,oy+942*scale,rw(eventDay,30),Math.round(16*scale),theme.caption);
  }else if(theme.key==='quince'){
   art+=rectOnArt([53,886,315,147],'#d8b3ef');
   art+=caption(ox+210*scale,oy+959*scale,rw(name,25),Math.round((name.length>17?28:45)*scale),'#310952');
