@@ -41,8 +41,8 @@ export function backupStatusLabel(status){
  if(status?.state==='syncing')return 'Saving event photos… '+(status.saved||0)+' of '+status.total+' files saved.';
  if(status?.state==='connecting')return 'Connecting this event to its private gallery…';
  if(status?.state==='offline')return 'Saved on this iPad. '+(pending>0?pending+' photo file'+(pending===1?'':'s')+' waiting for Wi-Fi.':'Backup will retry when this iPad is online.');
- if(status?.state==='needs-event-link')return 'Photos are safe on this iPad. Load a fresh iPad setup link from this event’s owner dashboard to reconnect its gallery.';
- if(status?.state==='needs-staff')return 'Photos are safe on this iPad. Unlock staff tools and retry, or load this event’s iPad setup link.';
+ if(status?.state==='needs-event-link')return 'Photos are safe on this iPad. Open Staff tools, choose this event and tap Start event to reconnect its gallery.';
+ if(status?.state==='needs-staff')return 'Photos are safe on this iPad. Unlock staff tools and choose the customer’s event to connect its gallery.';
  if(status?.state==='storage-full')return 'Photos are safe on this iPad. Online gallery storage is full; ask the owner to fix storage, then tap Retry backup now. '+(pending>0?pending+' photo file'+(pending===1?'':'s')+' still need to upload.':'');
  if(status?.state==='retry-later')return 'Photos are safe on this iPad. '+(pending>0?pending+' photo file'+(pending===1?'':'s')+' waiting to back up. ':'')+'Automatic backup will retry while online.';
  return 'Automatic event backup starts when this customer’s event is loaded.';

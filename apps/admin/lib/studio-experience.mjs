@@ -3,6 +3,7 @@
 import {validateCustomDesign,isValidCustomDesign} from '../../booth/app/lib/custom-design.mjs';
 import {isFprPrintPreset} from '../../booth/app/lib/fpr-print-presets.mjs';
 export const BOOTH_URL='https://photobooth-booth-production.up.railway.app';
+export const BOOTH_START_URL=BOOTH_URL+'/staff/start';
 export const BOOTH_SETUP_URL=BOOTH_URL+'/setup';
 export const BOOTH_PREPARATION_URL=BOOTH_URL+'/event-prep';
 export const PHOTO_PAUSES=Object.freeze([6,9,12]);
@@ -124,5 +125,5 @@ export function mergeExperience(theme,form){
  return {...current,boothExperience:e};
 }
 export function guestHandoffMessage(){
- return 'Changes are saved in your private admin dashboard. Send the event setup link to the iPad and apply it once; the approved customer design is then preloaded for 1 Photo and 4 Photos. This page does not silently interrupt a live booth.';
+ return 'Event changes saved. On the booth, choose this event and its layout, then tap Start event.';
 }

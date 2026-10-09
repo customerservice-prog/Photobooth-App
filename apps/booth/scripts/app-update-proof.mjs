@@ -29,7 +29,7 @@ for(const [engine,api] of [['chromium',chromium],['webkit',webkit]]){
    const api=new Function(source.replace(/\bexport /g,'')+'\nreturn {saveCapture};')(),c=document.createElement('canvas');c.width=32;c.height=32;const x=c.getContext('2d');x.fillStyle='#426444';x.fillRect(0,0,32,32);const jpeg=c.toDataURL('image/jpeg');
    await api.saveCapture('oct10-2026:live','update-live-sentinel',jpeg,[jpeg,jpeg,jpeg,jpeg],cfg);await api.saveCapture('oct10-2026:demo','update-demo-sentinel',jpeg,[jpeg,jpeg,jpeg,jpeg],cfg);
   },{cfg,keys:EVENT_KEYS,source:archiveSource});
-  await page.getByTestId('launch-demo').click();await page.getByTestId('welcome-four-photo').waitFor();await page.waitForFunction(()=>!document.querySelector('[data-testid=app-update]')?.disabled);
+  await page.getByTestId('launch-practice').locator('summary').click();await page.getByTestId('launch-demo').click();await page.getByTestId('welcome-four-photo').waitFor();await page.waitForFunction(()=>!document.querySelector('[data-testid=app-update]')?.disabled);
   async function snapshot(){return page.evaluate(async source=>{
    // Compare stored bytes directly, not temporary Blob handles affected by
    // WebKit's offline transport emulation. No photo is rewritten to test it.
