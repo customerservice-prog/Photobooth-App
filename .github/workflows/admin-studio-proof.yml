@@ -6,10 +6,16 @@ on:
       - feature/admin-easy-studio-20261007
     paths:
       - 'apps/admin/**'
+      - 'apps/booth/app/lib/**'
+      - 'apps/booth/scripts/prepare-atelier.mjs'
+      - 'package.json'
       - '.github/workflows/admin-studio-proof.yml'
   pull_request:
     paths:
       - 'apps/admin/**'
+      - 'apps/booth/app/lib/**'
+      - 'apps/booth/scripts/prepare-atelier.mjs'
+      - 'package.json'
       - '.github/workflows/admin-studio-proof.yml'
   workflow_dispatch:
 permissions:
@@ -37,7 +43,7 @@ jobs:
         run: npm install --no-audit --no-fund
       - name: Verify admin settings and readiness logic
         working-directory: apps/admin
-        run: node --test tests/*.test.mjs
+        run: npm test
       - name: Production compile of every admin route
         working-directory: apps/admin
         run: npm run build

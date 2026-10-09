@@ -14,6 +14,7 @@ export const COLORS=Object.freeze([
 ]);
 export const EVENT_TYPES=Object.freeze(['Wedding','Birthday','Bar / Bat Mitzvah','Graduation','Corporate','Party','Other celebration']);
 const get=(data,key)=>String(typeof data?.get==='function'?data.get(key)??'':data?.[key]??'').trim();
+const has=(data,key)=>typeof data?.has==='function'?data.has(key):typeof data?.get==='function'?data.get(key)!==null&&data.get(key)!==undefined:Object.hasOwn(data||{},key);
 const cleanPrintName=(v,n=65)=>String(v??'').replace(/[\u0000-\u001f<>]/g,' ').trim().slice(0,n);
 export function approvedDesignFor(type,choice){return /graduation/i.test(String(type||''))&&choice==='grad-gala'?'grad-gala':['ivory','blush','champagne'].includes(choice)?choice:'champagne';}
 export function toLocalDay(value){
@@ -52,11 +53,13 @@ export function statusText(status){
  return values[status]||String(status||'Not set').replaceAll('_',' ');
 }
 export function readiness(event){
+ const choice=event.theme?.boothExperience?.approvedDesign;
+ const savedDesign=Boolean(choice&&approvedDesignFor(event.eventType,choice)===choice);
  const checks=[
   {id:'customer',title:'Customer details',ready:Boolean(event.customer?.name||event.customerId),href:'client'},
   {id:'venue',title:'Venue and address',ready:Boolean(event.venueName?.trim()&&event.venueAddress?.trim()),href:'venue'},
   {id:'booth',title:'Booth assigned',ready:Boolean(event.boothId||event.booth?.id),href:'equipment'},
-  {id:'design',title:'Approved customer artwork',ready:Boolean(event.templateId||event.template?.id||event.theme?.boothExperience?.approvedDesign),href:'style'}
+  {id:'design',title:'Saved print design',ready:Boolean(event.templateId||event.template?.id||savedDesign),href:'style'}
  ];
  const complete=checks.filter(x=>x.ready).length;
  return {checks,complete,total:checks.length,ready:complete===checks.length,next:checks.find(x=>!x.ready)||null};
@@ -83,26 +86,23 @@ export function experienceFrom(event){
 }
 export function mergeExperience(theme,form){
  const current=theme&&typeof theme==='object'&&!Array.isArray(theme)?theme:{};
- const rawPalette=get(form,'paletteId'),palette=COLORS.find(x=>x.id===rawPalette)||COLORS[0];
- const existing=experienceFrom({theme:current});
- const featured=get(form,'featured')==='one'?'one':'four';
- const pause=Number(get(form,'pauseSeconds'));
- const format=get(form,'format')==='strip'?'strip':'card';
- const strips=get(form,'strips')==='2'?2:1;
- const photoFit=get(form,'photoFit')==='fit'?'fit':'fill';
- const validColor=v=>/^#[\da-f]{6}$/i.test(v)?v.toLowerCase():null;
- const choose=(key,base)=>validColor(get(form,key))||base;
  const original=current.boothExperience&&typeof current.boothExperience==='object'&&!Array.isArray(current.boothExperience)?current.boothExperience:{};
- const e={
-  ...original,...existing,featured,pauseSeconds:PHOTO_PAUSES.includes(pause)?pause:6,
-  format,strips,photoFit,
-  paletteId:palette.id,
-  primary:choose('primaryColor',palette.primary),accent:choose('accentColor',palette.accent),
-  // One design is approved by staff and becomes both guest output formats.
-  approvedDesign:approvedDesignFor(get(form,'eventType'),get(form,'approvedDesign')||original.approvedDesign),
-  nameOnPrint:cleanPrintName(get(form,'nameOnPrint')||original.nameOnPrint,65),
-  classYear:/^\d{4}$/.test(get(form,'classYear'))?get(form,'classYear'):''
- };
+ // Missing fields belong to the saved event, including older settings hidden
+ // by a simpler editor. A submitted blank is a deliberate edit, not omission.
+ const e={...experienceFrom({theme:current}),...original};
+ if(has(form,'featured'))e.featured=get(form,'featured')==='one'?'one':'four';
+ if(has(form,'pauseSeconds')){const pause=Number(get(form,'pauseSeconds'));e.pauseSeconds=PHOTO_PAUSES.includes(pause)?pause:6;}
+ if(has(form,'format'))e.format=get(form,'format')==='strip'?'strip':'card';
+ if(has(form,'strips'))e.strips=get(form,'strips')==='2'?2:1;
+ if(has(form,'photoFit'))e.photoFit=get(form,'photoFit')==='fit'?'fit':'fill';
+ const palette=COLORS.find(x=>x.id===(has(form,'paletteId')?get(form,'paletteId'):e.paletteId))||COLORS[0];
+ if(has(form,'paletteId'))e.paletteId=palette.id;
+ const color=(key,fallback)=>/^#[\da-f]{6}$/i.test(get(form,key))?get(form,key).toLowerCase():fallback;
+ if(has(form,'primaryColor')||has(form,'paletteId'))e.primary=color('primaryColor',palette.primary);
+ if(has(form,'accentColor')||has(form,'paletteId'))e.accent=color('accentColor',palette.accent);
+ if(has(form,'approvedDesign')||has(form,'eventType'))e.approvedDesign=approvedDesignFor(get(form,'eventType'),has(form,'approvedDesign')?get(form,'approvedDesign'):e.approvedDesign);
+ if(has(form,'nameOnPrint'))e.nameOnPrint=cleanPrintName(get(form,'nameOnPrint'),65);
+ if(has(form,'classYear'))e.classYear=/^\d{4}$/.test(get(form,'classYear'))?get(form,'classYear'):'';
  return {...current,boothExperience:e};
 }
 export function guestHandoffMessage(){
