@@ -229,7 +229,8 @@ try{
    // Reload while the application is reachable but backup requests still fail.
    // The durable queue and all pending originals must survive the new document.
    proofPhase='pending-reload';httpUnavailable=false;if(engine==='chromium')await context.setOffline(false);
-   if(offlineMode!=='context.setOffline')await page.evaluate(()=>{window.__automaticBackupOffline=false;dispatchEvent(new Event('online'));});
+   // The new document naturally starts online. Do not start a Blob scan in
+   // the old WebKit document immediately before navigation destroys it.
    await page.reload({waitUntil:'networkidle'});
    const reloadedRows=await waitForArchive(page,rows=>rows.length===2&&rows[1].keepsake,'Reloaded pending capture');
    assert.deepEqual(reloadedRows,offlineRows,'reload preserves every queued original and finished JPEG');
