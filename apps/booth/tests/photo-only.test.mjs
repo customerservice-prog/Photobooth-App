@@ -9,8 +9,14 @@ test('welcome offers one-photo and four-photo still-image experiences with actua
   assert(source.includes('data-testid="welcome-staff-tools"'));
   assert(source.includes('data-testid="welcome-quick-photo"'));
   assert(source.includes('data-testid="welcome-four-photo"'));
-  assert(source.includes('onClick={onStartQuick}'));
-  assert(source.includes('onClick={onStartFour}'));
+  assert(source.includes("onClick={()=>setChoice('one')}"),'1-photo choice previews before starting');
+  assert(source.includes("onClick={()=>setChoice('four')}"),'4-photo choice previews before starting');
+  assert(source.includes('data-testid="welcome-large-proof"'));
+  assert(source.includes('data-testid="welcome-start-session"'));
+  assert(source.includes('onClick={startSelected}'));
+  assert(source.includes('function startSelected()'));
+  assert(source.includes('onStartQuick()')&&source.includes('onStartFour()'));
+  assert(source.includes('SAMPLE PHOTOS')&&source.includes('YOUR PHOTOS REPLACE THESE'));
   assert(source.includes('className="bwLayoutPreview"'));
   assert(source.includes('className="bwPreviewCaption"'));
   assert(!source.includes('className="bwPhotoSteps"'));
