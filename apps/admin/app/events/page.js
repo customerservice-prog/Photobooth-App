@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import {prisma} from '../../lib/prisma';
-import {readiness,toLocalDay} from '../../lib/studio-experience.mjs';
+import {readiness,toLocalDay,BOOTH_START_URL} from '../../lib/studio-experience.mjs';
 import {PageHeader,EventTile,EmptyState,DatabaseError} from '../StudioUI';
 export const dynamic='force-dynamic';
 export default async function EventsPage({searchParams={}}){
@@ -20,7 +20,7 @@ export default async function EventsPage({searchParams={}}){
  });
  const filterUrl=(kind)=>'/events?filter='+kind+(query?'&q='+encodeURIComponent(query):'');
  return <main className="page">
-  <PageHeader eyebrow="YOUR RENTALS" title="Your events" subtitle="Open an event to prepare its design, load the iPad, or save the gallery."><Link className="btn" href="/events/new">+ New event</Link></PageHeader>
+  <PageHeader eyebrow="YOUR RENTALS" title="Your events" subtitle="Prepare the customer’s event, start the booth, or download their photos."><a className="btn btn2" href={BOOTH_START_URL}>Choose layout &amp; start event →</a><Link className="btn" href="/events/new">+ New event</Link></PageHeader>
   <form className="searchBar" action="/events" method="get">
    <input type="hidden" name="filter" value={filter}/>
    <input className="input" type="search" name="q" defaultValue={query} placeholder="Search event, customer or venue" aria-label="Search events"/>

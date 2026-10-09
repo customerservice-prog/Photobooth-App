@@ -1,0 +1,81 @@
+name: Direct staff event start proof
+on:
+  pull_request:
+    paths:
+      - 'apps/booth/**'
+      - 'apps/admin/lib/studio-experience.mjs'
+      - '.github/workflows/staff-start-proof.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'apps/booth/**'
+      - 'apps/admin/lib/studio-experience.mjs'
+      - '.github/workflows/staff-start-proof.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  staff-event-db:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: booth
+          POSTGRES_PASSWORD: booth
+          POSTGRES_DB: booth
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U booth -d booth"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 12
+    env:
+      DELIVERY_DATABASE_URL: postgresql://booth:booth@127.0.0.1:5432/booth
+      RUN_LIVE_STAFF_EVENT_DB_TEST: 'true'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install booth dependencies
+        working-directory: apps/booth
+        run: npm install --no-audit --no-fund
+      - name: Verify real event updates, concurrency and private gallery authorization
+        working-directory: apps/booth
+        run: node --test tests/staff-events-postgres.test.mjs
+  staff-start-browser:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: apps/booth
+        shell: bash
+    env:
+      NEXT_TELEMETRY_DISABLED: '1'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install --no-audit --no-fund
+      - run: npm install --no-save playwright@1.55.0
+      - run: npx playwright install --with-deps chromium webkit
+      - name: Build the actual booth
+        run: |
+          mkdir -p staff-start-proof
+          npm run build > staff-start-proof/build.log 2>&1
+      - name: Verify PIN, preset and custom start, guest capture and automatic backup
+        run: |
+          npm run start > staff-start-proof/server.log 2>&1 &
+          STAFF_START_SERVER_PID=$!
+          trap 'kill $STAFF_START_SERVER_PID 2>/dev/null || true' EXIT
+          node scripts/staff-start-proof.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: staff-start-${{ github.run_id }}
+          path: apps/booth/staff-start-proof/
+          retention-days: 3

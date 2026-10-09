@@ -35,10 +35,10 @@ for(const [engine,api] of [['chromium',chromium],['webkit',webkit]]){
   for(const [name,width,height] of [['ipad-landscape',1024,768],['ipad-portrait',768,1024],['phone',390,844],['small-phone',320,640]]){
    await page.setViewportSize({width,height});await page.waitForTimeout(100);
    const g=await page.locator('.blPage').evaluate(e=>({w:e.clientWidth,sw:e.scrollWidth}));assert(g.sw<=g.w+1,name+' no horizontal overflow');
-   const a=page.getByTestId('launch-demo');await a.scrollIntoViewIfNeeded();const b=await a.boundingBox();assert(b.height>=44&&b.x>=0&&b.x+b.width<=width+1);assert(await a.evaluate(e=>{const r=e.getBoundingClientRect();return e.contains(document.elementFromPoint(r.x+r.width/2,r.y+r.height/2));}));
+   const a=page.getByTestId('launch-start-event');await a.scrollIntoViewIfNeeded();const b=await a.boundingBox();assert.equal(await a.getAttribute('href'),'/staff/start');assert(b.height>=44&&b.x>=0&&b.x+b.width<=width+1);assert(await a.evaluate(e=>{const r=e.getBoundingClientRect();return e.contains(document.elementFromPoint(r.x+r.width/2,r.y+r.height/2));}));
    await page.screenshot({path:out+'/ipad-launch-'+engine+'-'+name+'.png'});pass('touch-launcher-'+name,{geometry:g});
   }
-  await page.setViewportSize({width:1024,height:768});await page.getByTestId('launch-demo').click();await page.getByTestId('welcome-four-photo').waitFor();await page.waitForFunction(()=>!document.querySelector('[data-testid="welcome-four-photo"]')?.disabled);
+  await page.setViewportSize({width:1024,height:768});await page.getByTestId('launch-practice').locator('summary').click();await page.getByTestId('launch-demo').click();await page.getByTestId('welcome-four-photo').waitFor();await page.waitForFunction(()=>!document.querySelector('[data-testid="welcome-four-photo"]')?.disabled);
   // Finish the welcome's read-only version check before navigating away.
   // WebKit reports an aborted fetch during a rapid page change as a page error.
   await page.waitForLoadState('networkidle');
@@ -46,7 +46,7 @@ for(const [engine,api] of [['chromium',chromium],['webkit',webkit]]){
   await page.goto(base+'/ipad',{waitUntil:'networkidle'});
   // Graduation artwork must be discoverable and launchable without touching
   // existing paid events, photographs or their print counter.
-  await page.getByTestId('launch-graduation').click();
+  await page.getByTestId('launch-practice').locator('summary').click();await page.getByTestId('launch-graduation').click();
   await page.getByTestId('graduation-design-preview').waitFor();
   await page.screenshot({path:out+'/graduation-showcase-'+engine+'.png',fullPage:true});
   assert.match(await page.getByTestId('graduation-one-proof').getAttribute('data-testid'),/graduation-one-proof/);
@@ -70,7 +70,7 @@ for(const [engine,api] of [['chromium',chromium],['webkit',webkit]]){
   },stripSource);
   const expected=[[240,30,30],[30,220,40],[30,50,240],[240,220,30]];for(const p of cornerProof.pixels)for(let i=0;i<3;i++)assert(Math.abs(p.rgba[i]-expected[p.corner][i])<30,engine+' pose '+p.pose+' retains corner '+p.corner);
   await page.getByTestId('pose-corners').screenshot({path:out+'/all-pose-corners-'+engine+'.png'});pass('all-sixteen-corners-survive-four-pose-composition',cornerProof);assert.deepEqual(errors,[]);
-  const noJS=await browser.newContext({javaScriptEnabled:false,viewport:{width:768,height:1024}});const p=await noJS.newPage();await p.goto(base+'/bryan-wedding');await p.getByTestId('launch-demo').waitFor();assert.equal(await p.locator('[data-launch-version]').getAttribute('data-launch-version'),BOOTH_RELEASE);assert((await p.getByTestId('launch-demo').getAttribute('href')).includes('demo=1'));pass('old-home-screen-has-usable-native-links-without-javascript');await noJS.close();
+  const noJS=await browser.newContext({javaScriptEnabled:false,viewport:{width:768,height:1024}});const p=await noJS.newPage();await p.goto(base+'/bryan-wedding');await p.getByTestId('launch-start-event').waitFor();assert.equal(await p.locator('[data-launch-version]').getAttribute('data-launch-version'),BOOTH_RELEASE);assert.equal(await p.getByTestId('launch-start-event').getAttribute('href'),'/staff/start');pass('old-home-screen-has-usable-native-links-without-javascript');await noJS.close();
  }catch(error){if(page)await page.screenshot({path:out+'/ipad-launch-'+engine+'-failure.png'}).catch(()=>{});results.push({engine,passed:false,message:error.message,stack:error.stack});throw error;}finally{await browser.close();await writeFile(out+'/ipad-launch-results.json',JSON.stringify({base,release:BOOTH_RELEASE,results},null,2));}
 }
 console.log(JSON.stringify({ipadAndPoseChecks:results.length,failed:0,base}));

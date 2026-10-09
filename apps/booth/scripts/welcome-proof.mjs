@@ -93,13 +93,12 @@ try{
   await page.getByTestId('operator-lock-ipad').click();
   assert.equal(await page.getByTestId('operator-guided-access').getAttribute('open'),'');
   assert((await page.getByTestId('operator-guided-access').innerText()).includes('Display Auto-Lock'));
-  await page.getByTestId('operator-load-event').click();
-  assert.equal(await page.getByTestId('staff-load-event').getAttribute('open'),'','one tap expands the transfer form');
-  assert(await page.getByTestId('staff-event-link').isVisible());
+  assert.equal(await page.getByTestId('operator-load-event').getAttribute('href'),'/staff/start','staff choose the layout directly in the booth');
+  assert((await page.getByTestId('operator-load-event').innerText()).includes('Choose layout'));
   assert(await page.getByTestId('operator-reset-guest').isVisible());
   assert(await page.getByTestId('operator-sound-test').isVisible());
   assert((await page.getByTestId('operator-sound-test').innerText()).includes('Play voice sample'));
-  assert.equal(await page.getByRole('link',{name:/Event setup/}).getAttribute('href'),'/setup');
+  assert.equal(await page.getByRole('link',{name:/Advanced local setup/}).getAttribute('href'),'/setup');
   await page.screenshot({path:`${out}/${engine}-staff-tools.png`});
   await page.getByRole('button',{name:'Close controls',exact:true}).click();
   assert.equal(await page.getByRole('dialog',{name:'Operator controls'}).count(),0);

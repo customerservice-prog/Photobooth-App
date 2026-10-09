@@ -41,7 +41,8 @@ test('events running past midnight keep the following-day end without moving the
  assert.equal(toLocalDay(times.endTime),'2026-10-11');
  assert.throws(()=>dateTimeFields(date,'20:00','20:00'));
 });
-test('admin never tells staff that these updates automatically sync to a live iPad',()=>{
- assert.match(guestHandoffMessage(),/private admin dashboard/);
- assert.match(guestHandoffMessage(),/does not silently interrupt/);
+test('saved event guidance names the direct staff start flow without device transfer steps',()=>{
+ assert.match(guestHandoffMessage(),/choose this event and its layout/);
+ assert.match(guestHandoffMessage(),/Start event/);
+ assert.doesNotMatch(guestHandoffMessage(),/load|transfer|QR|setup link/i);
 });

@@ -63,7 +63,7 @@ export default function Booth(){
       }
       const target=workspace(window.location.search);setScope(target);
       const c=target.managed?readEventDraft(localStorage):JSON.parse(localStorage.getItem(target.config)||'null');
-      if(target.imported&&!c)throw new Error('This event has not been loaded on this iPad. Scan its Send to Booth QR code from the staff dashboard.');
+      if(target.imported&&!c){window.location.replace('/staff/start?event='+encodeURIComponent(target.id));return;}
       if(target.managed&&!target.demo&&!readyForEvent(c)){window.location.replace('/event-prep');return;}
       const used=usage(localStorage,target);setPrintsUsed(used);
       if(c&&typeof c==='object'){

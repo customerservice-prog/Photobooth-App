@@ -19,7 +19,7 @@ export default async function EditEventPage({params}){
  const save=updateEvent.bind(null,event.id),experience=experienceFrom(event),type=String(event.eventType||'Party');
  return <main className="page formWide ownerEventPage">
   <Link href={'/events/'+event.id} className="btnPlain ownerBackLink">← Back to event</Link>
-  <PageHeader eyebrow="PREPARE THE EVENT" title="Details and approved design" subtitle="Enter the event details, choose one matching look, then save and load it on the iPad."/>
+  <PageHeader eyebrow="PREPARE THE EVENT" title="Details and approved design" subtitle="Save the event details and approved look. Staff can choose a layout or Custom when starting the event."/>
   <form action={save} className="uiStack ownerEventForm">
    <section className="card formSection" id="client" data-testid="owner-event-basics">
     <h2 className="sectionTitle">Customer and event details</h2>
@@ -57,7 +57,7 @@ export default async function EditEventPage({params}){
      <F label="Private staff notes" hint="Parking, loading entrance, setup instructions."><textarea className="input" rows={3} name="internalNotes" defaultValue={event.internalNotes||''}/></F>
     </div>
    </details>
-   <div className="saveDock"><p>Save, then open the event’s iPad setup link.</p><div className="buttonRow"><Link href={'/events/'+event.id} className="btn btn2">Cancel</Link><button className="btn" type="submit">Save event changes →</button></div></div>
+   <div className="saveDock"><p>Save the details. Staff choose the event and tap Start event on the booth.</p><div className="buttonRow"><Link href={'/events/'+event.id} className="btn btn2">Cancel</Link><button className="btn" type="submit">Save event changes →</button></div></div>
   </form>
  </main>;
 }

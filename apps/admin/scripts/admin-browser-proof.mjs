@@ -3,7 +3,8 @@ import {mkdir,writeFile} from 'node:fs/promises';
 import {chromium} from 'playwright';
 import {PrismaClient} from '@prisma/client';
 import sharp from 'sharp';
-import {validateBoothHandoff,applyBoothHandoff} from '../../booth/app/lib/booth-handoff.mjs';
+import {validateBoothHandoff} from '../../booth/app/lib/booth-handoff.mjs';
+import {buildBoothHandoffPayload} from '../lib/booth-transfer.mjs';
 const base=process.env.ADMIN_PROOF_URL||'http://localhost:3001';
 const readonly=process.env.ADMIN_PROOF_READONLY==='1';
 const local=value=>['localhost','127.0.0.1','[::1]'].includes(new URL(value).hostname);
@@ -20,8 +21,9 @@ async function ownerHome(){
  await page.getByRole('heading',{name:'Your event workspace.',exact:true}).waitFor();
  assert(await page.getByTestId('owner-current-event').isVisible());
  const flow=page.getByTestId('owner-workflow');assert.equal(await flow.locator('article').count(),3);
- for(const name of ['Prepare the event','Load the iPad','Save the photos'])assert(await flow.getByRole('heading',{name,exact:true}).isVisible());
- for(const [name,path]of [['Edit event & design →','/edit'],['Get iPad setup link →','#send-to-booth'],['Gallery & finish event →','#after-event']])assert.equal(await flow.getByRole('link',{name,exact:true}).getAttribute('href'),'/events/event-smoke-20261010'+path);
+ for(const name of ['Prepare the event','Start the event','Save the photos'])assert(await flow.getByRole('heading',{name,exact:true}).isVisible());
+ for(const [name,path]of [['Edit event & design →','/edit'],['Gallery & finish event →','#after-event']])assert.equal(await flow.getByRole('link',{name,exact:true}).getAttribute('href'),'/events/event-smoke-20261010'+path);
+ assert.equal(await flow.getByRole('link',{name:'Choose layout & start event →',exact:true}).getAttribute('href'),'https://photobooth-booth-production.up.railway.app/staff/start?event=event-smoke-20261010');
  const nav=page.getByRole('navigation',{name:'Admin navigation'});assert.equal(await nav.locator('.navGroup .navLink').count(),3);
  assert.equal(await nav.getByRole('link',{name:'Digital galleries',exact:true}).getAttribute('href'),'/galleries');
  assert.equal(await nav.locator('.ownerMoreTools').getAttribute('open'),null);
@@ -96,22 +98,12 @@ try{
  await page.waitForURL('**/events/event-smoke-20261010');
  assert.equal(await page.getByTestId('owner-event-readiness').innerText(),'Event details saved');
  }else await page.goto(base+'/events/event-smoke-20261010',{waitUntil:'networkidle'});
- await page.getByTestId('send-to-booth').click();
- await page.getByRole('dialog',{name:'Load event on iPad'}).waitFor();
- const transferUrl=await page.getByTestId('event-handoff-url').inputValue();
- assert(transferUrl.startsWith('https://photobooth-booth-production.up.railway.app/handoff#'));
- const shareData=JSON.parse(Buffer.from(transferUrl.split('#')[1],'base64url').toString('utf8'));
- assert.equal(shareData.title,'October 10 Test Photo Booth Party');
- if(!readonly){assert.equal(shareData.limit,0);
- assert.equal(shareData.f,'one');
- assert.equal(shareData.p,9);
- assert.equal(shareData.s,Number(original.strips));assert.equal(shareData.design,'fpr-birthday');assert.equal(shareData.name,'Test Celebration');}assert.equal(shareData.guest,'approved');
- assert(!JSON.stringify(shareData).includes('test@example.invalid'));
- await page.getByTestId('event-handoff-qr').waitFor({timeout:15000});
- await page.screenshot({animations:'disabled',path:'admin-proof/send-to-booth-qr.png'});
- await page.getByRole('button',{name:'Close transfer'}).click();
- assert.equal(await page.getByRole('dialog',{name:'Load event on iPad'}).count(),0);
- console.log('Send to Booth QR and transfer payload verified without customer contact data.');
+ const startLink=page.getByTestId('choose-layout-start-event');
+ assert.equal(await startLink.getAttribute('href'),'https://photobooth-booth-production.up.railway.app/staff/start?event=event-smoke-20261010');
+ assert(await page.getByTestId('owner-start-event').isVisible());
+ assert.equal(await page.getByTestId('send-to-booth').count(),0,'primary event flow has no device transfer button');
+ assert.equal(await page.getByRole('dialog').count(),0,'starting an event requires no QR or transfer modal');
+ pass('event-start-link-keeps-booking-id-without-transfer-modal');
  await page.screenshot({animations:'disabled',path:'admin-proof/event-after-desktop.png',fullPage:true});
  if(!readonly){const event=await prisma.event.findUnique({where:{id:'event-smoke-20261010'},include:{customer:true,booth:true,template:true}});
  assert.equal(event.venueName,'Sky Lodge');
@@ -164,20 +156,18 @@ try{
  if(!readonly){
   await page.getByRole('button',{name:/Save event changes/}).click();await page.waitForURL('**/events/event-smoke-20261010');
   const row=await prisma.event.findUnique({where:{id:'event-smoke-20261010'}});assert.deepEqual(row.theme.boothExperience.customDesign,uploaded);assert.equal(row.theme.legacySetting,'must survive');
-  await page.getByTestId('send-to-booth').click();
-  const link=await page.getByTestId('event-handoff-url').inputValue();assert(link.length<1600);assert(!link.includes('data:image'));
-  const descriptor=JSON.parse(Buffer.from(link.split('#')[1],'base64url').toString('utf8'));assert.equal(descriptor.v,2);assert.equal(descriptor.id,row.id);assert(descriptor.sync);assert(!descriptor.customDesign);
+  // Existing protected sync consumers still receive both saved custom layouts.
+  // The primary owner event page now links directly to staff start.
+  const descriptor=buildBoothHandoffPayload(row);assert(descriptor.sync);
   const endpoint=base+'/api/booth/sync/'+encodeURIComponent(row.id);
   const headers={Origin:'https://photobooth-booth-production.up.railway.app',Authorization:'Bearer '+descriptor.sync};
   const response=await context.request.get(endpoint,{headers});assert.equal(response.status(),200);
   const payload=validateBoothHandoff(await response.json());assert.deepEqual(payload.customDesign,uploaded);
-  const storage=new Map();const device={getItem:key=>storage.get(key)??null,setItem:(key,value)=>storage.set(key,String(value)),removeItem:key=>storage.delete(key)};
-  const applied=applyBoothHandoff(device,payload);assert.deepEqual(applied.config.customDesign,uploaded);assert.equal(applied.config.defaultTemplate,'custom');
+  assert.equal(payload.id,row.id);assert.equal(payload.guest,'approved');
   const invalid=await context.request.get(endpoint,{headers:{...headers,Authorization:'Bearer invalid'}});assert.equal(invalid.status(),401);
-  await page.getByRole('button',{name:'Close transfer'}).click();
   await page.goto(base+'/events/event-smoke-20261010/edit',{waitUntil:'networkidle'});assert.equal(await page.locator('input[name="customDesign"]').inputValue(),JSON.stringify(uploaded));
  }
- pass('custom-builder-and-paired-upload-preview-save-reopen-protected-ipad-handoff');
+ pass('custom-builder-and-paired-upload-preview-save-reopen-protected-event-sync');
  await page.goto(base+'/galleries',{waitUntil:'networkidle'});await page.getByRole('heading',{name:'Your digital galleries',exact:true}).waitFor();assert.equal(await page.getByRole('link',{name:'Open private gallery →',exact:true}).first().getAttribute('href'),'/events/event-smoke-20261010/backups');pass('digital-galleries-open-actual-private-event-backups');
  for(const path of ['/dashboard','/events','/booths','/templates','/photos','/galleries','/customers','/employees','/reports','/settings']){
   await page.goto(base+path,{waitUntil:'domcontentloaded'});

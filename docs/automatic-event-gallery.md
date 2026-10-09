@@ -2,9 +2,13 @@
 
 ## Before the rental
 
-In the owner dashboard, open **Events → the event**, save its approved design, and choose **Load on iPad**. Open that event’s signed setup link on the event iPad, review it, and tap **Apply event to this iPad**. Loading an authorized event connects its private online gallery automatically; guests do not need to unlock staff tools or enable backups.
+Save the customer’s event in the owner dashboard. On the booth iPad, open **Staff tools → Start event** and enter the staff PIN. **Choose the event → choose one layout or Custom → Start event.** The selected design is preloaded for both **1 Photo** and **4 Photos**, and the event’s private online gallery connects automatically. Guests only choose how many photos to take.
 
-Each event has its own photos, settings, print counter, and gallery. A public event ID alone does not authorize uploads. Sample rehearsals do not upload to a customer gallery. Older local entries retain their separate archives.
+The owner dashboard’s **Choose layout & start event** button opens the same staff screen with that event selected. Use it on the device taking the photos. Starting an event on an office computer does not remotely switch an unrelated iPad. Custom artwork must include valid matching 1-photo and 4-photo layouts before the event starts.
+
+Each event has its own photos, settings, print counter, and gallery. Starting or reopening an event preserves its existing photos and print usage. Staff authentication authorizes the selected customer event; a public event ID alone does not authorize uploads. Sample rehearsals do not upload to a customer gallery. Older local entries retain their separate archives.
+
+Existing signed setup links remain compatible for previously prepared events, but scanning, copying and applying a setup link are no longer required in the main staff workflow. Before guests arrive, check the selected name, both photo previews, countdown sound and a real Canon test print on the actual booth iPad.
 
 ## During the rental
 
@@ -22,7 +26,7 @@ Open **Staff tools → Automatic event gallery** to check progress or tap **Retr
 4. Open the ZIP files and verify the photos before sending the gallery to the customer. Keep a checked copy. The iPad also offers **Staff tools → Finish the event → Download complete event gallery ZIP**.
 5. Only after verifying exports and zero pending uploads should staff remove the local event or complete, archive, and permanently delete its owner booking. Owner deletion removes that event’s remaining backend images. It does not deliver photos automatically.
 
-Online copies expire 30 days after their last successful backup acknowledgment. Local originals remain until explicitly removed. If an old event’s backup authorization needs renewal, unlock staff tools and use **Retry backup now**; setup proofs expire seven days after the event date, so a new link alone cannot reconnect an older event.
+Online copies expire 30 days after their last successful backup acknowledgment. Local originals remain until explicitly removed. If an old event’s backup authorization needs renewal, unlock staff tools and use **Retry backup now**. Older signed setup proofs expire seven days after the event date; staff authentication is required to reconnect an older event.
 
 ## Storage limits
 
