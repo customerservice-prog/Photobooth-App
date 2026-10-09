@@ -39,7 +39,7 @@ test('real PostgreSQL exports all private event photos in complete bounded sessi
   const summary=await readEventBackups(db,eventId);
   assert.equal(summary.totalSessions,51);assert.equal(summary.totalOriginals,204);assert.equal(summary.totalFinishedFiles,102);assert.equal(summary.totalFiles,306);assert.equal(summary.partSize,50);
   // A pose-only interrupted capture must still have a downloadable session.
-  await pool.query('INSERT INTO booth_backup_v1.images(event_id,capture_id,kind,image) VALUES($1,$2,$3,$4)',[eventId,'capture-052','pose-1',Buffer.from([255,216,52,255,217])]);
+  await pool.query('INSERT INTO booth_backup_v1.images(event_id,capture_id,kind,image,created_at) VALUES($1,$2,$3,$4,$5)',[eventId,'capture-052','pose-1',Buffer.from([255,216,52,255,217]),'2026-10-09T12:01:00.000Z']);
   const withInterrupted=await readEventGalleryPart(db,eventId,2);
   assert.equal(withInterrupted.length,7);assert(withInterrupted.some(row=>row.capture_id==='capture-052'&&row.kind==='pose-1'));
   assert.equal((await readEventBackups(db,eventId)).totalSessions,52);

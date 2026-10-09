@@ -43,7 +43,7 @@ jobs:
         run: npm install --no-audit --no-fund
       - name: Verify real backup database writes and deduplication
         working-directory: apps/booth
-        run: node --test tests/backup-database.test.mjs ../admin/tests/event-gallery-postgres.test.mjs
+        run: node --test --test-concurrency=1 tests/backup-database.test.mjs ../admin/tests/event-gallery-postgres.test.mjs
   automatic-browser:
     runs-on: ubuntu-latest
     timeout-minutes: 20
