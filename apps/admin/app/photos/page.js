@@ -1,7 +1,6 @@
 import Link from 'next/link';
 import {prisma} from '../../lib/prisma';
 import {PageHeader,Metric,SectionHeading,DatabaseError,EmptyState} from '../StudioUI';
-import {BOOTH_PREPARATION_URL} from '../../lib/studio-experience.mjs';
 export const dynamic='force-dynamic';
 export default async function PhotosPage(){
  let sessions=[],jobs=[],error=null;
@@ -16,15 +15,16 @@ export default async function PhotosPage(){
  });
  const failed=jobs.filter(j=>j.status==='FAILED');
  return <main className="page">
-  <PageHeader eyebrow="GUEST PHOTOS & PRINTS" title="Photos and printing" subtitle="Find captured photos and review print attempts. This view shows server records; local-only iPad photos may need recovery on the booth device."><Link className="btn btn2" href="/events">Find an event</Link><a className="btn" href={BOOTH_PREPARATION_URL} target="_blank" rel="noopener noreferrer">Check iPad photo backups ↗</a></PageHeader>
+  <Link href="/dashboard" className="btnPlain ownerBackLink">← Back to workspace</Link>
+  <PageHeader eyebrow="GUEST PHOTOS & PRINTS" title="Photos and printing" subtitle="Find captured photos and review print attempts. This view shows server records; local-only iPad photos may need recovery on the booth device."><Link className="btn" href="/events?filter=all" data-testid="photos-choose-event-backups">Choose event photo backups →</Link></PageHeader>
   {error?<DatabaseError topic="photos and prints"/>:<>
    <div className="metricGrid"><Metric label="Recent guest sessions" value={sessions.length} foot="Up to 60 server records"/><Metric label="Media records" value={photos.length} foot="Images attached to those sessions"/><Metric label="Recent print attempts" value={jobs.length} foot="Up to 30 print jobs"/><Metric label="Print errors" value={failed.length} foot="Needs staff review"/></div>
    <section className="card cardPad">
     <SectionHeading eyebrow="RECENT CAPTURES" title="Photo library" subtitle="A missing server photo does not mean it was deleted from the iPad."/>
     {photos.length?<div className="uiCards">{photos.slice(0,40).map(p=><article key={p.id} className="softCard" style={{border:'1px solid #dce3d8',borderRadius:13,overflow:'hidden'}}>
       {p.url?<img src={p.url} alt={p.kind+' from '+(p.session.event?.name||'event')} style={{display:'block',width:'100%',aspectRatio:1,objectFit:'cover'}}/>:<div style={{aspectRatio:1,display:'grid',placeItems:'center',color:'#87998a'}}>Image not uploaded</div>}
-      <div style={{padding:13}}><strong className="rowTitle">{p.session.event?.name||'Event'}</strong><p className="rowSubtitle">{p.kind} · {new Date(p.session.startedAt).toLocaleDateString('en-US')}</p></div>
-     </article>)}</div>:<EmptyState title="No server photos yet" description="Capture a session on the actual booth. If the iPad has local photos but they have not synced, check its event backups instead."/>}
+      <div style={{padding:13}}><strong className="rowTitle">{p.session.event?.name||'Event'}</strong><p className="rowSubtitle">{p.kind} · {new Date(p.session.startedAt).toLocaleDateString('en-US')}</p>{(p.session.event?.id||p.session.eventId)&&<Link className="btnPlain" href={'/events/'+encodeURIComponent(p.session.event?.id||p.session.eventId)+'/backups'} data-testid="photo-event-backups">Open this event’s gallery →</Link>}</div>
+     </article>)}</div>:<EmptyState title="No server photos yet" description="Choose the customer’s event to check its digital gallery. For pending uploads, open that same event’s Staff tools on the booth iPad." href="/events?filter=all" label="Choose an event →"/>}
    </section>
    <section className="card cardPad" style={{marginTop:18}}>
     <SectionHeading eyebrow="PRINTER ACTIVITY" title="Recent print requests" subtitle="A job handed to the print system is not confirmation that a physical sheet emerged."/>

@@ -23,6 +23,8 @@ export function updateDestination(pathname,search,version,stamp=Date.now()){
   }else if(path==='/'&&source.get('event')==='oct10-2026'){
     params.set('event','oct10-2026');
     if(source.get('demo')==='1')params.set('demo','1');
+  }else if(path==='/'&&source.get('local')==='1'){
+    params.set('local','1');
   }
   params.set('boothv',version);params.set('refresh',String(stamp));
   return path+'?'+params.toString();

@@ -1,4 +1,6 @@
 'use client';
+import StaffPageNav from '../components/StaffPageNav';
+import BoothContextLink from '../components/BoothContextLink';
 import {useEffect,useMemo,useState} from 'react';
 
 const sections=[
@@ -94,13 +96,13 @@ export default function Help(){
     ['Internet connection',diag.online],
     ['Running from Home Screen',diag.standalone]
   ]:[],[diag]);
-  return <main className="helpPage"><div className="helpWrap">
+  return <main className="helpPage"><div className="helpWrap"><StaffPageNav/>
     <header className="helpHero"><div className="helpSeal">?</div><div><div className="kicker">Friendly Photo Booth Support</div><h1>Quick Fix Guide</h1><p>Use this page during an event. Start with the symptom, follow the steps in order, then run one test before returning the booth to guests.</p></div></header>
     <section className="diagCard"><div><div className="kicker">This iPad right now</div><h2>Booth readiness</h2></div><div className="diagGrid">{checks.map(([label,ok])=><div className={'diagItem '+(ok?'ok':'bad')} key={label}><b>{ok?'✓':'!'}</b><span>{label}</span></div>)}</div><p className="diagNote">Software diagnostics cannot confirm paper, ink, physical printer connection, or the quality of a real 4 × 6 print. Those need a physical test.</p></section>
     <section className="panicCard"><strong>During an event:</strong> If a guest is waiting, save the photo first. Then troubleshoot. Do not clear Safari data, uninstall the Home Screen app, or reset the iPad while photos still need recovery.
     </section>
     <div className="helpGrid">{sections.map(s=><details id={s.id} className="helpSection" key={s.id} open={s.id==='printer'||s.id==='send'}><summary>{s.title}<span>+</span></summary><ol>{s.steps.map(x=><li key={x}>{x}</li>)}</ol></details>)}</div>
     <section className="ownerCard"><div className="kicker">Owner / attendant end-of-event</div><h2>Before packing up</h2><div className="ownerChecklist"><span>□ End Guided Access</span><span>□ Set preferred screen sleep setting for packing up</span><span>□ Check local photo recovery</span><span>□ Print one final test</span><span>□ Confirm printer, paper, ink, charger</span><span>□ Close booth only after recovery is checked</span></div></section>
-    <div className="helpActions"><a href="/bryan-wedding">← Back to Booth</a><a href="/test">Open Full Rehearsal Test</a><a href="/privacy">Photo privacy</a></div>
+    <div className="helpActions"><BoothContextLink href="/test">Open rehearsal checklist</BoothContextLink><BoothContextLink href="/privacy">Photo privacy</BoothContextLink></div>
   </div></main>
 }

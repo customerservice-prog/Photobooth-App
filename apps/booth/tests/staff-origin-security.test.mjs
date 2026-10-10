@@ -82,19 +82,27 @@ test('staff lock and backup authorization preserve origin and session checks beh
   for(const origin of [undefined,'null','https://attacker.example.test'])assert.equal((await backup(backupRequest(origin))).status,403);
  });
 });
-test('protected staff middleware redirects to the public booth and fails closed without its address',async()=>{
+test('protected staff middleware preserves the exact destination at public sign-in and fails closed without its address',async()=>{
  const source=await readFile(new URL('../middleware.js',import.meta.url),'utf8');
  const adapter={...nextResponse,next:()=>new Response(null,{headers:{'x-test-next':'yes'}}),redirect:url=>new Response(null,{status:307,headers:{Location:String(url)}})};
  const {middleware,config}=new Function('NextResponse','STAFF_COOKIE','validStaffSession','publicBoothOrigin',source.replace(/^import .*;\n/gm,'').replace(/\bexport /g,'')+'\nreturn {middleware,config};')(adapter,STAFF_COOKIE,validStaffSession,publicBoothOrigin);
- const staffRequest=session=>({url:'http://booth.railway.internal:3000/setup?booth_event=event-2026',headers:new Headers({'x-forwarded-host':'attacker.example.test','x-forwarded-proto':'https'}),cookies:{get:name=>name===STAFF_COOKIE&&session?{value:session}:undefined}});
+ const staffRequest=(session,path='/setup?booth_event=event-2026')=>({url:'http://booth.railway.internal:3000'+path,headers:new Headers({'x-forwarded-host':'attacker.example.test','x-forwarded-proto':'https'}),cookies:{get:name=>name===STAFF_COOKIE&&session?{value:session}:undefined}});
+ const signInFor=path=>{const url=new URL('/staff/sign-in',publicOrigin);url.searchParams.set('next',path);return String(url);};
  await withEnvironment(configured,async()=>{
   const redirect=await middleware(staffRequest());
-  assert.equal(redirect.status,307);assert.equal(redirect.headers.get('location'),publicOrigin+'/?staff=required');
+  assert.equal(redirect.status,307);assert.equal(redirect.headers.get('location'),signInFor('/setup?booth_event=event-2026'));
+  for(const path of ['/event-prep?returnTo=%2F%3Fbooth_event%3Devent-2026&booth_event=event-2026','/print-test?note=Gold%20%26%20Ivory&returnTo=%2Flaunch','/designs?next=%2Fsetup%3Fbooth_event%3Devent-2026']){
+   const result=await middleware(staffRequest(undefined,path));
+   const destination=new URL(result.headers.get('location'));
+   assert.equal(destination.origin,publicOrigin);assert.equal(destination.pathname,'/staff/sign-in');assert.equal(destination.searchParams.get('next'),path);
+  }
   const authorized=await middleware(staffRequest(await makeStaffSession(configured.BOOTH_STAFF_SESSION_SECRET)));
   assert.equal(authorized.headers.get('x-test-next'),'yes');
+  const forged=await middleware(staffRequest(await makeStaffSession('another-test-secret-at-least-32-characters')));
+  assert.equal(forged.headers.get('location'),signInFor('/setup?booth_event=event-2026'));
  });
  await withEnvironment({...configured,BOOTH_PUBLIC_URL:undefined,RAILWAY_PUBLIC_DOMAIN:'booth.example.test'},async()=>{
-  assert.equal((await middleware(staffRequest())).headers.get('location'),publicOrigin+'/?staff=required');
+  assert.equal((await middleware(staffRequest())).headers.get('location'),signInFor('/setup?booth_event=event-2026'));
  });
  for(const env of [{...configured,BOOTH_PUBLIC_URL:'invalid'},{...configured,BOOTH_PUBLIC_URL:undefined,RAILWAY_SERVICE_ID:'known-deployment'}])await withEnvironment(env,async()=>{
   const denied=await middleware(staffRequest());assert.equal(denied.status,503);assert.equal(denied.headers.has('location'),false);assert.match((await denied.json()).error,/configured public booth address/);

@@ -1,7 +1,7 @@
 // Keep the installed app identity stable. Navigation never clears or migrates
 // photos, settings, counters, or any other browser storage.
-export const BOOTH_RELEASE='2026.10.10.1';
-export const BOOTH_RELEASE_LABEL='Emerald and champagne guest welcome with a spotlighted keepsake';
+export const BOOTH_RELEASE='2026.10.10.2';
+export const BOOTH_RELEASE_LABEL='Clear event setup, consistent back navigation, and in-session guest help';
 const ENTRIES=Object.freeze({
   demo:'/?event=oct10-2026&demo=1',
   preparation:'/event-prep',

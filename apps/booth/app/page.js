@@ -14,6 +14,7 @@ import {workspace,readEventDraft,saveEventDraft,usage,ownPrintUsage,readyForEven
 import {savePose,saveCapture,saveKeepsake,archiveCount,recentCaptures,openArchive,capturePoses,importLegacyCaptures} from './lib/event-photo-archive.mjs';
 import {createScreenAwakeController,readScreenAwakeSetting,saveScreenAwakeSetting} from './lib/screen-awake.mjs';
 import {activeEventDestination} from './lib/active-event.mjs';
+import {eventHome,withReturnTo} from './lib/staff-navigation.mjs';
 import {backupEnabled,saveBackupToken,syncEventPhotos} from './lib/backup-sync.mjs';
 import {logPrintRequest,markPrintOutcome} from './lib/print-ledger.mjs';
 import './event-prep/preparation.css';
@@ -57,12 +58,13 @@ export default function Booth(){
     const f=()=>setOnline(navigator.onLine);addEventListener('online',f);addEventListener('offline',f);
     async function load(){try{
       const params=new URLSearchParams(window.location.search);
-      if(!params.has('booth_event')&&!params.has('event')){
+      if(!params.has('booth_event')&&!params.has('event')&&params.get('local')!=='1'){
         const assigned=activeEventDestination(localStorage);
         if(assigned){window.location.replace(assigned);return;}
       }
       const target=workspace(window.location.search);setScope(target);
       const c=target.managed?readEventDraft(localStorage):JSON.parse(localStorage.getItem(target.config)||'null');
+      if(!target.imported&&!target.managed&&!c){window.location.replace('/launch');return;}
       if(target.imported&&!c){window.location.replace('/staff/start?event='+encodeURIComponent(target.id));return;}
       if(target.managed&&!target.demo&&!readyForEvent(c)){window.location.replace('/event-prep');return;}
       const used=usage(localStorage,target);setPrintsUsed(used);
@@ -228,18 +230,18 @@ export default function Booth(){
   const eventMeta=eventTypes[cfg.type]||eventTypes.other;
   const isPreview=step==='preview',isCapturing=['camera','photoSeries'].includes(step);
   const showWorkspaceBanner=!isPreview&&(scope.managed||scope.imported)&&scope.demo&&cfg.guestMode!=='approved';
-  return <>{showWorkspaceBanner&&<div className="workspaceBanner"><span>{scope.id==='graduation-showcase'?'SHOWCASE DEMO · test printing only · paid event unchanged':'OFFICE DEMO · rehearsal only · paid event allowance unchanged'}</span><a href={scope.imported?scope.setup:'/event-prep'}>{scope.imported?'Edit this booth setup →':'Event preparation →'}</a></div>}
+  return <>{showWorkspaceBanner&&<div className="workspaceBanner"><span>{scope.id==='graduation-showcase'?'SHOWCASE DEMO · test printing only · paid event unchanged':'OFFICE DEMO · rehearsal only · paid event allowance unchanged'}</span><a href={withReturnTo(scope.imported?scope.setup:'/event-prep',eventHome(scope))}>{scope.imported?'Edit this booth setup →':'Practice setup →'}</a><a href="/launch">End practice</a></div>}
   <main className={`booth theme-${cfg.type||'other'}${step==='welcome'?' bwWelcomeMode':''}`} data-build="smile-sequence-v1" data-capture-mode="photo" data-managed-event={showWorkspaceBanner?'true':undefined}>
-    {!isPreview&&!isCapturing&&step!=='welcome'&&<a className="floatingHelp" href="/help" aria-label="Photo booth help">Help</a>}
+    {!isPreview&&!isCapturing&&step!=='welcome'&&<a className="floatingHelp" href={withReturnTo("/help",eventHome(scope))} aria-label="Photo booth help">Help</a>}
     {step==='welcome'&&<WelcomeScreen cfg={cfg} eventName={eventMeta.name} online={online} starting={starting||!initialized} installed={installed} printsUsed={printsUsed} onStartQuick={()=>begin(1)} onStartFour={()=>begin(4)} onInstall={()=>setInstallOpen(true)} onOperator={()=>setOperator(true)} voiceStatus={voiceStatus} showGraduationPreview={!scope.managed&&!scope.imported}/>}
     {isCapturing&&<PhotoCapture videoRef={video} progress={capture} onCancel={()=>cancelCapture()} onReady={readyForNextPhoto} soundStatus={voiceStatus}/>}
-    {step==='preview'&&photo&&<GuestReadyPreview photo={photo} poses={poses} sessionShots={sessionShots} cfg={cfg} printing={printing} printPackage={normalizePrintPackage(cfg.printPackage)} printsUsed={printsUsed} onSessionActive={setPreviewActive} onPrint={requestPrint} onPrintOutcome={resolveLatestPrint} onFinish={finish} onArchive={archiveArtifact}/>}
+    {step==='preview'&&photo&&<GuestReadyPreview photo={photo} poses={poses} sessionShots={sessionShots} cfg={cfg} printing={printing} printPackage={normalizePrintPackage(cfg.printPackage)} printsUsed={printsUsed} onSessionActive={setPreviewActive} onPrint={requestPrint} onPrintOutcome={resolveLatestPrint} onFinish={finish} onArchive={archiveArtifact} onOperator={()=>setOperator(true)}/>}
     {step==='thanks'&&<section className="screen"><div className="check">✓</div><h1 className="hero">Enjoy the celebration.</h1><p className="sub">The booth will be ready for the next guest in a moment.</p></section>}
-    {error&&<div className="boothAlert" role="alert"><div className="error">{error}<button onClick={()=>setError('')} aria-label="Dismiss message">×</button></div></div>}
+    {error&&<div className="boothAlert" role="alert"><div className="error">{error}{initialized?<button onClick={()=>setError('')} aria-label="Dismiss message">×</button>:<div><button type="button" onClick={()=>window.location.reload()} style={{minHeight:44}}>Retry opening this event</button><a href="/launch" style={{display:'inline-flex',alignItems:'center',minHeight:44,padding:'0 14px'}}>Back to booth start</a></div>}</div></div>}
     {installOpen&&<div className="installPanel" role="dialog" aria-modal="true" aria-label="Install on iPad"><div className="installCard"><h2>Add Friendly Booth to your Home Screen.</h2><div className="installSteps"><div><b>1</b><span>Open this booth in Safari.</span></div><div><b>2</b><span>Open Share, then Add to Home Screen.</span></div><div><b>3</b><span>Open the new Friendly Booth icon.</span></div></div><p>This adds the web app. Device locking is a separate iPad setting.</p><button className="action primary" onClick={()=>setInstallOpen(false)}>Close instructions</button></div></div>}
     {operator&&<StaffDashboard
      onClose={()=>{setOperator(false);void fetch('/api/staff/lock',{method:'POST'}).catch(()=>{});}}
-     onReset={()=>{setOperator(false);reset();void fetch('/api/staff/lock',{method:'POST'}).catch(()=>{});}}
+     onReset={()=>{setOperator(false);if(!isPreview||!previewActive)reset();void fetch('/api/staff/lock',{method:'POST'}).catch(()=>{});}}
      onVoiceTest={testSpeaker}
      onRecover={recover}
      onSaveConfig={saveConfig}

@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import {prisma} from '../../lib/prisma';
-import {BOOTH_URL,BOOTH_SETUP_URL,BOOTH_PREPARATION_URL,guestHandoffMessage} from '../../lib/studio-experience.mjs';
+import {BOOTH_URL,BOOTH_START_URL,BOOTH_SETUP_URL,BOOTH_PREPARATION_URL,guestHandoffMessage} from '../../lib/studio-experience.mjs';
 import {PageHeader,DatabaseError} from '../StudioUI';
 export const dynamic='force-dynamic';
 export default async function SettingsPage(){
@@ -11,12 +11,13 @@ export default async function SettingsPage(){
   prisma.booth.findMany({where:{organizationId:org.id},include:{devices:true}})
  ])}catch(e){error=e}
  return <main className="page">
+  <Link href="/dashboard" className="btnPlain ownerBackLink">← Back to workspace</Link>
   <PageHeader eyebrow="SETTINGS & SUPPORT" title="Booth settings, made simple" subtitle="Find the equipment and staff information that matters. Changes to event names, colors and print options are made from the Events page."><Link className="btn" href="/events">Manage events →</Link></PageHeader>
   {error?<DatabaseError topic="admin settings"/>:<div className="uiGrid">
    <div className="uiStack">
     <section className="card cardPad"><div className="eyebrow">YOUR BUSINESS</div><h2 className="sectionTitle">{org?.name||'Friendly Party Rental'}</h2><p className="sectionLead">Photo booth operations · Syracuse, New York · Canon SELPHY 4×6 printing.</p><div className="buttonRow"><Link href="/booths" className="btn btn2 btnSm">My booths</Link><Link href="/employees" className="btn btn2 btnSm">Team</Link></div></section>
     <section className="card cardPad"><div className="eyebrow">PEOPLE & EQUIPMENT</div><h2 className="sectionTitle">What’s registered</h2><div className="keyValue"><div><small>Admin user records</small><strong>{users.length}</strong></div><div><small>Employee records</small><strong>{employees.length}</strong></div><div><small>Booths</small><strong>{booths.length}</strong></div><div><small>Paired devices</small><strong>{booths.reduce((n,b)=>n+b.devices.length,0)}</strong></div></div></section>
-    <section className="card cardPad"><div className="eyebrow">IMPORTANT: DEVICE HANDOFF</div><h2 className="sectionTitle">Admin and iPad settings</h2><p className="sectionLead">{guestHandoffMessage()}</p><div className="buttonRow"><a className="btn btn2" href={BOOTH_SETUP_URL} target="_blank" rel="noopener noreferrer">General booth setup ↗</a><a className="btn btn2" href={BOOTH_PREPARATION_URL} target="_blank" rel="noopener noreferrer">October event preparation ↗</a></div></section>
+    <section className="card cardPad"><div className="eyebrow">SET UP THE EVENT IPAD</div><h2 className="sectionTitle">Choose the event and its design</h2><p className="sectionLead">{guestHandoffMessage()}</p><div className="buttonRow"><a className="btn" href={BOOTH_START_URL} data-testid="settings-start-event">Set up an event →</a><Link className="btn btn2" href="/events">Back to events</Link></div><p className="sectionLead" style={{marginTop:14}}>Open setup in the installed Friendly Booth app on the iPad that will take the photos.</p><details className="ownerMoreTools" data-testid="settings-legacy-setups"><summary>Advanced: older local setups</summary><p className="sectionLead">These tools edit separate settings stored only in this browser. For a saved customer booking, use Set up an event above.</p><div className="buttonRow"><a className="btn btn2 btnSm" href={BOOTH_SETUP_URL} target="_blank" rel="noopener noreferrer">Local rehearsal settings ↗</a><a className="btn btn2 btnSm" href={BOOTH_PREPARATION_URL} target="_blank" rel="noopener noreferrer">Older October setup &amp; archive ↗</a></div></details></section>
    </div>
    <div className="uiStack">
     <section className="card cardPad softCard"><div className="eyebrow">HARDWARE CHECKLIST</div><h2 className="sectionTitle">Before the next event</h2><div className="stepList">{['Use the exact iPad and SELPHY for the event','Charge the iPad and connect power','Confirm the right event names and colors','Test one photo and four photos','Make and inspect one physical 4×6 print','Check extra ink and paper','Set up Guided Access on the iPad'].map((x,i)=><div className="stepItem" key={x}><span className="stepIcon">{i+1}</span><strong className="stepItemBody">{x}</strong></div>)}</div><a className="btn" href={BOOTH_URL} target="_blank" rel="noopener noreferrer">Open guest booth ↗</a></section>
