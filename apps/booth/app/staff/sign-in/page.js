@@ -54,6 +54,6 @@ export default function StaffSignInPage(){
    <a className="staffSignInBack" href={back}>{returnLabel(back)}</a>
   </section>
   <a className="staffSignInStart" href="/launch">Back to booth start</a>
-  {ready&&online&&gate&&!checking&&<StaffAccessGate onClose={()=>window.location.assign(back)} onConfirm={continueToDestination}/>}
+  {ready&&online&&gate&&!checking&&<StaffAccessGate cancelLabel={returnLabel(back)} onClose={()=>window.location.assign(back)} onConfirm={continueToDestination}/>}
  </main>;
 }
