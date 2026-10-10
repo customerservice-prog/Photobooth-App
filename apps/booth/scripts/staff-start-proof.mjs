@@ -72,6 +72,18 @@ async function visibleInViewport(page,locator,message){
 }
 async function previewSvg(page,kind){await readyProofs(page);return decodeURIComponent((await page.getByTestId('staff-layout-preview-'+kind).getAttribute('src')).split(',').slice(1).join(','));}
 async function resetSetupScroll(page){await page.evaluate(()=>{document.querySelector('.staffStartPage')?.scrollTo(0,0);scrollTo(0,0);});}
+async function pageUpToStart(page){
+ const positions=[await page.locator('.staffStartPage').evaluate(main=>main.scrollTop)];
+ for(let press=0;press<4&&positions.at(-1)!==0;press++){
+  const previous=positions.at(-1);await page.keyboard.press('PageUp');
+  positions.push(await page.evaluate(previous=>new Promise(resolve=>{
+   const main=document.querySelector('.staffStartPage'),deadline=performance.now()+2000;let last=main.scrollTop,stable=0;
+   const read=()=>{const top=main.scrollTop;stable=top===last?stable+1:0;last=top;if(top===0||(top<previous&&stable>=3)||performance.now()>deadline)resolve(top);else requestAnimationFrame(read);};requestAnimationFrame(read);
+  }),previous));
+ }
+ assert.equal(positions.at(-1),0,'Native PageUp returns to the event picker within four presses; scrollTop history: '+JSON.stringify(positions));
+ return positions;
+}
 async function artworkReplacementProof(page,engine){
  await page.getByTestId('staff-custom-edit').click();await page.getByTestId('staff-custom-dialog').waitFor();await page.getByRole('radio',{name:'Upload artwork',exact:true}).check();
  for(const [kind,color]of [['one','#173657'],['four','#392647']]){
@@ -123,7 +135,7 @@ async function compactSetupProof(page,engine){
    else{await page.mouse.move(width/2,Math.min(500,height/2));await page.mouse.wheel(0,650);}
    await page.waitForFunction(()=>{const main=document.querySelector('.staffStartPage'),image=document.querySelector('[data-testid="staff-layout-preview-four"]'),box=image?.getBoundingClientRect();return main?.scrollTop>100&&box&&box.top>=0&&box.bottom<=innerHeight;});
    await visibleInViewport(page,page.getByTestId('staff-layout-preview-four'),label+' print preview reached by ordinary scrolling');await visibleInViewport(page,page.getByTestId('staff-start-event'),label+' Start stays visible while scrolling');
-   await page.screenshot({path:out+'/'+engine+'-compact-'+label+'-scrolled-preview.png'});if(engine==='webkit')await page.keyboard.press('PageUp');else await page.mouse.wheel(0,-2000);await page.waitForFunction(()=>document.querySelector('.staffStartPage')?.scrollTop===0);await visibleInViewport(page,page.getByTestId('staff-event-select'),label+' event picker reached by scrolling back');
+   await page.screenshot({path:out+'/'+engine+'-compact-'+label+'-scrolled-preview.png'});if(engine==='webkit')await pageUpToStart(page);else await page.mouse.wheel(0,-2000);await page.waitForFunction(()=>document.querySelector('.staffStartPage')?.scrollTop===0);await visibleInViewport(page,page.getByTestId('staff-event-select'),label+' event picker reached by scrolling back');await visibleInViewport(page,page.getByTestId('staff-start-event'),label+' Start stays visible after scrolling back');
   }
   geometry.push({label,width,height,noHorizontalOverflow:true,allChoicesReachable:true,primaryStartInViewport:true,oneVisiblePrintPreview:true,...(width<768?{ordinaryScrollingWorks:true,scrollMethod:engine==='webkit'?'keyboard':'wheel'}:{})});
  }
