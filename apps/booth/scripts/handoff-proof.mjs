@@ -13,16 +13,21 @@ const payload=buildBoothHandoffPayload(event),errors=[];
 for(const engine of [chromium,webkit]){
  const browser=await engine.launch({headless:true,args:engine===chromium?['--no-sandbox']:[]});
  const context=await browser.newContext({viewport:{width:1024,height:768}});
+ await context.addInitScript(()=>{
+  // Seed once before the explicit local welcome hydrates. A fresh root now
+  // correctly opens /launch, and later event imports must keep these counters.
+  if(localStorage.getItem('friendly-booth-event-v1')!==null)return;
+  localStorage.setItem('friendly-booth-event-v1',JSON.stringify({title:'Existing local event'}));
+  localStorage.setItem('friendly-booth-print-usage-v1','27');
+  localStorage.setItem('friendly-booth-oct10-2026-v2-live-usage','31');
+  localStorage.setItem('friendly-booth-oct10-2026-v2-demo-usage','7');
+ });
  const page=await context.newPage();
  page.on('pageerror',e=>errors.push(e.message));
  try{
-  await page.goto(base+'/');
-  await page.evaluate(()=>{
-   localStorage.setItem('friendly-booth-event-v1',JSON.stringify({title:'Existing local event'}));
-   localStorage.setItem('friendly-booth-print-usage-v1','27');
-   localStorage.setItem('friendly-booth-oct10-2026-v2-live-usage','31');
-   localStorage.setItem('friendly-booth-oct10-2026-v2-demo-usage','7');
-  });
+  await page.goto(base+'/?local=1',{waitUntil:'networkidle'});
+  await page.getByTestId('welcome-staff-tools').waitFor();
+  assert.equal(new URL(page.url()).searchParams.get('local'),'1','handoff starts from the explicitly selected local event');
   // The installed PWA can import within its own storage even if a QR opens
   // in a separate Safari browser container.
   await page.getByTestId('welcome-staff-tools').click();
@@ -37,6 +42,7 @@ for(const engine of [chromium,webkit]){
   await page.getByTestId('booth-handoff-apply').click();
   await page.waitForURL('**/?booth_event='+payload.id,{timeout:20000});
   await page.getByTestId('welcome-four-photo').waitFor({timeout:20000});
+  await page.waitForLoadState('networkidle');
   assert.equal(await page.getByTestId('welcome-quick-photo').count(),1);
   const data=await page.evaluate(id=>{
    const root='friendly-booth-transfer-v1-'+id;
@@ -61,20 +67,24 @@ for(const engine of [chromium,webkit]){
   await page.goto(base+'/setup?booth_event='+payload.id,{waitUntil:'networkidle'});
   await page.getByTestId('premium-event-setup').waitFor({timeout:20000});
   // Do not save a photo setup here; the event was already transferred.
-  await page.goto(base+'/?booth_event='+payload.id);
+  await page.goto(base+'/?booth_event='+payload.id,{waitUntil:'networkidle'});
+  await page.getByTestId('welcome-four-photo').waitFor({timeout:20000});
   await page.evaluate(id=>localStorage.setItem('friendly-booth-transfer-v1-'+id+'-usage','18'),payload.id);
   const updated={...payload,rev:'2026-10-08T06:00:00.000Z',mode:'card',s:1,limit:108};
-  await page.goto(href(updated));
+  await page.goto(href(updated),{waitUntil:'networkidle'});
   await page.getByTestId('booth-handoff-review').waitFor();
   assert((await page.getByTestId('booth-handoff-review').innerText()).includes('18 previous print requests'));
   await page.getByTestId('booth-handoff-apply').click();
   await page.waitForURL('**/?booth_event='+payload.id);
+  await page.getByTestId('welcome-four-photo').waitFor({timeout:20000});
+  await page.waitForLoadState('networkidle');
   const usage=await page.evaluate(id=>localStorage.getItem('friendly-booth-transfer-v1-'+id+'-usage'),payload.id);
   assert.equal(usage,'18','reimport never resets print usage');
   const preserved=await page.evaluate(id=>Boolean(localStorage.getItem('friendly-booth-transfer-v1-'+id+'-previous')),payload.id);
   assert(preserved,'prior event config is backed up');
   await page.setViewportSize({width:390,height:844});
-  await page.goto(href(updated));
+  await page.goto(href(updated),{waitUntil:'networkidle'});
+  await page.getByTestId('booth-handoff-review').waitFor();
   const button=page.getByTestId('booth-handoff-apply');
   const b=await button.boundingBox();
   assert(b&&b.height>=44&&b.width>250,'hand-off controls remain easy to tap on iPad or phone');

@@ -34,8 +34,12 @@ try{
    await page.getByRole('dialog',{name:'Staff access',exact:true}).waitFor();
    await page.getByTestId('staff-confirm').click();
    await page.getByRole('dialog',{name:'Operator controls',exact:true}).waitFor();
-   assert.equal(await page.getByTestId('operator-load-event').getAttribute('href'),'/staff/start','staff primary action opens direct event/layout start');
-   assert.equal(await page.getByRole('link',{name:/Advanced local setup/}).getAttribute('href'),'/event-prep','legacy office rehearsal retains its advanced preparation tools');
+   const setupLink=new URL(await page.getByTestId('operator-load-event').getAttribute('href'),base);
+   assert.equal(setupLink.pathname,'/staff/start','staff primary action opens direct event/layout start');
+   assert.equal(setupLink.searchParams.get('returnTo'),'/?event=oct10-2026&demo=1','event setup retains the office demo return');
+   const advancedLink=new URL(await page.getByRole('link',{name:/Advanced local setup/}).getAttribute('href'),base);
+   assert.equal(advancedLink.pathname,'/event-prep','legacy office rehearsal retains its advanced preparation tools');
+   assert.equal(advancedLink.searchParams.get('returnTo'),'/?event=oct10-2026&demo=1','advanced preparation returns to the same office demo');
    await page.getByRole('button',{name:'Close controls',exact:true}).click();
    assert.equal(await page.getByRole('dialog',{name:'Operator controls'}).count(),0);assert((await page.locator('.bwEventMeta').innerText()).includes('4 PM–8 PM'));assert.equal(await page.locator('.bwSessionChoices button').count(),2);assert.equal(await page.getByTestId('welcome-quick-photo').count(),1);assert.equal(await page.getByTestId('welcome-four-photo').count(),1);pass(engine+'-demo-navigation-and-new-york-event-time');
   await page.screenshot({path:`${out}/prep-${engine}-office-demo.png`,fullPage:true});

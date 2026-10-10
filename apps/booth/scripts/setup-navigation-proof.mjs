@@ -76,6 +76,9 @@ for(const [engine,api]of [['chromium',chromium],['webkit',webkit]]){
   assert.equal(new URL(await page.getByTestId('staff-page-back').getAttribute('href'),base).pathname,'/help');
   await page.getByTestId('staff-page-back').click();await page.waitForLoadState('networkidle');await page.getByTestId('staff-page-back').click();await page.getByTestId('welcome-start-session').waitFor();assert.equal(path(),'/?event=oct10-2026&demo=1');
   await goto('/?local=1');await page.getByTestId('welcome-start-session').waitFor();assert.equal(path(),'/?local=1');assert.match(await page.locator('#bwEventTitle').innerText(),/Local rehearsal/);
+  await page.getByRole('link',{name:'Help',exact:true}).click();await page.getByTestId('staff-page-back').waitFor();
+  assert.equal(new URL(page.url()).searchParams.get('returnTo'),'/?local=1','welcome Help retains the local event even with another active customer event');
+  await page.getByTestId('staff-page-back').click();await page.getByTestId('welcome-start-session').waitFor();assert.equal(path(),'/?local=1');
   await goto('/handoff');await page.getByRole('link',{name:'Choose event & design',exact:true}).waitFor();assert.equal(await page.getByTestId('staff-page-back').count(),1);
   assert.deepEqual(writes,[{id:one.id,design:'fpr-birthday'}]);assert.deepEqual(errors,[]);
   results.push({engine,passed:true,release:BOOTH_RELEASE,staffSizes:4,checks:['stable start','explicit resume','PIN cancel','event selection','reachable start','selected layout launch','event-safe printer back','help/privacy/demo back','local rehearsal isolation','handoff recovery'],writes});
