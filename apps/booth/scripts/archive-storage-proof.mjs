@@ -74,7 +74,8 @@ try{for(const [name,engine] of engines){
    await step('save-second-scope',()=>api.saveCapture('separate','other',photo,[photo,photo,photo,photo],{}));
    const records=await step('list-all-records',()=>api.listCaptures('retention'));
    await step('read-first-pose-bytes',()=>records[0].poses[0].arrayBuffer());
-   await step('save-final-keepsake',()=>api.saveKeepsake('retention','id-0',records[0].collage));
+   const designedBytes=Uint8Array.from(atob(secondPhoto.split(',')[1]),character=>character.charCodeAt(0));
+   await step('save-final-keepsake',()=>api.saveKeepsake('retention','id-0',new Blob([designedBytes],{type:'image/jpeg'})));
    const count=await step('count-scope',()=>api.archiveCount('retention'));
    const exported=await step('zip-all-records',()=>api.exportPhotos('retention'));
    if(exported.count!==23)throw Error('The exported ZIP must contain all 23 sessions.');
@@ -87,7 +88,12 @@ try{for(const [name,engine] of engines){
      files.push({name,data});offset=start+size;
     }
     const manifest=JSON.parse(new TextDecoder().decode(files.find(f=>f.name==='manifest.json').data));
-    if(manifest.sessions!==23||manifest.finishedKeepsakes!==1||files.filter(f=>/pose-\d\.jpg$/.test(f.name)).length!==92||files.filter(f=>f.name.endsWith('keepsake.jpg')).length!==1||files.length!==116)throw Error('ZIP did not retain every pose and designed output.');
+    if(manifest.sessions!==23||manifest.originalPhotos!==92||manifest.captureCollages!==23||manifest.finishedKeepsakes!==1||manifest.fileCount!==116||files.filter(f=>/pose-\d\.jpg$/.test(f.name)).length!==92||files.filter(f=>f.name.endsWith('collage.jpg')).length!==23||files.filter(f=>f.name.endsWith('keepsake.jpg')).length!==1||files.length!==117)throw Error('ZIP did not retain every pose, capture collage and designed output.');
+    const originalBytes=Uint8Array.from(atob(photo.split(',')[1]),character=>character.charCodeAt(0));
+    for(const file of files.filter(file=>file.name.endsWith('.jpg'))){
+     const expected=file.name.endsWith('keepsake.jpg')?designedBytes:originalBytes;
+     if(file.data.length!==expected.length||file.data.some((byte,index)=>byte!==expected[index]))throw Error('ZIP changed saved JPEG bytes for '+file.name);
+    }
    });
    // Count equality alone does not prove an export is current: an existing
    // session can receive a finished JPEG or modified same-sized image bytes.

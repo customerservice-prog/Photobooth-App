@@ -72,9 +72,18 @@ function verifyZip(bytes,rows){
  assert.equal(manifest.scope,config.scope.archive);assert.equal(manifest.sessions,rows.length);
  assert.equal(manifest.originalPhotos,rows.reduce((sum,row)=>sum+row.poses.length,0));
  assert.equal(manifest.interruptedSessions,rows.filter(row=>!row.collage).length);
+ assert.equal(manifest.captureCollages,rows.filter(row=>row.collage).length);
  assert.equal(manifest.finishedKeepsakes,rows.filter(row=>row.keepsake).length);
  let expectedCount=1;
- rows.forEach((row,index)=>{const folder='session-'+String(index+1).padStart(4,'0')+'/';row.poses.forEach((bytes,index)=>{assert.deepEqual(files.get(folder+'pose-'+(index+1)+'.jpg'),Buffer.from(bytes),'Original ZIP JPEG retains exact captured bytes');expectedCount++;});if(row.keepsake||row.collage){assert.deepEqual(files.get(folder+(row.keepsake?'keepsake.jpg':'collage.jpg')),Buffer.from(row.keepsake||row.collage),'Finished ZIP JPEG retains exact saved bytes');expectedCount++;}});
+ rows.forEach((row,index)=>{
+  const folder='session-'+String(index+1).padStart(4,'0')+'/';
+  row.poses.forEach((bytes,index)=>{assert.deepEqual(files.get(folder+'pose-'+(index+1)+'.jpg'),Buffer.from(bytes),'Original ZIP JPEG retains exact captured bytes');expectedCount++;});
+  for(const [kind,filename]of [['collage','collage.jpg'],['keepsake','keepsake.jpg']]){
+   if(row[kind]){assert.deepEqual(files.get(folder+filename),Buffer.from(row[kind]),kind+' ZIP JPEG retains exact saved bytes');expectedCount++;}
+  }
+ });
+ assert.equal(manifest.fileCount,expectedCount-1,'Manifest counts every original, collage and keepsake');
+ assert.equal(manifest.fileCount,manifest.originalPhotos+manifest.captureCollages+manifest.finishedKeepsakes);
  assert.equal(files.size,expectedCount);return manifest;
 }
 for(const [name,engine]of engines){

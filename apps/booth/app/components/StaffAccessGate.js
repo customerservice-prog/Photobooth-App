@@ -4,22 +4,24 @@ import {rememberOfflineStaffPin,verifyOfflineStaffPin} from '../lib/staff-offlin
 import {STAFF_PIN_LENGTH,isValidStaffPin,normalizeStaffPinInput} from '../lib/staff-pin.mjs';
 
 // Staff authorization is separate from Apple's device lock. Guided Access is still required.
-export default function StaffAccessGate({onClose,onConfirm,cancelLabel='Back to guest screen'}){
- const dialog=useRef(null),cancel=useRef(onClose);
+export default function StaffAccessGate({onClose,onConfirm,cancelLabel='Back to guest screen',title='Staff access',description,confirmLabel}){
+ const dialog=useRef(null),cancel=useRef(onClose),live=useRef(false),unlockAttempt=useRef(0);
  const [required,setRequired]=useState(true),[ready,setReady]=useState(false);
  const [configurationError,setConfigurationError]=useState('');
  const [pin,setPin]=useState(''),[busy,setBusy]=useState(false),[error,setError]=useState('');
  cancel.current=onClose;
  useEffect(()=>{
-  let alive=true;
+  let alive=true;live.current=true;
   fetch('/api/staff/unlock',{cache:'no-store'}).then(async r=>({ok:r.ok,data:await r.json()})).then(({ok,data})=>{if(alive){setRequired(data.required!==false);if(data.configured===false||!ok)setConfigurationError(data.error||'Staff sign-in setup is incomplete. Ask the owner to configure this booth.');setReady(true);}})
    .catch(()=>{if(alive){setRequired(true);setReady(true);}});
   const node=dialog.current,previous=document.activeElement;
   if(node&&!node.open)node.showModal();
-  return()=>{alive=false;if(node?.open)node.close();previous?.focus?.();};
+  return()=>{alive=false;live.current=false;unlockAttempt.current++;if(node?.open)node.close();previous?.focus?.();};
  },[]);
+ function close(){unlockAttempt.current++;cancel.current?.();}
  async function unlock(e){
   e.preventDefault();if(configurationError||busy||!isValidStaffPin(pin))return;
+  const attempt=++unlockAttempt.current;
   setBusy(true);setError('');
   try{
    if(navigator.onLine===false){
@@ -32,30 +34,32 @@ export default function StaffAccessGate({onClose,onConfirm,cancelLabel='Back to 
      const data=await response.json().catch(()=>({}));
      throw new Error(data.error||'Incorrect PIN.');
     }
+    if(!live.current||attempt!==unlockAttempt.current)return;
     if(response?.ok)void rememberOfflineStaffPin(localStorage,pin);
    }
+   if(!live.current||attempt!==unlockAttempt.current)return;
    setPin('');onConfirm?.();
-  }catch(err){setError(err.message||'Staff authorization failed.');}finally{setBusy(false);}
+  }catch(err){if(live.current&&attempt===unlockAttempt.current)setError(err.message||'Staff authorization failed.');}finally{if(live.current&&attempt===unlockAttempt.current)setBusy(false);}
  }
- return <dialog ref={dialog} className="bwStaffGate" aria-label="Staff access"
-  onCancel={e=>{e.preventDefault();cancel.current();}}
-  onClick={e=>{if(e.target===dialog.current)cancel.current();}}>
+ return <dialog ref={dialog} className="bwStaffGate" aria-label={title}
+  onCancel={e=>{e.preventDefault();close();}}
+  onClick={e=>{if(e.target===dialog.current)close();}}>
   <div className="bwStaffGateInner">
    <span className="bwStaffGateIcon" aria-hidden="true">✦</span>
    <p className="bwStaffGateEyebrow">FRIENDLY PHOTO BOOTH · STAFF</p>
-   <h2>Staff access</h2>
-   <p>{required?'Enter the staff PIN to manage this event, recover photos or change printer settings.':'Open staff tools to check the printer, sound and event setup.'}</p>
-   {ready?(configurationError?<div className="bwStaffGateButtons"><p role="alert" data-testid="staff-configuration-error">{configurationError}</p><button type="button" className="bwStaffGateCancel" data-testid="staff-cancel" onClick={onClose}>{cancelLabel}</button></div>:required?
+   <h2>{title}</h2>
+   <p>{description||(required?'Enter the staff PIN to manage this event, recover photos or change printer settings.':'Open staff tools to check the printer, sound and event setup.')}</p>
+   {ready?(configurationError?<div className="bwStaffGateButtons"><p role="alert" data-testid="staff-configuration-error">{configurationError}</p><button type="button" className="bwStaffGateCancel" data-testid="staff-cancel" onClick={close}>{cancelLabel}</button></div>:required?
     <form onSubmit={unlock} className="bwStaffPinForm" data-testid="staff-pin-form">
      <label htmlFor="bwStaffPin">4-digit staff PIN</label>
      <input id="bwStaffPin" type="password" inputMode="numeric" autoComplete="off" maxLength={STAFF_PIN_LENGTH} minLength={STAFF_PIN_LENGTH} pattern="[0-9]{4}" value={pin} onChange={e=>setPin(normalizeStaffPinInput(e.target.value))} placeholder="●●●●" required autoFocus/>
      {error&&<p role="alert">{error}</p>}
-     <button className="bwStaffGatePrimary" data-testid="staff-confirm" disabled={busy||!isValidStaffPin(pin)}>{busy?'Checking…':'Unlock staff tools →'}</button>
-     <button type="button" className="bwStaffGateCancel" data-testid="staff-cancel" onClick={onClose}>{cancelLabel}</button>
+     <button className="bwStaffGatePrimary" data-testid="staff-confirm" disabled={busy||!isValidStaffPin(pin)}>{busy?'Checking…':confirmLabel||'Unlock staff tools →'}</button>
+     <button type="button" className="bwStaffGateCancel" data-testid="staff-cancel" onClick={close}>{cancelLabel}</button>
     </form>:
     <div className="bwStaffGateButtons">
-     <button type="button" className="bwStaffGatePrimary" data-testid="staff-confirm" onClick={onConfirm}>Open staff tools →</button>
-     <button type="button" className="bwStaffGateCancel" data-testid="staff-cancel" onClick={onClose}>{cancelLabel}</button>
+     <button type="button" className="bwStaffGatePrimary" data-testid="staff-confirm" onClick={onConfirm}>{confirmLabel||'Open staff tools →'}</button>
+     <button type="button" className="bwStaffGateCancel" data-testid="staff-cancel" onClick={close}>{cancelLabel}</button>
     </div>):<p>Checking staff access…</p>}
    <small>Staff PIN protects these controls. Guided Access separately locks the iPad into the booth.</small>
   </div>

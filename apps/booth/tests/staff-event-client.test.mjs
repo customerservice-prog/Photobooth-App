@@ -1,10 +1,11 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {applyStaffEvent,fetchStaffEvent,fetchStaffEvents,saveStaffEvent,StaffEventError} from '../app/lib/staff-event-client.mjs';
-import {workspace} from '../app/lib/event-workspace.mjs';
+import {workspace,liveWorkspace,octoberPreset,usage,LEGACY_KEYS,OCTOBER_ADMIN_EVENT_ID} from '../app/lib/event-workspace.mjs';
 import {ACTIVE_EVENT_KEY} from '../app/lib/active-event.mjs';
 import {tokenKey} from '../app/lib/backup-sync.mjs';
 import {configFromBoothHandoff} from '../app/lib/booth-handoff.mjs';
+import {logPrintRequest,markPrintOutcome,listPrintRequests} from '../app/lib/print-ledger.mjs';
 
 const payload={v:1,id:'staff-event-proof',title:'Jordan and Avery',date:'2026-10-10',start:'16:00',end:'20:00',rev:'2026-10-09T14:00:00.000Z',type:'wedding',f:'four',p:6,mode:'card',s:1,fit:'fill',a:'#24352f',b:'#d8c49b',limit:108,on:true,qr:true,design:'fpr-wedding',name:'Jordan & Avery',guest:'approved'};
 const ticket='private-event-ticket.'+'a'.repeat(43),scope=workspace('?booth_event='+payload.id);
@@ -55,6 +56,41 @@ test('storage failures at every stage restore config, previous settings, usage, 
  for(let failedWrite=1;failedWrite<=5;failedWrite++){
   const saved=storage({[ACTIVE_EVENT_KEY]:'other-event',[scope.photos]:'original-photo-bytes'},(_,write)=>write===failedWrite),before=saved.snapshot();
   assert.throws(()=>applyStaffEvent(saved,{payload,token:ticket}));assert.deepEqual(saved.snapshot(),before);
+ }
+});
+
+test('a failed staff save preserves completed refund recovery in the counter and ledger',()=>{
+ for(const linkedSource of ['none','original','legacy']){
+  const event=linkedSource==='none'?payload:{...payload,id:OCTOBER_ADMIN_EVENT_ID};
+  const target=workspace('?booth_event='+event.id),linked=linkedSource==='legacy'?workspace():liveWorkspace();
+  const prior=JSON.stringify(configFromBoothHandoff({...event,rev:'2026-10-08T14:00:00.000Z'}));
+  const seed={[target.config]:prior,[target.previous]:'previous settings',[target.usage]:'3',[target.photos]:'original-photo-bytes',[tokenKey(event.id)]:'old-ticket.'+'b'.repeat(43),[ACTIVE_EVENT_KEY]:'other-event','unrelated-counter':'99'};
+  if(linkedSource!=='none')seed[linked.usage]='24';
+  if(linkedSource==='legacy')seed[LEGACY_KEYS.config]=JSON.stringify(octoberPreset());
+  let phase='setup',failedToken=false;
+  const saved=storage(seed,key=>{
+   if(phase==='refund'&&(key===target.usage||linkedSource!=='none'&&key===linked.usage))return true;
+   if(phase==='staff'&&key===tokenKey(event.id)&&!failedToken){failedToken=true;return true;}
+   return false;
+  });
+  const first=logPrintRequest(saved,target),second=linkedSource==='none'?null:logPrintRequest(saved,linked);
+  phase='refund';
+  assert.throws(()=>markPrintOutcome(saved,target,first.id,'failed'),/Storage quota/);
+  if(second)assert.throws(()=>markPrintOutcome(saved,linked,second.id,'failed'),/Storage quota/);
+  phase='staff';
+  assert.throws(()=>applyStaffEvent(saved,{payload:event,token:ticket}),/Storage quota/);
+  assert.equal(saved.getItem(target.usage),'2','settings rollback retains the refunded counter: '+linkedSource);
+  assert.equal(listPrintRequests(saved,target)[0].status,'failed');
+  assert.equal(listPrintRequests(saved,target)[0].pendingRefund,undefined);
+  if(second){
+   assert.equal(saved.getItem(linked.usage),'23');
+   assert.equal(listPrintRequests(saved,linked)[0].status,'failed');
+   assert.equal(usage(saved,target),25);
+  }
+  if(linkedSource==='legacy')assert.equal(saved.getItem(liveWorkspace().usage),null,'legacy counter is not migrated by the failed staff save');
+  assert.equal(saved.getItem(target.config),prior);assert.equal(saved.getItem(target.previous),'previous settings');
+  assert.equal(saved.getItem(target.photos),'original-photo-bytes');assert.equal(saved.getItem(ACTIVE_EVENT_KEY),'other-event');
+  assert.equal(saved.getItem(tokenKey(event.id)),seed[tokenKey(event.id)]);assert.equal(saved.getItem('unrelated-counter'),'99');
  }
 });
 

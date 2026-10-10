@@ -91,7 +91,7 @@ export default function Help(){
     ['Camera API available',diag.camera],
     ['iPad share sheet available',diag.share],
     ['Photo-file sharing available',diag.fileShare],
-    ['AirPrint flow available',diag.print],
+    ['Browser print dialog available',diag.print],
     ['Local photo backup writable',diag.storage],
     ['Internet connection',diag.online],
     ['Running from Home Screen',diag.standalone]

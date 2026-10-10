@@ -29,6 +29,7 @@ export default function GuestReadyPreview({photo,poses=[],sessionShots,cfg:store
  const [printRequested,setPrintRequested]=useState(false),[recoverySaved,setRecoverySaved]=useState(false),[retry,setRetry]=useState(0),[archiveRetry,setArchiveRetry]=useState(0);
  const [sharing,setSharing]=useState(false),[nativeBusy,setNativeBusy]=useState(false),[deliveryBusy,setDeliveryBusy]=useState(false);
  const [staffPrompt,setStaffPrompt]=useState(false);
+ const [retryPrompt,setRetryPrompt]=useState(null);
  const prepared=artifact?.key===key?artifact:null;
  const packageRules=normalizePrintPackage(printPackage||cfg.printPackage),remaining=printsRemaining(packageRules,printsUsed);
  const busy=printing||archiveBusy||nativeBusy||deliveryBusy;
@@ -56,10 +57,10 @@ export default function GuestReadyPreview({photo,poses=[],sessionShots,cfg:store
  useEffect(()=>{
   // Keep the capture on screen while preparing/sharing, or until an export or
   // archive failure has been recovered. Staff may need the original photos.
-  const active=Boolean(!prepared||exportError||busy||sharing||staffPrompt||prepared&&onArchive&&!archived&&!recoverySaved);
+  const active=Boolean(!prepared||exportError||busy||sharing||staffPrompt||retryPrompt||prepared&&onArchive&&!archived&&!recoverySaved);
   onSessionActive?.(active);
   return()=>onSessionActive?.(false);
- },[Boolean(prepared),exportError,busy,sharing,staffPrompt,archived,recoverySaved,onArchive,onSessionActive]);
+ },[Boolean(prepared),exportError,busy,sharing,staffPrompt,retryPrompt,archived,recoverySaved,onArchive,onSessionActive]);
  function printNow(){
   if(!printAllowed||actionGuard.current)return;
   actionGuard.current=true;
@@ -71,11 +72,16 @@ export default function GuestReadyPreview({photo,poses=[],sessionShots,cfg:store
   }finally{actionGuard.current=false;}
  }
  function retryPrint(){
-  if(!printRequested||busy||actionGuard.current)return;
+  if(!printRequested||busy||actionGuard.current||retryPrompt)return;
+  setRetryPrompt('access');
+ }
+ function restorePrint(){
+  if(retryPrompt!=='review'||!printRequested||busy||actionGuard.current)return;
   actionGuard.current=true;
   try{
-   if(onPrintOutcome?.('failed')!==true){setStatus('Ask staff to review this print request before retrying. Your photo is still here.');return;}
+   if(onPrintOutcome?.('failed')!==true){setStatus('Ask staff to review this print request before retrying. Your photo is still here.');setRetryPrompt(null);return;}
    setPrintRequested(false);
+   setRetryPrompt(null);
    setStatus('Ready to try again. Tap Print.');
   }finally{actionGuard.current=false;}
  }
@@ -111,7 +117,7 @@ export default function GuestReadyPreview({photo,poses=[],sessionShots,cfg:store
   <p className="agSaved" data-testid="approved-gallery-status">{archiveBusy?'Saving your photo…':archiveError?'Please ask the attendant for help saving this photo.':archived?'✓ Your photo is saved':prepared&&!onArchive?'Ready to print or send':prepared?'Saving your photo…':'Preparing your photo…'}</p>
   {(archiveError||status||exportError)&&<p className={'agStatus'+(archiveError||exportError?' agWarning':'')} role={archiveError||exportError?'alert':'status'}>{archiveError||exportError||status}{archiveError&&prepared&&<><button type="button" data-testid="approved-retry-save" disabled={busy} onClick={()=>setArchiveRetry(n=>n+1)}>Retry saving</button><button type="button" disabled={busy} onClick={saveRecovery}>Save recovery JPEG</button></>}{exportError&&<button type="button" onClick={()=>setRetry(n=>n+1)}>Retry photo</button>}</p>}
   {(exportError||archiveError)&&onOperator&&<div className="agErrorHelp"><span>Your photo stays here while staff helps.</span><button type="button" data-testid="approved-error-staff" disabled={busy} onClick={()=>setStaffPrompt(true)}>Staff tools</button></div>}
-  {printRequested&&<div className="agPrintRecovery"><span>Only retry if you canceled or no sheet printed.</span><button type="button" data-testid="approved-retry-print" disabled={busy} onClick={retryPrint}>Retry print</button></div>}
+  {printRequested&&<div className="agPrintRecovery"><span>Ask staff to help if you canceled or no sheet printed.</span><button type="button" data-testid="approved-retry-print" disabled={busy||Boolean(retryPrompt)} onClick={retryPrint}>Retry print</button></div>}
   </div>
   <footer className="agDock" aria-label="Finished photo actions">
    {packageRules.printingEnabled&&<button type="button" className="agButton agPrint" data-testid="approved-print" onClick={printNow} disabled={!printAllowed}><ActionIcon name="print"/><span>{printing?'Opening print…':printRequested?'Print requested':remaining<=0?'Print limit reached':'Print'}</span></button>}
@@ -129,6 +135,13 @@ export default function GuestReadyPreview({photo,poses=[],sessionShots,cfg:store
    </div>
   </StudioDialog>}
   {staffPrompt&&<StaffAccessGate onClose={()=>setStaffPrompt(false)} onConfirm={()=>{setStaffPrompt(false);onOperator?.();}}/>}
+  {retryPrompt==='access'&&<StaffAccessGate title="Staff print retry" description="Authorize staff to review this print request. Your photo stays here while staff checks whether any sheet printed." confirmLabel="Review print request →" onClose={()=>setRetryPrompt(null)} onConfirm={()=>setRetryPrompt('review')}/>}
+  {retryPrompt==='review'&&<StudioDialog title="Check the Canon before retrying." busy={busy} onClose={()=>setRetryPrompt(null)}>
+   <div className="agDigitalCopy"><p>Check the printer and paper. Restore this request only if printing was canceled or no physical sheet came out.</p>
+    <button type="button" className="agButton agPrint" data-testid="approved-confirm-no-print" disabled={busy} onClick={restorePrint}>No sheet printed · restore print</button>
+    <button type="button" className="agButton agDone" data-testid="approved-cancel-print-retry" disabled={busy} onClick={()=>setRetryPrompt(null)}>Keep this print request</button>
+   </div>
+  </StudioDialog>}
  </section>;
 }
 

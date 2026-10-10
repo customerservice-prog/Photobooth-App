@@ -1,6 +1,7 @@
 import {validatePrintLayouts} from './print-layouts.mjs';
 import {normalizePrintPackage} from './print-package.mjs';
 import {normalizeGuestPause,normalizePhotoPreference} from './guest-pause.mjs';
+import {recoverPrintRequests} from './print-ledger.mjs';
 
 export const EVENT_ID='oct10-2026';
 // This existing admin booking represents the same physical October event that
@@ -61,10 +62,17 @@ export function readEventDraft(storage){
 // event, both the historical live counter and imported-event counter contribute
 // to one allowance; they are NOT migrated, merged, reset or overwritten.
 export function ownPrintUsage(storage,scope){
+  // Finish only previously recorded staff refunds before displaying, copying,
+  // or incrementing a counter. A pending refund at the allowance limit must
+  // recover even when the guest Print button is disabled after a reload.
+  recoverPrintRequests(storage,scope);
   let raw=storage.getItem(scope.usage);
   if(raw===null&&scope.managed&&!scope.demo){
     const legacy=parsed(storage,LEGACY_KEYS.config);
-    if(isLegacyOctober(legacy))raw=storage.getItem(LEGACY_KEYS.usage);
+    if(isLegacyOctober(legacy)){
+      recoverPrintRequests(storage,workspace());
+      raw=storage.getItem(LEGACY_KEYS.usage);
+    }
   }
   if(raw===null)return 0;
   if(!/^\d+$/.test(raw)||!Number.isSafeInteger(Number(raw)))throw new Error('The print counter needs staff review. It was not reset.');

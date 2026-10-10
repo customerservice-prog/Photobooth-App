@@ -154,9 +154,10 @@ export async function exportPhotos(scope,{allowEmpty=false}={}){
  const stored=await archiveRecords(scope),snapshot=archiveSnapshot(scope,stored);
  const records=stored.sort((a,b)=>a.createdAt.localeCompare(b.createdAt)).map(materialize);
  if(!records.length&&!allowEmpty)throw new Error('No photos have been captured in this event on this device yet.');
- const files=[],manifest={scope,createdAt:new Date().toISOString(),sessions:records.length,originalPhotos:records.reduce((n,r)=>n+r.poses.length,0),interruptedSessions:records.filter(r=>!r.collage).length,finishedKeepsakes:records.filter(r=>r.keepsake).length,note:'Photos stored on this device only. Demonstration and live-event archives are separate. Every saved original is included, including photos from interrupted sessions.'};
+ const files=[],manifest={scope,createdAt:new Date().toISOString(),sessions:records.length,originalPhotos:records.reduce((n,r)=>n+r.poses.length,0),interruptedSessions:records.filter(r=>!r.collage).length,captureCollages:records.filter(r=>r.collage).length,finishedKeepsakes:records.filter(r=>r.keepsake).length,note:'Photos stored on this device only. Demonstration and live-event archives are separate. Every saved original, capture collage and finished keepsake is included, including original photos from interrupted sessions.'};
+ manifest.fileCount=manifest.originalPhotos+manifest.captureCollages+manifest.finishedKeepsakes;
  files.push({name:'manifest.json',blob:new Blob([JSON.stringify(manifest,null,2)],{type:'application/json'})});
- records.forEach((r,n)=>{const folder='session-'+String(n+1).padStart(4,'0')+'/';r.poses.forEach((blob,i)=>files.push({name:folder+'pose-'+(i+1)+'.jpg',blob}));if(r.keepsake||r.collage)files.push({name:folder+(r.keepsake?'keepsake.jpg':'collage.jpg'),blob:r.keepsake||r.collage});});
+ records.forEach((r,n)=>{const folder='session-'+String(n+1).padStart(4,'0')+'/';r.poses.forEach((blob,i)=>files.push({name:folder+'pose-'+(i+1)+'.jpg',blob}));if(r.collage)files.push({name:folder+'collage.jpg',blob:r.collage});if(r.keepsake)files.push({name:folder+'keepsake.jpg',blob:r.keepsake});});
  return {blob:await makeZip(files),count:records.length,finishedKeepsakes:manifest.finishedKeepsakes,snapshot};
 }
 // Irreversible cleanup for a single, already-exported event only.

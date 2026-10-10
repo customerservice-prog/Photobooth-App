@@ -23,7 +23,7 @@ Open **Staff tools → Automatic event gallery** to check progress or tap **Retr
 1. Keep the correct event open on its iPad while online until all files are saved and pending uploads are zero.
 2. In the owner dashboard, open **Events → the event → Open digital gallery**.
 3. Download **all uploaded photos ZIP**, including every displayed part for a larger gallery. Session folders contain every uploaded original pose and available collage/keepsake. Pending iPad files are not in the online ZIP yet.
-4. Open the ZIP files and verify the photos before sending the gallery to the customer. Keep a checked copy. The iPad also offers **Staff tools → Finish the event → Download complete event gallery ZIP**.
+4. Open the ZIP files and verify the photos before sending the gallery to the customer. Keep a checked copy. The iPad also offers **Staff tools → Finish the event → Download complete event gallery ZIP**. Its session folders include each saved pose, `collage.jpg`, and `keepsake.jpg` as separate files when available; interrupted sessions include their saved originals. The manifest counts each image type and the total JPEG files.
 5. Only after verifying exports and zero pending uploads should staff remove the local event or complete, archive, and permanently delete its owner booking. Owner deletion removes that event’s remaining backend images. It does not deliver photos automatically.
 
 Online copies expire 30 days after their last successful backup acknowledgment. Local originals remain until explicitly removed. If an old event’s backup authorization needs renewal, unlock staff tools and use **Retry backup now**. Older signed setup proofs expire seven days after the event date; staff authentication is required to reconnect an older event.

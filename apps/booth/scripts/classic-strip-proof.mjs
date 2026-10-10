@@ -90,6 +90,14 @@ for(const [engine,api] of engines){
   assert.equal(await page.evaluate(k=>localStorage.getItem(k),EVENT_KEYS.liveUsage),'17');
   await page.waitForFunction(()=>document.querySelector('[data-testid="approved-print"]')?.textContent?.includes('Print requested'));
   pass('demo wireless print opens once and never spends paid event allowance');
+  await page.route('**/api/staff/unlock',route=>route.fulfill({json:{required:false}}));
+  await page.getByTestId('approved-retry-print').click();await page.getByRole('dialog',{name:'Staff print retry',exact:true}).waitFor();
+  await page.getByTestId('staff-confirm').click();await page.getByTestId('approved-confirm-no-print').click();
+  assert.equal(await page.evaluate(k=>localStorage.getItem(k),EVENT_KEYS.demoUsage),'4');
+  assert.equal(await page.evaluate(k=>localStorage.getItem(k),EVENT_KEYS.liveUsage),'17');
+  await page.getByTestId('approved-print').click();assert.equal(await page.evaluate(()=>window.__prints),2);
+  await page.waitForFunction(()=>!document.querySelector('[data-testid="approved-retry-print"]')?.disabled);
+  pass('staff-confirmed-demo-retry-works-with-security-off-and-preserves-paid-event-allowance',{physicalPrinterUsed:false});
   await page.getByTestId('approved-done').click();
   await page.getByTestId('welcome-four-photo').waitFor({timeout:12000});
   pass('one-tap done returns to guest welcome without editing event artwork');
@@ -114,13 +122,30 @@ for(const [engine,api] of engines){
   await page.getByTestId('approved-retry-print').waitFor();
   await page.waitForFunction(()=>!document.querySelector('[data-testid="approved-retry-print"]').disabled);
   assert.equal(await page.evaluate(k=>localStorage.getItem(k),EVENT_KEYS.liveUsage),'18');
-  await page.getByTestId('approved-retry-print').click();
+  const pendingPhoto=await page.getByTestId('approved-finished-jpeg').getAttribute('src');
+  await page.route('**/api/staff/unlock',route=>route.fulfill({json:{required:true}}));
+  await page.getByTestId('approved-retry-print').click();await page.getByTestId('staff-pin-form').waitFor();
+  assert.equal(await page.evaluate(k=>localStorage.getItem(k),EVENT_KEYS.liveUsage),'18','opening PIN access does not restore allowance');
+  await page.locator('#bwStaffPin').fill('4826'); // Test-only PIN; do not submit to a production credential service.
+  await page.getByTestId('staff-cancel').click();
+  assert.equal(await page.evaluate(k=>localStorage.getItem(k),EVENT_KEYS.liveUsage),'18','canceling the PIN retains the print request');
+  assert(await page.getByTestId('approved-print').isDisabled());
+  await page.unroute('**/api/staff/unlock');
+  await page.route('**/api/staff/unlock',route=>route.fulfill({json:{required:false}}));
+  await page.getByTestId('approved-retry-print').click();await page.getByTestId('staff-confirm').click();
+  await page.getByRole('dialog',{name:'Check the Canon before retrying.',exact:true}).waitFor();
+  assert.equal(await page.evaluate(k=>localStorage.getItem(k),EVENT_KEYS.liveUsage),'18','authorization alone does not restore allowance');
+  await page.getByTestId('approved-cancel-print-retry').click();
+  assert.equal(await page.evaluate(k=>localStorage.getItem(k),EVENT_KEYS.liveUsage),'18','canceling paper review retains the charge');
+  assert.equal(await page.getByTestId('approved-finished-jpeg').getAttribute('src'),pendingPhoto,'staff review retains the same photo');
+  await page.getByTestId('approved-retry-print').click();await page.getByTestId('staff-confirm').click();
+  await page.getByTestId('approved-confirm-no-print').click();
   assert.equal(await page.evaluate(k=>localStorage.getItem(k),EVENT_KEYS.liveUsage),'17');
   assert(await page.getByTestId('approved-print').isEnabled());
   await page.getByTestId('approved-print').click();
   assert.equal(await page.evaluate(()=>window.__prints),2);
   assert.equal(await page.evaluate(k=>localStorage.getItem(k),EVENT_KEYS.liveUsage),'18');
-  pass('canceled-or-unprinted-request-can-be-retried-without-double-charging-the-allowance');
+  pass('only-staff-confirmed-canceled-or-unprinted-request-restores-one-print-before-retry',{physicalPrinterUsed:false});
   assert.deepEqual(page.__errors,[]);
  }catch(err){results.push({engine,passed:false,message:err.message,stack:err.stack});if(page)await page.screenshot({path:`${out}/${engine}-failure.png`,fullPage:true}).catch(()=>{});throw err;}
  finally{await browser.close();await writeFile(`${out}/results.json`,JSON.stringify({version:BOOTH_RELEASE,results},null,2));}
