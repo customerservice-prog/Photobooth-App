@@ -48,6 +48,7 @@ for(const [engine,api]of [['chromium',chromium],['webkit',webkit]]){
  },{one,other,first:configFromBoothHandoff(current),second:configFromBoothHandoff(payload(other.id)),activeKey:ACTIVE_EVENT_KEY,eventKeys:EVENT_KEYS,october:octoberPreset()});
  const page=await context.newPage();page.on('pageerror',e=>errors.push(e.message));page.setDefaultTimeout(15000);
  const goto=path=>page.goto(base+path,{waitUntil:'networkidle'});
+ const welcomeReady=async()=>{await page.getByTestId('welcome-start-session').waitFor();await page.waitForFunction(()=>!document.querySelector('[data-testid="welcome-start-session"]')?.disabled);await page.waitForLoadState('networkidle');};
  const path=()=>new URL(page.url()).pathname+new URL(page.url()).search;
  const unlock=async()=>{await page.getByTestId('staff-start-pin').fill('4321');await page.getByTestId('staff-start-unlock').click();await page.getByTestId('staff-event-select').waitFor();};
  try{
@@ -55,7 +56,7 @@ for(const [engine,api]of [['chromium',chromium],['webkit',webkit]]){
   assert.match(await page.locator('.blCurrent').innerText(),/Current Customer Event/);
   await page.getByTestId('launch-start-event').click();await page.getByTestId('staff-start-pin').waitFor();
   await page.getByTestId('staff-start-back').click();await page.getByTestId('launch-start-event').waitFor();assert.equal(path(),'/launch');
-  await page.getByTestId('launch-resume-current').click();await page.getByTestId('welcome-start-session').waitFor();assert.equal(path(),other.home);
+  await page.getByTestId('launch-resume-current').click();await welcomeReady();assert.equal(path(),other.home);
   await goto('/staff/start?event='+one.id);await unlock();assert.equal(await page.getByTestId('staff-event-select').inputValue(),one.id);
   for(const [w,h]of [[1024,768],[768,1024],[390,844],[320,640]]){
    await page.setViewportSize({width:w,height:h});const start=page.getByTestId('staff-start-event');await start.scrollIntoViewIfNeeded();
@@ -63,7 +64,7 @@ for(const [engine,api]of [['chromium',chromium],['webkit',webkit]]){
    await page.screenshot({path:`${out}/${engine}-staff-${w}x${h}.png`});
   }
   await page.setViewportSize({width:1024,height:768});await page.getByTestId('staff-layout-fpr-birthday').click();await page.getByTestId('staff-start-event').click();
-  await page.getByTestId('welcome-start-session').waitFor();assert.equal(path(),one.home);
+  await welcomeReady();assert.equal(path(),one.home);
   await page.waitForFunction(()=>document.querySelector('[data-testid="welcome-large-proof"] svg')?.getAttribute('data-fpr-preset')==='birthday'&&!document.querySelector('[data-testid="welcome-start-session"]')?.disabled);
   assert.equal(await page.getByTestId('welcome-large-proof').locator('svg').getAttribute('data-fpr-preset'),'birthday');
   const state=await page.evaluate(({one,other,active})=>({one:JSON.parse(localStorage.getItem(one.config)).defaultTemplate,oneCount:localStorage.getItem(one.usage),otherCount:localStorage.getItem(other.usage),active:localStorage.getItem(active)}),{one,other,active:ACTIVE_EVENT_KEY});
@@ -71,14 +72,14 @@ for(const [engine,api]of [['chromium',chromium],['webkit',webkit]]){
   await page.getByTestId('welcome-staff-tools').click();await page.locator('#bwStaffPin').fill('4321');await page.getByTestId('staff-confirm').click();
   const printer=page.getByRole('link',{name:/Canon wireless printing/});const printerHref=await printer.getAttribute('href');assert.equal(new URL(printerHref,base).searchParams.get('returnTo'),one.home);
   await printer.click();await page.getByTestId('staff-page-back').waitFor();assert.equal(new URL(page.url()).searchParams.get('returnTo'),one.home);
-  await page.getByTestId('staff-page-back').click();await page.getByTestId('welcome-start-session').waitFor();assert.equal(path(),one.home);
+  await page.getByTestId('staff-page-back').click();await welcomeReady();assert.equal(path(),one.home);
   await goto(withReturnTo('/help','/?event=oct10-2026&demo=1'));await page.getByRole('link',{name:'Photo privacy',exact:true}).click();await page.waitForLoadState('networkidle');await page.getByTestId('staff-page-back').waitFor();
   assert.equal(new URL(await page.getByTestId('staff-page-back').getAttribute('href'),base).pathname,'/help');
-  await page.getByTestId('staff-page-back').click();await page.waitForLoadState('networkidle');await page.getByTestId('staff-page-back').click();await page.getByTestId('welcome-start-session').waitFor();assert.equal(path(),'/?event=oct10-2026&demo=1');
-  await goto('/?local=1');await page.getByTestId('welcome-start-session').waitFor();assert.equal(path(),'/?local=1');assert.match(await page.locator('#bwEventTitle').innerText(),/Local rehearsal/);
+  await page.getByTestId('staff-page-back').click();await page.waitForLoadState('networkidle');await page.getByTestId('staff-page-back').click();await welcomeReady();assert.equal(path(),'/?event=oct10-2026&demo=1');
+  await goto('/?local=1');await welcomeReady();assert.equal(path(),'/?local=1');assert.match(await page.locator('#bwEventTitle').innerText(),/Local rehearsal/);
   await page.getByRole('link',{name:'Help',exact:true}).click();await page.getByTestId('staff-page-back').waitFor();
   assert.equal(new URL(page.url()).searchParams.get('returnTo'),'/?local=1','welcome Help retains the local event even with another active customer event');
-  await page.getByTestId('staff-page-back').click();await page.getByTestId('welcome-start-session').waitFor();assert.equal(path(),'/?local=1');
+  await page.getByTestId('staff-page-back').click();await welcomeReady();assert.equal(path(),'/?local=1');
   await goto('/handoff');await page.getByRole('link',{name:'Choose event & design',exact:true}).waitFor();assert.equal(await page.getByTestId('staff-page-back').count(),1);
   assert.deepEqual(writes,[{id:one.id,design:'fpr-birthday'}]);assert.deepEqual(errors,[]);
   results.push({engine,passed:true,release:BOOTH_RELEASE,staffSizes:4,checks:['stable start','explicit resume','PIN cancel','event selection','reachable start','selected layout launch','event-safe printer back','help/privacy/demo back','local rehearsal isolation','handoff recovery'],writes});
