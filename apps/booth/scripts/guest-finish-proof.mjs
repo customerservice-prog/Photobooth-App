@@ -185,6 +185,8 @@ async function runCase(browser,engine,scope,total,fixture){
    const welcomeDesigns=await page.locator('.bwLayoutPreview svg[data-design]').evaluateAll(elements=>elements.map(element=>element.getAttribute('data-design')));
    assert.deepEqual(welcomeDesigns,Array(3).fill(fixture.type+'-'+fixture.template),'both welcome layouts use the approved event artwork');
   }
+  // Keep the canvas-stream camera in WebKit's active page while it captures.
+  if(engine==='webkit')await page.bringToFront();
   await page.getByTestId(total===1?'welcome-quick-photo':'welcome-four-photo').click();assert.equal(await page.getByTestId('welcome-large-proof').getAttribute('data-selected-photos'),String(total));await page.getByTestId('welcome-start-session').click();
   // Use the real "I'm ready" action between poses to keep this bounded.
   const deadline=Date.now()+100000;
@@ -239,8 +241,11 @@ try{
   const browser=await api.launch({headless:true,...(proxy?{proxy}:{}),...(engine==='chromium'?{args:['--no-sandbox']}: {})});
   try{
    const cases=eventProof?standardEvents.flatMap(fixture=>[1,4].map(total=>['legacy',total,fixture])):['legacy','managed'].flatMap(scope=>[1,4].map(total=>[scope,total]));
-   for(let start=0;start<cases.length;start+=4){
-    const finished=await Promise.allSettled(cases.slice(start,start+4).map(([scope,total,fixture])=>runCase(browser,engine,scope,total,fixture)));
+   // Concurrent background canvas streams can stop presenting fresh frames in
+   // headless WebKit. Exercise every case in one active camera page at a time.
+   const concurrency=engine==='webkit'?1:4;
+   for(let start=0;start<cases.length;start+=concurrency){
+    const finished=await Promise.allSettled(cases.slice(start,start+concurrency).map(([scope,total,fixture])=>runCase(browser,engine,scope,total,fixture)));
     const failed=finished.find(result=>result.status==='rejected');if(failed)throw failed.reason;
    }
   }
