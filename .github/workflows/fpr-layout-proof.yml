@@ -1,0 +1,55 @@
+name: Approved one and four photo layout proof
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'apps/booth/**'
+      - '.github/workflows/fpr-layout-proof.yml'
+  workflow_dispatch:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'apps/booth/**'
+      - '.github/workflows/fpr-layout-proof.yml'
+permissions:
+  contents: read
+concurrency:
+  group: fpr-layout-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+jobs:
+  proof:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    defaults:
+      run:
+        working-directory: apps/booth
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install --no-audit --no-fund
+      - run: npm install --no-save playwright@1.55.0
+      - run: npx playwright install --with-deps chromium webkit
+      - name: One and four opening unit regressions
+        run: node --test tests/fpr-photo-layouts.test.mjs ../admin/tests/fpr-five-approved-presets.test.mjs
+      - name: Real production build
+        run: mkdir -p fpr-layout-proof && npm run build 2>&1 | tee fpr-layout-proof/build.log
+      - name: Actual approved welcome layouts and finished JPEGs
+        run: |
+          BOOTH_PROOF_NEXT_CLI=$(node -p 'require.resolve("next/dist/bin/next")')
+          node "$BOOTH_PROOF_NEXT_CLI" start -p 3000 > fpr-layout-proof/server.log 2>&1 &
+          SERVER_PID=$!
+          trap 'kill $SERVER_PID 2>/dev/null || true' EXIT
+          for i in $(seq 1 60); do
+            if curl -fsS http://127.0.0.1:3000/api/app-version > /dev/null; then break; fi
+            sleep 1
+          done
+          node scripts/fpr-layout-proof.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: approved-one-four-layout-proof-${{ github.run_id }}
+          path: apps/booth/fpr-layout-proof/
+          retention-days: 3

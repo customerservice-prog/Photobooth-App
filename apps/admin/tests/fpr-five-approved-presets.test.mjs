@@ -48,7 +48,7 @@ test('admin choice persists into protected iPad handoff and renders the exact sa
      layout,stripMode:'single',filter:'none',id:'proof'});
    assert.equal(adminProof,guestProof,preset.id+' '+shots);
    assert.match(adminProof,/data-fpr-preset=/);
-   assert.equal((adminProof.match(/data-approved-photo-region=/g)||[]).length,shots===4?4:(preset.key==='wedding'?2:3));
+   assert.equal((adminProof.match(/data-approved-photo-region=/g)||[]).length,shots);
   }
  }
 });
