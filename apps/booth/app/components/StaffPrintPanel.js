@@ -13,10 +13,10 @@ export default function StaffPrintPanel({onReviewPrint}){
   <div className="operatorFoldContent">
    <p>The browser cannot know if a Canon sheet physically printed. Check the paper before confirming. Only staff may restore a failed request to the allowance.</p>
    {rows.slice(0,12).map(r=><div className="operatorPrintLog" key={r.id}>
-    <strong>{new Date(r.time).toLocaleTimeString()} · {r.status==='requested'?'Paper not verified':r.status==='printed'?'Staff confirmed printed':'Failed; one print restored'}</strong>
+    <strong>{new Date(r.time).toLocaleTimeString()} · {r.pendingRefund?'Failed print credit interrupted — check storage':r.status==='requested'?'Paper not verified':r.status==='printed'?'Staff confirmed printed':'Failed; one print restored'}</strong>
     {r.status==='requested'&&<div className="operatorHandoffButtons">
-     <button type="button" className="operatorQuickPaste" onClick={()=>resolve(r.id,'printed')}>Paper came out</button>
-     <button type="button" className="operatorQuickPaste" onClick={()=>resolve(r.id,'failed')}>Failed · restore 1 print</button>
+     {!r.pendingRefund&&<button type="button" className="operatorQuickPaste" onClick={()=>resolve(r.id,'printed')}>Paper came out</button>}
+     <button type="button" className="operatorQuickPaste" onClick={()=>resolve(r.id,'failed')}>{r.pendingRefund?'Finish interrupted credit':'Failed · restore 1 print'}</button>
     </div>}
    </div>)}
    {!rows.length&&<p>No recent print requests recorded on this iPad.</p>}

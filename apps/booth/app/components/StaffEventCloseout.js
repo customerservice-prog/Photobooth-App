@@ -49,7 +49,7 @@ export default function StaffEventCloseout({scope,eventName}){
    <div><small>ONLINE EVENT GALLERY</small><strong>{backup?.state==='ready'&&backup.pending===0?'All photos saved':backup?.pending>0?backup.pending+' files waiting':'Checking backup'}</strong><span>{backupStatusLabel(backup)}</span></div>
   </div>
   <div className="operatorFoldContent" style={{padding:0}}>
-   <p><strong>1. Download all event photos.</strong> Open this event’s Digital gallery in the owner dashboard to download its online photos. The iPad ZIP below provides an additional copy of every original pose and available finished 4×6 JPEG.</p>
+   <p><strong>1. Download all event photos.</strong> Open this event’s Digital gallery in the owner dashboard to download its online photos. The iPad ZIP below provides an additional copy of every original pose, capture collage and available finished 4×6 JPEG.</p>
    {eligible&&<a className="operatorSecondary" href={'https://photobooth-app-production.up.railway.app/events/'+encodeURIComponent(scope.id)+'/backups'} target="_blank" rel="noopener noreferrer">Open this event’s digital gallery</a>}
    <button type="button" className="operatorPrimary" disabled={busy||count===null} onClick={exportGallery} data-testid="staff-export-gallery">{busy?'Working…':count===0?'Download empty-event record ZIP':'Download complete event gallery ZIP'}</button>
    {count===0&&<p>There are no captured sessions in this event on this device. Download and check the empty-event ZIP before removing its setup.</p>}

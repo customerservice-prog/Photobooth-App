@@ -16,7 +16,7 @@ import {createScreenAwakeController,readScreenAwakeSetting,saveScreenAwakeSettin
 import {activeEventDestination} from './lib/active-event.mjs';
 import {eventHome,withReturnTo} from './lib/staff-navigation.mjs';
 import {backupEnabled,saveBackupToken,syncEventPhotos} from './lib/backup-sync.mjs';
-import {logPrintRequest,markPrintOutcome} from './lib/print-ledger.mjs';
+import {logPrintRequest,markPrintOutcome,recoverPrintRequests} from './lib/print-ledger.mjs';
 import './event-prep/preparation.css';
 const RESET_MS=90000;
 const defaultCfg={title:'Our Celebration',subtitle:'Friendly Photo Booth',date:new Date().toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'}),type:'other',printPackage:normalizePrintPackage()};
@@ -197,7 +197,7 @@ export default function Booth(){
   function reset(){latestPrintRequest.current=null;printCleanup.current();setPreviewActive(false);captureAbort.current?.abort();captureAbort.current=null;stopTalking();startGuard.current=false;setStarting(false);run.current++;stopCamera();setPhoto(null);setPoses([]);setError('');setPrinting(false);setFilter('original');setTemplate(cfg.defaultTemplate||'ivory');setCapture({phase:'ready',current:1,total:4,completed:0,shots:[]});setSessionShots(4);setEditing(false);captureId.current=null;setStep('welcome')}
   function requestPrint(){
     if(printGuard.current||printing)return false;printGuard.current=true;
-    try{const settings=normalizePrintPackage(cfg.printPackage),used=usage(localStorage,scope);if(!canPrint(settings,used,false)){setError(printsRemaining(settings,used)<=0?'The event print allowance has been reached. Digital delivery is still available.':'Printing is disabled for this event.');return false;}
+    try{recoverPrintRequests(localStorage,scope);const settings=normalizePrintPackage(cfg.printPackage),used=usage(localStorage,scope);if(!canPrint(settings,used,false)){setError(printsRemaining(settings,used)<=0?'The event print allowance has been reached. Digital delivery is still available.':'Printing is disabled for this event.');return false;}
       // The original October booth and its admin transfer contribute to one
       // allowance, but each increments only its own already-existing counter.
       const ownUsed=ownPrintUsage(localStorage,scope);
