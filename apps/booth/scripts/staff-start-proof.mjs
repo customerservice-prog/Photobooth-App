@@ -64,6 +64,103 @@ async function done(page){await page.getByTestId('approved-done').click();await 
 async function pin(page){await page.getByTestId('staff-start-pin').fill('2018');await page.getByTestId('staff-start-unlock').click();await page.getByTestId('staff-event-select').waitFor();}
 async function openStaff(page,origin){await page.goto(origin+'/staff/start?event='+eventId,{waitUntil:'networkidle'});if(await page.getByTestId('staff-start-pin').count())await pin(page);await page.getByTestId('staff-start-event').waitFor();}
 async function readyProofs(page){for(const kind of ['one','four'])await page.getByTestId('staff-layout-preview-'+kind).evaluate(image=>image.complete&&image.naturalWidth>0||new Promise((resolve,reject)=>{image.addEventListener('load',resolve,{once:true});image.addEventListener('error',()=>reject(new Error('Preview image failed')),{once:true});}));}
+async function visibleInViewport(page,locator,message){
+ assert(await locator.isVisible(),message+' is visible');
+ const box=await locator.boundingBox(),viewport=page.viewportSize();
+ assert(box&&box.x>=-1&&box.y>=-1&&box.x+box.width<=viewport.width+1&&box.y+box.height<=viewport.height+1,message+' fits inside the viewport: '+JSON.stringify({box,viewport}));
+ assert(await locator.evaluate(node=>{const box=node.getBoundingClientRect(),hit=document.elementFromPoint(box.x+box.width/2,box.y+box.height/2);return hit===node||node.contains(hit);}),message+' is not covered by another control');
+}
+async function previewSvg(page,kind){await readyProofs(page);return decodeURIComponent((await page.getByTestId('staff-layout-preview-'+kind).getAttribute('src')).split(',').slice(1).join(','));}
+async function resetSetupScroll(page){await page.evaluate(()=>{document.querySelector('.staffStartPage')?.scrollTo(0,0);scrollTo(0,0);});}
+async function artworkReplacementProof(page,engine){
+ await page.getByTestId('staff-custom-edit').click();await page.getByTestId('staff-custom-dialog').waitFor();await page.getByRole('radio',{name:'Upload artwork',exact:true}).check();
+ for(const [kind,color]of [['one','#173657'],['four','#392647']]){
+  const png=await sharp({create:{width:1200,height:1800,channels:3,background:color}}).png().toBuffer();
+  await page.getByTestId('custom-upload-'+kind).setInputFiles({name:kind+'-ui-artwork.png',mimeType:'image/png',buffer:png});
+  await page.getByTestId('custom-upload-'+kind).locator('..').getByRole('status').filter({hasText:'Artwork ready'}).waitFor();
+ }
+ await page.getByTestId('staff-custom-done').click();await page.waitForFunction(()=>!document.querySelector('[data-testid="staff-start-event"]').disabled);await readyProofs(page);
+ // Hold a real FileReader to verify the old valid artwork cannot start while its replacement is preparing.
+   const previousOne=await previewSvg(page,'one'),previousFour=await previewSvg(page,'four');
+   await page.getByTestId('staff-custom-edit').click();await page.getByTestId('staff-custom-dialog').waitFor();
+   await page.evaluate(()=>{const native=FileReader.prototype.readAsDataURL;FileReader.prototype.readAsDataURL=function(file){FileReader.prototype.readAsDataURL=native;window.__staffArtworkReadWaiting=true;window.__releaseStaffArtworkRead=()=>{window.__staffArtworkReadWaiting=false;native.call(this,file);};};});
+   const replacement=await sharp({create:{width:1200,height:1800,channels:3,background:'#6b1c29'}}).png().toBuffer();
+   await page.getByTestId('custom-upload-one').setInputFiles({name:'replacement-one-artwork.png',mimeType:'image/png',buffer:replacement});
+   await page.waitForFunction(()=>window.__staffArtworkReadWaiting===true);await page.waitForFunction(()=>document.querySelector('[data-testid="staff-start-event"]')?.textContent.includes('Preparing artwork'));
+   await page.getByTestId('staff-custom-done').click();assert(!await page.getByTestId('staff-custom-dialog').isVisible());
+   assert(await page.getByTestId('staff-start-event').isDisabled(),'closing Custom cannot start with the previous artwork while a replacement is preparing');assert((await page.getByTestId('staff-start-event').textContent()).includes('Preparing artwork'),'preparing status remains clear after closing the editor');
+   assert.equal(await previewSvg(page,'one'),previousOne,'pending artwork does not silently replace the selected print');
+   await page.evaluate(()=>window.__releaseStaffArtworkRead());await page.waitForFunction(()=>!document.querySelector('[data-testid="staff-start-event"]').disabled);await readyProofs(page);
+   assert.notEqual(await previewSvg(page,'one'),previousOne,'the completed replacement appears in the actual one-photo print');assert.equal(await previewSvg(page,'four'),previousFour,'replacing one-photo artwork preserves the four-photo artwork');
+ await page.setViewportSize({width:390,height:844});await page.screenshot({path:out+'/'+engine+'-custom-ready-phone.png',fullPage:true});await page.setViewportSize({width:1024,height:768});
+}
+async function compactSetupProof(page,engine){
+ const layouts=['fpr-graduation','fpr-wedding','fpr-birthday','fpr-quince','fpr-corporate','custom'],geometry=[];
+ for(const [label,width,height]of [['desktop',1366,768],['ipad-landscape',1024,768],['ipad-portrait',768,1024],['phone',390,844]]){
+  await page.setViewportSize({width,height});await resetSetupScroll(page);await readyProofs(page);
+  assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),label+' has no horizontal page overflow');
+  await visibleInViewport(page,page.getByTestId('staff-event-select'),label+' event picker');
+  await visibleInViewport(page,page.getByTestId('staff-start-event'),label+' primary Start photo booth button');
+  for(const id of layouts){
+   const card=page.getByTestId('staff-layout-'+id);
+   if(width>=768)await visibleInViewport(page,card,label+' '+id+' choice');
+   else{await card.scrollIntoViewIfNeeded();await visibleInViewport(page,card,label+' reachable '+id+' choice');await visibleInViewport(page,page.getByTestId('staff-start-event'),label+' start remains visible while choosing');}
+  }
+  await resetSetupScroll(page);
+  for(const [kind,count]of [['one',1],['four',4]]){
+   const toggle=page.getByTestId('staff-preview-'+kind);await toggle.scrollIntoViewIfNeeded();await toggle.click();await readyProofs(page);
+   assert((await toggle.boundingBox())?.height>=44,label+' preview switch is large enough to tap');
+   assert.equal(await toggle.getAttribute('aria-pressed'),'true',label+' preview toggle is selected');
+   assert(await page.getByTestId('staff-layout-preview-'+kind).isVisible(),label+' selected print preview is visible');
+   if(width>=768)await visibleInViewport(page,page.getByTestId('staff-layout-preview-'+kind),label+' complete print preview');
+   assert(!await page.getByTestId('staff-layout-preview-'+(kind==='one'?'four':'one')).isVisible(),label+' shows exactly one print image');
+   assert.equal(await page.getByTestId('staff-print-preview').getAttribute('data-selected-photos'),String(count));
+   await visibleInViewport(page,page.getByTestId('staff-start-event'),label+' start stays visible after preview change');
+  }
+  await resetSetupScroll(page);await page.screenshot({path:out+'/'+engine+'-compact-'+label+'.png'});
+  if(width<768){
+   await page.mouse.move(width/2,Math.min(500,height/2));await page.mouse.wheel(0,650);
+   await page.waitForFunction(()=>document.querySelector('.staffStartPage')?.scrollTop>100);
+   await visibleInViewport(page,page.getByTestId('staff-layout-preview-four'),label+' print preview reached by ordinary scrolling');await visibleInViewport(page,page.getByTestId('staff-start-event'),label+' Start stays visible while scrolling');
+   await page.screenshot({path:out+'/'+engine+'-compact-'+label+'-scrolled-preview.png'});await page.mouse.wheel(0,-2000);await page.waitForFunction(()=>document.querySelector('.staffStartPage')?.scrollTop===0);await visibleInViewport(page,page.getByTestId('staff-event-select'),label+' event picker reached by scrolling back');
+  }
+  geometry.push({label,width,height,noHorizontalOverflow:true,allChoicesReachable:true,primaryStartInViewport:true,oneVisiblePrintPreview:true,...(width<768?{ordinaryScrollingWorks:true}:{})});
+ }
+ await page.setViewportSize({width:1024,height:768});await resetSetupScroll(page);
+ // Changing choices changes the actual rendered artwork without saving or starting.
+ const sources=new Set();
+ for(const id of layouts.filter(id=>id!=='custom')){
+  await page.getByTestId('staff-layout-'+id).click();await readyProofs(page);
+  assert.equal(await page.getByTestId('staff-print-preview').getAttribute('data-template'),id);
+  assert.equal(await page.getByTestId('staff-layout-'+id).getAttribute('aria-pressed'),'true');
+  sources.add(await previewSvg(page,'one'));
+ }
+ assert.equal(sources.size,5,'the five choices render five different print designs');
+ // Printed name updates the finished artwork preview while its controls are optional.
+ await page.getByTestId('staff-layout-fpr-wedding').click();
+ const nameToggle=page.getByTestId('staff-printed-name-edit');await nameToggle.click();
+ await page.waitForFunction(()=>document.querySelector('[data-testid="staff-print-details"]')?.open&&document.querySelector('[data-testid="staff-start-event"]')?.disabled);
+ assert(await page.getByTestId('staff-start-event').isDisabled(),'Start is disabled while printed-name editing is open');
+ await page.locator('#staff-print-name').fill('Preview Name Proof');
+ await page.locator('#staff-print-name').press('Enter');assert.equal(new URL(page.url()).pathname,'/staff/start','Enter in the printed name does not start the booth');assert(await page.locator('#staff-print-name').isVisible(),'Enter leaves name editing open');
+ for(const kind of ['one','four'])assert((await previewSvg(page,kind)).includes('Preview Name Proof'),'edited print name is in the '+kind+' print artwork');
+ await page.locator('#staff-print-name').fill('Test Couple');await page.getByTestId('staff-print-name-done').click();
+ assert(!await page.locator('#staff-print-name').isVisible(),'printed name controls close when finished');
+ // Custom opens on demand, traps keyboard focus and restores it after closing.
+ const customCard=page.getByTestId('staff-layout-custom');await customCard.click();
+ const dialog=page.getByTestId('staff-custom-dialog');await dialog.waitFor();assert.equal(await page.getByRole('dialog',{name:'Custom layout',exact:true}).count(),1,'custom dialog has an accessible name');
+ assert(await page.getByTestId('staff-start-event').isDisabled(),'Start is disabled while editing Custom');
+ await page.getByTestId('custom-heading').press('Enter');assert(await dialog.isVisible(),'Enter in the Custom name keeps the editor open');assert.equal(new URL(page.url()).pathname,'/staff/start','Enter in Custom cannot activate an event');
+ for(let step=0;step<8;step++){await page.keyboard.press('Tab');const focus=await page.evaluate(()=>({tag:document.activeElement?.tagName,id:document.activeElement?.id,testId:document.activeElement?.getAttribute('data-testid')}));assert(await dialog.evaluate(node=>node.contains(document.activeElement)),'custom editor keeps keyboard focus inside the dialog at Tab '+(step+1)+': '+JSON.stringify(focus));}
+ const close=page.getByRole('button',{name:'Close custom layout editor',exact:true});await close.focus();await page.keyboard.press('Shift+Tab');assert(await page.getByTestId('staff-custom-done').evaluate(node=>node===document.activeElement),'Shift+Tab wraps to the last custom control');await page.keyboard.press('Tab');assert(await close.evaluate(node=>node===document.activeElement),'Tab wraps to the first custom control');
+ await page.keyboard.press('Escape');assert(!await dialog.isVisible(),'Escape closes custom editor');
+ assert(await customCard.evaluate(node=>node===document.activeElement),'closing custom returns focus to its card');
+ const edit=page.getByTestId('staff-custom-edit');await edit.click();await dialog.waitFor();await page.getByTestId('staff-custom-done').click();
+ assert(!await dialog.isVisible(),'Done editing returns to layout selection');assert(await edit.evaluate(node=>node===document.activeElement),'Done editing returns focus to its trigger');
+ await artworkReplacementProof(page,engine);
+ await page.getByTestId('staff-layout-fpr-wedding').click();await readyProofs(page);await page.getByTestId('staff-preview-one').click();
+ return geometry;
+}
 let ready=false;for(let n=0;n<60;n++){try{if((await fetch(base+'/api/app-version',{signal:AbortSignal.timeout(1000)})).ok){ready=true;break;}}catch{}await new Promise(resolve=>setTimeout(resolve,500));}assert(ready,'Local booth server did not start');
 try{
  for(const [engine,api]of engines){
@@ -139,11 +236,13 @@ try{
     const card=page.getByTestId('staff-layout-'+id);await card.scrollIntoViewIfNeeded();
     await page.waitForFunction(id=>{const image=document.querySelector('[data-testid="staff-layout-'+id+'"] img');return image?.complete&&image.naturalWidth>0;},id);
    }
-   await page.getByRole('heading',{name:'Pick a layout. Start the event.',exact:true}).scrollIntoViewIfNeeded();
+   await page.getByRole('heading',{name:'Start photo booth',exact:true}).scrollIntoViewIfNeeded();
    assert.equal(await page.getByTestId('staff-layout-fpr-wedding').getAttribute('aria-pressed'),'true');
-   await page.screenshot({path:out+'/'+engine+'-choose-layout.png',fullPage:true});
-   await page.getByTestId('staff-layout-preview-one').scrollIntoViewIfNeeded();
-   await page.screenshot({path:out+'/'+engine+'-paired-preview.png'});
+   phase='compact-layout-and-focus';const writesBeforeChoices=writes.length;
+   const compactGeometry=await compactSetupProof(page,engine);
+   assert.equal(writes.length,writesBeforeChoices,'preview choices and custom editing do not write to a customer event');
+   assert.deepEqual(await archive(page),[],'setup samples never save a guest photo');
+   console.log(engine+': all four compact viewport checks, dialog/name keyboard safety and delayed artwork replacement passed; starting capture and backup verification.');
    await page.getByTestId('staff-start-event').click();await page.getByText('This event changed in another window.',{exact:false}).waitFor();
    assert.equal(new URL(page.url()).pathname,'/staff/start');
    assert(await page.getByTestId('staff-start-event').isDisabled(),'stale revision requires a fresh preview');
@@ -159,25 +258,25 @@ try{
    await done(page);phase='preset-four-photo';await capture(page,4,'fpr-wedding');await waitSaved(page,9);await done(page);
    // Reopening the app remembers this event; nobody repeats a handoff.
    await page.goto(origin+'/',{waitUntil:'networkidle'});await page.waitForURL(origin+scope.home);await page.getByTestId('welcome-four-photo').waitFor();
-   phase='custom-build-start';await openStaff(page,origin);await page.getByTestId('staff-layout-custom').click();await page.getByTestId('custom-heading').fill('Custom Staff Celebration');await page.getByTestId('custom-footer').fill('Prepared before guests arrive');await readyProofs(page);
+   phase='custom-build-start';await openStaff(page,origin);await page.getByTestId('staff-layout-custom').click();await page.getByTestId('staff-custom-dialog').waitFor();await page.getByTestId('custom-heading').fill('Custom Staff Celebration');await page.getByTestId('custom-footer').fill('Prepared before guests arrive');await page.getByTestId('staff-custom-done').click();await readyProofs(page);
    await page.getByTestId('staff-start-event').click();await page.waitForURL(origin+scope.home);await page.getByTestId('welcome-quick-photo').waitFor();assert.equal(payload.customDesign.mode,'build');assert.equal(payload.customDesign.heading,'Custom Staff Celebration');
    phase='custom-build-one-photo';await capture(page,1,'custom');await waitSaved(page,12);await done(page);
-   phase='custom-upload-start';await openStaff(page,origin);await page.getByTestId('staff-layout-custom').click();await page.getByRole('radio',{name:'Upload artwork',exact:true}).check();
+   phase='custom-upload-start';await openStaff(page,origin);await page.getByTestId('staff-layout-custom').click();await page.getByTestId('staff-custom-dialog').waitFor();await page.getByRole('radio',{name:'Upload artwork',exact:true}).check();
    for(const [kind,color]of [['one','#173657'],['four','#392647']]){
     const png=await sharp({create:{width:1200,height:1800,channels:3,background:color}}).png().toBuffer();
     await page.getByTestId('custom-upload-'+kind).setInputFiles({name:kind+'-artwork.png',mimeType:'image/png',buffer:png});
     await page.getByTestId('custom-upload-'+kind).locator('..').getByRole('status').filter({hasText:'Artwork ready'}).waitFor();
     if(kind==='one')assert(await page.getByTestId('staff-start-event').isDisabled(),'one uploaded background cannot start both photo layouts');
    }
-   await page.getByTestId('staff-start-event').waitFor();await page.waitForFunction(()=>!document.querySelector('[data-testid="staff-start-event"]').disabled);await readyProofs(page);
-   await page.setViewportSize({width:390,height:844});assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+2),'custom page fits a phone');await page.screenshot({path:out+'/'+engine+'-custom-upload-phone.png',fullPage:true});await page.setViewportSize({width:1024,height:768});
+   await readyProofs(page);assert(await page.getByTestId('staff-start-event').isDisabled(),'the booth cannot start while the artwork editor is open');
+   await page.setViewportSize({width:390,height:844});assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+2),'custom page fits a phone');await page.screenshot({path:out+'/'+engine+'-custom-upload-phone.png',fullPage:true});await page.getByTestId('staff-custom-done').click();assert(!await page.getByTestId('staff-custom-dialog').isVisible(),'custom uploads return to the single print preview');await page.waitForFunction(()=>!document.querySelector('[data-testid="staff-start-event"]').disabled);await page.setViewportSize({width:1024,height:768});
    await page.getByTestId('staff-start-event').click();await page.waitForURL(origin+scope.home);await page.getByTestId('welcome-quick-photo').waitFor();assert.equal(payload.customDesign.mode,'upload');assert(payload.customDesign.layouts.one.image&&payload.customDesign.layouts.four.image);assert.notEqual(payload.customDesign.layouts.one.image,payload.customDesign.layouts.four.image);
    phase='custom-upload-one-photo';await capture(page,1,'custom');await waitSaved(page,15);
    const rows=await archive(page);assert.equal(rows.length,4);assert.equal(rows[1].poses.length,4);assert.equal(saved.size,15);
    for(const row of rows){for(const [kind,bytes]of [...row.poses.map((bytes,i)=>['pose-'+(i+1),bytes]),['collage',row.collage],['keepsake',row.keepsake]])if(bytes)assert.deepEqual(saved.get(row.id+'/'+kind),Buffer.from(bytes),'backend received exact archived '+kind);}
    const after=await page.evaluate(({scope,other})=>({usage:localStorage.getItem(scope.usage),other:Object.fromEntries([other.config,other.usage,other.photos].map(key=>[key,localStorage.getItem(key)])),prints:window.__staffStartPrints,shares:window.__staffStartShares}),{scope,other});assert.equal(after.usage,'17');for(const [key,value]of Object.entries(after.other))assert.equal(value,before[key]);assert.deepEqual(await archive(page,other.archive),otherArchiveBefore,'other-event original remains byte-identical');assert.equal(after.prints,0);assert.equal(after.shares,0);
    assert(!writes.some(write=>write.path==='/api/backup/authorize'),'Start event authorizes automatic backup without an owner handoff');assert.deepEqual(boundaryErrors,[]);assert.deepEqual(errors,[]);
-   results.push({engine,passed:true,pinProtected:true,conflictAndWrongEventSafe:true,presetSessions:[1,4],customBuildAndUpload:true,automaticBackendFiles:saved.size,otherEventUntouched:true,noOwnerHandoff:true,noPrintsOrMessages:true});console.log(engine+': direct staff start, custom layouts, original/finished backup and event isolation passed.');
+   results.push({engine,passed:true,pinProtected:true,compactGeometry,customKeyboardFocus:true,printedNameInArtwork:true,artworkReplacementWaits:true,conflictAndWrongEventSafe:true,presetSessions:[1,4],customBuildAndUpload:true,automaticBackendFiles:saved.size,otherEventUntouched:true,noOwnerHandoff:true,noPrintsOrMessages:true});console.log(engine+': compact staff start across desktop/iPad/phone, custom layouts, original/finished backup and event isolation passed.');
   }catch(error){results.push({engine,passed:false,error:error.message,stack:error.stack,errors,pageErrorDetails,requestFailures,boundaryErrors,writes,saved:saved.size});await page.screenshot({path:out+'/'+engine+'-failure.png',fullPage:true}).catch(()=>{});throw error;}
   finally{await context.close();await browser.close();await new Promise(resolve=>server.close(resolve));}
  }

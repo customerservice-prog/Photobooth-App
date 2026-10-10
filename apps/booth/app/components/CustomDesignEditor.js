@@ -27,11 +27,14 @@ async function artworkFromFile(file){
  throw new Error('This artwork is too detailed to save. Try a smaller PNG or JPEG.');
 }
 const number=value=>Math.max(0,Math.min(100,Number(value)||0));
-export default function CustomDesignEditor({value,onChange}){
+export default function CustomDesignEditor({value,onChange,onBusyChange}){
  const guard=useRef(null),pending=useRef({}),uploads=useRef({one:value.layouts.one.image,four:value.layouts.four.image}),[busy,setBusy]=useState({}),[error,setError]=useState('');
  let invalid='';try{validateCustomDesign(value);}catch(e){invalid=e.message||'Review both layouts before saving.';}
  const busyNow=Object.values(busy).some(Boolean),validation=busyNow?'Artwork is being prepared. Please wait.':invalid;
  useEffect(()=>{guard.current?.setCustomValidity(validation);},[validation]);
+ useEffect(()=>{onBusyChange?.(busyNow);},[busyNow,onBusyChange]);
+ useEffect(()=>()=>{onBusyChange?.(false);},[onBusyChange]);
+ useEffect(()=>()=>{for(const kind of ['one','four'])pending.current[kind]=(pending.current[kind]||0)+1;},[]);
  function field(key,next){onChange({...value,[key]:next});}
  function chooseMode(mode){
   if(mode===value.mode)return;
