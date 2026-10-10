@@ -119,12 +119,13 @@ async function compactSetupProof(page,engine){
   }
   await resetSetupScroll(page);await page.screenshot({path:out+'/'+engine+'-compact-'+label+'.png'});
   if(width<768){
-   await page.mouse.move(width/2,Math.min(500,height/2));await page.mouse.wheel(0,650);
-   await page.waitForFunction(()=>document.querySelector('.staffStartPage')?.scrollTop>100);
+   if(engine==='webkit'){await page.getByTestId('staff-layout-fpr-wedding').focus();await page.keyboard.press('PageDown');}
+   else{await page.mouse.move(width/2,Math.min(500,height/2));await page.mouse.wheel(0,650);}
+   await page.waitForFunction(()=>{const main=document.querySelector('.staffStartPage'),image=document.querySelector('[data-testid="staff-layout-preview-four"]'),box=image?.getBoundingClientRect();return main?.scrollTop>100&&box&&box.top>=0&&box.bottom<=innerHeight;});
    await visibleInViewport(page,page.getByTestId('staff-layout-preview-four'),label+' print preview reached by ordinary scrolling');await visibleInViewport(page,page.getByTestId('staff-start-event'),label+' Start stays visible while scrolling');
-   await page.screenshot({path:out+'/'+engine+'-compact-'+label+'-scrolled-preview.png'});await page.mouse.wheel(0,-2000);await page.waitForFunction(()=>document.querySelector('.staffStartPage')?.scrollTop===0);await visibleInViewport(page,page.getByTestId('staff-event-select'),label+' event picker reached by scrolling back');
+   await page.screenshot({path:out+'/'+engine+'-compact-'+label+'-scrolled-preview.png'});if(engine==='webkit')await page.keyboard.press('PageUp');else await page.mouse.wheel(0,-2000);await page.waitForFunction(()=>document.querySelector('.staffStartPage')?.scrollTop===0);await visibleInViewport(page,page.getByTestId('staff-event-select'),label+' event picker reached by scrolling back');
   }
-  geometry.push({label,width,height,noHorizontalOverflow:true,allChoicesReachable:true,primaryStartInViewport:true,oneVisiblePrintPreview:true,...(width<768?{ordinaryScrollingWorks:true}:{})});
+  geometry.push({label,width,height,noHorizontalOverflow:true,allChoicesReachable:true,primaryStartInViewport:true,oneVisiblePrintPreview:true,...(width<768?{ordinaryScrollingWorks:true,scrollMethod:engine==='webkit'?'keyboard':'wheel'}:{})});
  }
  await page.setViewportSize({width:1024,height:768});await resetSetupScroll(page);
  // Changing choices changes the actual rendered artwork without saving or starting.
