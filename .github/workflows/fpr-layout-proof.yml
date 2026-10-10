@@ -33,7 +33,7 @@ jobs:
       - run: npm install --no-save playwright@1.55.0
       - run: npx playwright install --with-deps chromium webkit
       - name: One and four opening unit regressions
-        run: node --test tests/fpr-photo-layouts.test.mjs ../admin/tests/fpr-five-approved-presets.test.mjs
+        run: node scripts/prepare-atelier.mjs && node --test tests/fpr-photo-layouts.test.mjs ../admin/tests/fpr-five-approved-presets.test.mjs
       - name: Real production build
         run: mkdir -p fpr-layout-proof && npm run build 2>&1 | tee fpr-layout-proof/build.log
       - name: Actual approved welcome layouts and finished JPEGs
