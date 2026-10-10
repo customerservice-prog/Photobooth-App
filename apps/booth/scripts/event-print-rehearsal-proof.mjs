@@ -1,5 +1,10 @@
 import assert from 'node:assert/strict';
-import {mkdir,readFile,writeFile} from 'node:fs/promises';
+import {mkdir,mkdtemp,readFile,writeFile,rm} from 'node:fs/promises';
+import {execFileSync} from 'node:child_process';
+import {createServer as createHttpsServer} from 'node:https';
+import {request as httpRequest} from 'node:http';
+import {tmpdir} from 'node:os';
+import {join} from 'node:path';
 import {chromium,webkit} from 'playwright';
 import sharp from 'sharp';
 import {workspace,octoberPreset} from '../app/lib/event-workspace.mjs';
@@ -16,15 +21,22 @@ import {BOOTH_RELEASE} from '../app/lib/booth-launch.mjs';
 // This exercises the real, PIN-protected page and actual browser JPEG exporter.
 // Every event, archive and staff cookie is an isolated local fixture. The print
 // dialog is stubbed: this script never contacts a real printer or customer.
-const base=(process.env.EVENT_PRINT_REHEARSAL_URL||'http://127.0.0.1:3000').replace(/\/$/,'');
-const origin=new URL(base).origin;
-assert(new URL(base).protocol==='http:'&&['localhost','127.0.0.1','[::1]'].includes(new URL(base).hostname),'Printer rehearsal fixtures require a local HTTP server');
+const upstream=(process.env.EVENT_PRINT_REHEARSAL_URL||'http://127.0.0.1:3000').replace(/\/$/,'');
+assert(new URL(upstream).protocol==='http:'&&['localhost','127.0.0.1','[::1]'].includes(new URL(upstream).hostname),'Printer rehearsal fixtures require a local HTTP server');
+const tlsPort=Number(process.env.EVENT_PRINT_REHEARSAL_TLS_PORT||3418),base='https://127.0.0.1:'+tlsPort,origin=base;
 const secret=process.env.BOOTH_STAFF_SESSION_SECRET;
 assert(secret?.length>=32,'Set a local fixture BOOTH_STAFF_SESSION_SECRET for the server and proof');
 const staffSession=await makeStaffSession(secret);
 const engines=process.env.EVENT_PRINT_REHEARSAL_CHROMIUM_ONLY==='1'?[['chromium',chromium]]:[['chromium',chromium],['webkit',webkit]];
 const out='event-print-rehearsal-proof',results=[];
 await mkdir(out,{recursive:true});
+const tlsDirectory=await mkdtemp(join(tmpdir(),'friendly-print-rehearsal-tls-')),keyFile=join(tlsDirectory,'key.pem'),certFile=join(tlsDirectory,'cert.pem');
+execFileSync('openssl',['req','-x509','-newkey','rsa:2048','-sha256','-nodes','-keyout',keyFile,'-out',certFile,'-days','1','-subj','/CN=localhost','-addext','subjectAltName=DNS:localhost,IP:127.0.0.1'],{stdio:'ignore'});
+const proxy=createHttpsServer({key:await readFile(keyFile),cert:await readFile(certFile)},(request,response)=>{
+ const destination=new URL(upstream),upstreamRequest=httpRequest({hostname:destination.hostname,port:destination.port,path:request.url,method:request.method,headers:{...request.headers,'x-forwarded-proto':'https'}},result=>{response.writeHead(result.statusCode,result.headers);result.pipe(response);});
+ upstreamRequest.on('error',()=>{response.writeHead(502);response.end();});request.pipe(upstreamRequest);
+});
+await new Promise((resolve,reject)=>{proxy.once('error',reject);proxy.listen(tlsPort,'127.0.0.1',resolve);});
 const exportSource=await readFile(new URL('../app/lib/keepsake-export.mjs',import.meta.url),'utf8');
 const archiveSource=await readFile(new URL('../app/lib/event-photo-archive.mjs',import.meta.url),'utf8');
 const eventId='approved-print-rehearsal-fixture',otherId='approved-print-untouched-fixture';
@@ -52,13 +64,14 @@ async function snapshot(page){
  },{source:archiveSource});
 }
 async function seededPage(browser,test){
- const context=await browser.newContext({viewport:{width:1024,height:768},hasTouch:true,isMobile:true,reducedMotion:'reduce',serviceWorkers:'block'}),writes=[],externalRequests=[],syncReads=[],errors=[];
+ const context=await browser.newContext({viewport:{width:1024,height:768},hasTouch:true,isMobile:true,reducedMotion:'reduce',serviceWorkers:'block',ignoreHTTPSErrors:true}),writes=[],externalRequests=[],syncReads=[],errors=[];
+ await context.addCookies([{name:STAFF_COOKIE,value:staffSession,url:base+'/',secure:true,httpOnly:true,sameSite:'Strict'}]);
  await context.route('**/*',route=>{
   const request=route.request(),url=new URL(request.url());
   if(!['GET','HEAD'].includes(request.method())){writes.push({method:request.method(),path:url.pathname});return route.abort();}
   if(url.origin!==origin){externalRequests.push(url.origin+url.pathname);return route.abort();}
   if(/^\/api\/(staff\/events|booth\/)/.test(url.pathname))syncReads.push(url.pathname);
-  return route.continue({headers:{...request.headers(),cookie:`${STAFF_COOKIE}=${staffSession}`}});
+  return route.continue();
  });
  await context.addInitScript(()=>{
   window.__rehearsalPrints=0;window.__rehearsalShares=0;window.__rehearsalCameras=0;
@@ -184,7 +197,7 @@ async function routeCases(browser,engine){
   await page.goto(base+'/print-test?booth_event=missing-approved-event',{waitUntil:'networkidle'});assert.equal(await page.getByTestId('print-test-preview').count(),0,'an event without a saved design cannot print an unrelated sample');assert.equal(await page.getByTestId('print-test-print').count(),0);assert.equal(await page.getByRole('link',{name:/Choose event.*design/}).count(),1);assert.deepEqual(await snapshot(page),before);assert.deepEqual(writes,[]);
   results.push({engine,test:'active-context-return-and-missing-event',passed:true,readOnly:true});
  }finally{await context.close();}
- const unsigned=await browser.newContext({serviceWorkers:'block'}),locked=await unsigned.newPage();
+ const unsigned=await browser.newContext({serviceWorkers:'block',ignoreHTTPSErrors:true}),locked=await unsigned.newPage();
  try{await locked.goto(base+'/print-test?booth_event='+eventId,{waitUntil:'networkidle'});const url=new URL(locked.url());assert.equal(url.pathname,'/staff/sign-in','printer test remains protected by the actual staff middleware');assert.equal(url.searchParams.get('next'),'/print-test?booth_event='+eventId);results.push({engine,test:'real-staff-middleware-protection',passed:true});}
  finally{await unsigned.close();}
 }
@@ -212,5 +225,5 @@ try{
   finally{await browser.close();}
  }
 }catch(error){if(!results.some(result=>!result.passed))results.push({test:'proof-harness',passed:false,error:error.message});console.error(error);process.exitCode=1;}
-finally{await writeFile(out+'/results.json',JSON.stringify({base,release:BOOTH_RELEASE,results},null,2));}
+finally{await writeFile(out+'/results.json',JSON.stringify({base,release:BOOTH_RELEASE,results},null,2));await new Promise(resolve=>proxy.close(resolve));await rm(tlsDirectory,{recursive:true,force:true});}
 console.log(JSON.stringify({release:BOOTH_RELEASE,passed:results.filter(result=>result.passed).length,failed:results.filter(result=>!result.passed).length,physicalPrinterUsed:false},null,2));

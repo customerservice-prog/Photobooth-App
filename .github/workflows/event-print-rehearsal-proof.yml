@@ -27,6 +27,7 @@ jobs:
     env:
       BOOTH_SECURITY_ENFORCED: 'true'
       BOOTH_STAFF_SESSION_SECRET: approved-print-rehearsal-local-session-fixture-only-v1
+      BOOTH_PUBLIC_URL: https://127.0.0.1:3418
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
