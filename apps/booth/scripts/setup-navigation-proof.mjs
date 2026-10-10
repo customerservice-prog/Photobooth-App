@@ -43,7 +43,7 @@ for(const [engine,api]of [['chromium',chromium],['webkit',webkit]]){
   localStorage.setItem('navigation-seeded','true');localStorage.setItem(one.config,JSON.stringify(first));localStorage.setItem(other.config,JSON.stringify(second));
   localStorage.setItem(one.usage,'17');localStorage.setItem(other.usage,'29');localStorage.setItem(activeKey,other.id);
   localStorage.setItem(eventKeys.config,JSON.stringify(october));localStorage.setItem(eventKeys.demoUsage,'4');
-  localStorage.setItem('friendly-booth-event-v1',JSON.stringify({...first,eventId:undefined,title:'Local rehearsal'}));
+  localStorage.setItem('friendly-booth-event-v1',JSON.stringify({...first,eventId:undefined,guestMode:undefined,title:'Local rehearsal'}));
   window.print=()=>{throw Error('Navigation proof must not print');};
  },{one,other,first:configFromBoothHandoff(current),second:configFromBoothHandoff(payload(other.id)),activeKey:ACTIVE_EVENT_KEY,eventKeys:EVENT_KEYS,october:octoberPreset()});
  const page=await context.newPage();page.on('pageerror',e=>errors.push(e.message));page.setDefaultTimeout(15000);
