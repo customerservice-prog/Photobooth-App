@@ -90,21 +90,21 @@ export default function WelcomeScreen({cfg,eventName,online,starting,installed,p
  useEffect(()=>setChoice(normalizePhotoPreference(cfg.defaultPhotoExperience)),[cfg.eventId,cfg.defaultTemplate,cfg.title,cfg.defaultPhotoExperience]);
  const chosenShots=choice==='one'?1:4;
  function startSelected(){if(starting)return;if(chosenShots===1)onStartQuick();else onStartFour();}
- return <div className="bwWelcome" data-welcome-version="large-actual-print-proof-2026-10-09" data-capture-mode="photo" data-selected-layout={choice}>
+ return <div className="bwWelcome" data-welcome-version="emerald-keepsake-2026-10-10" data-capture-mode="photo" data-selected-layout={choice}>
   <div className="bwFrame">
    <header className="bwHeader"><div className="bwBrand"><span className="bwBrandMark"><Mark size={25}/></span><span><b>FRIENDLY</b><small>PHOTO BOOTH</small></span></div><nav className="bwHeaderActions" aria-label="Staff navigation"><button type="button" className="bwStaffShortcut" data-testid="welcome-staff-tools" onClick={()=>setStaffPrompt(true)}><Mark name="settings" size={18}/><span>Staff tools</span></button></nav></header>
    <div className="bwStage">
     <section className="bwInvitation" aria-labelledby="bwEventTitle">
-     <div className="bwEyebrow"><Mark name="sparkle" size={15}/> THE KEEPSAKE IS YOURS</div>
+     <div className="bwEyebrow"><Mark name="sparkle" size={15}/> A MOMENT WORTH KEEPING</div>
      <h1 id="bwEventTitle" className={title.length>65?'bwLongTitle':''}>{title}</h1>
      <div className="bwEventMeta">{cfg.date&&<span><Mark name="calendar" size={15}/>{cfg.date}</span>}{time&&<span className="bwTime">{time}</span>}</div>
-     <p className="bwGuestIntro">Choose your photos, see your real event design, then strike a pose.</p>
+     <p className="bwGuestIntro">Choose your photos. Preview your keepsake. Strike a pose.</p>
     </section>
     <section className="bwExperience" aria-label="Choose and preview your finished photo print">
      <div className="bwSelectionPane">
       <div className="bwStep"><span>01</span> CHOOSE YOUR PHOTO LAYOUT</div>
-      <h2>How would you like to pose?</h2>
-      <p className="bwSelectionIntro">Tap either option. Your print preview will update before any photos are taken.</p>
+      <h2>Choose your photos</h2>
+      <p className="bwSelectionIntro">One perfect pose or four fun moments. Tap a layout to see your print.</p>
       <div className="bwSessionChoices" role="group" aria-label="Choose your photo layout">
        <button type="button" className={'bwSessionCard bwQuickSession'+(choice==='one'?' isSelected':'')} data-testid="welcome-quick-photo" aria-pressed={choice==='one'} aria-label="Preview 1-photo layout" disabled={starting} onClick={()=>setChoice('one')}>
         <span className="bwSessionHeading"><span><small>ONE PERFECT POSE</small><strong>1 Photo</strong></span><span className="bwSessionCheck"><Mark name="check" size={17}/></span></span>
@@ -123,17 +123,17 @@ export default function WelcomeScreen({cfg,eventName,online,starting,installed,p
      </div>
      <div className="bwProofPanel" data-testid="welcome-proof-panel" aria-live="polite">
       <div className="bwProofHeading"><div className="bwStep"><span>02</span> YOUR REAL PRINT PREVIEW</div><span className="bwPaperSize"><Mark name="print" size={15}/> 4 × 6 KEEPSAKE</span></div>
-      <h2>{chosenShots===1?'Your one-photo keepsake':'Your four-photo keepsake'}</h2>
+      <h2>Your finished keepsake</h2>
       <p className="bwProofSub">{preset?preset.name+' artwork':'Your saved event artwork'} · {chosenShots===1?'1 photo':'4 photos'} · {cfg.date||'Event date'}</p>
       <div className="bwLargeProofStage" data-testid="welcome-large-proof" data-selected-photos={String(chosenShots)}>
        <WelcomeProof cfg={proofCfg} shots={chosenShots} poses={poses}/>
        <span className="bwProofExampleTag">{poses.length===4?'SAMPLE PHOTOS':'PHOTO AREAS'} <span>· YOUR PHOTOS REPLACE THESE</span></span>
       </div>
-      <p className="bwProofAssurance"><Mark name="check" size={16}/> This is the same design used for your finished photo and print.</p>
+      <p className="bwProofAssurance"><Mark name="check" size={16}/> Your chosen design. Your photos. One beautiful keepsake.</p>
       <button type="button" className="bwStartButton" data-testid="welcome-start-session" disabled={starting} onClick={startSelected} aria-label={'Start '+chosenShots+'-photo session'}>
-       <span>{starting?'Getting camera ready…':'Looks great! Start '+chosenShots+' '+(chosenShots===1?'photo':'photos')}</span><Mark name="arrow" size={22}/>
+       <span>{starting?'Getting camera ready…':'Start '+chosenShots+' '+(chosenShots===1?'photo':'photos')}</span><Mark name="arrow" size={22}/>
       </button>
-      <p className="bwPoseTip">{chosenShots===4?'Four smiles. '+pause+' seconds between each pose.':'One countdown, one perfect photo.'} You can choose a different layout before starting.</p>
+      <p className="bwPoseTip">{chosenShots===4?'Four smiles, with '+pause+' seconds between poses.':'One countdown. One perfect photo.'}</p>
      </div>
     </section>
    </div>
