@@ -37,25 +37,30 @@ export function renderFprPrint(input={}){
  if(four){
   if(!input.sample){if(!Array.isArray(input.poses)||input.poses.length!==4)throw new Error('Four distinct captured photographs are required.'); used=input.poses.map(onlyPhoto);if(used.some(v=>!v))throw new Error('A captured photo could not be read.');}
  }else if(input.photo){const one=onlyPhoto(input.photo);if(!one)throw new Error('The captured photograph could not be read.');used=[one];}
- const map=four?(theme.panels.length===2?[[0,1],[2,3]]:[[0],[1],[2,3]]):theme.panels.map(()=>[0]);
+ // The reference artwork has two or three example photographs. Treat their
+ // combined space as one photo area, so the guest's choice changes the actual
+ // composition rather than repeating one image or squeezing two into a row.
+ const left=Math.min(...theme.panels.map(panel=>panel[0])),top=Math.min(...theme.panels.map(panel=>panel[1]));
+ const right=Math.max(...theme.panels.map(panel=>panel[0]+panel[2])),bottom=Math.max(...theme.panels.map(panel=>panel[1]+panel[3]));
+ const [x,y,pw,ph]=pos([left,top,right-left,bottom-top]);
+ const gap=four?12*scale:0,slotHeight=(ph-gap*(four?3:0))/(four?4:1);
  const fit=cfg.photoFit==='fit'?'xMidYMid meet':'xMidYMid slice';
  let art=rect(0,0,1200,1800,theme.bg);
  // A narrow metallic line on the 4x6 paper surrounds the original vertical theme,
  // preserving the supplied artwork's aspect ratio instead of stretching faces/type.
  art+=`<image href="${theme.src}" x="${number(ox)}" y="${number(oy)}" width="${number(w)}" height="${number(h)}" preserveAspectRatio="none"/>`;
  art+=rect(ox+2,oy+2,w-4,h-4,'none',`stroke="${theme.frame}" stroke-width="2"`);
- const panels=theme.panels.map((panel,i)=>{
-  const [x,y,pw,ph]=pos(panel),slots=map[i];
-  const pad=slots.length>1?6:0,sw=(pw-pad*(slots.length-1))/slots.length;
-  return slots.map((shot,j)=>{
-   const px=x+j*(sw+pad),py=y,phh=ph,src=four?used[shot]:used[0];
-   const bg=rect(px,py,sw,phh,theme.key==='corporate'?'#dddcd5':'#e2e3dd');
-   const photo=src?`<image data-guest-photo="true" data-pose="${shot+1}" href="${esc(src)}" x="${number(px)}" y="${number(py)}" width="${number(sw)}" height="${number(phh)}" preserveAspectRatio="${fit}"/>`:
-   `<path d="M${number(px+sw*.08)} ${number(py+phh)} Q${number(px+sw*.23)} ${number(py+phh*.62)} ${number(px+sw*.50)} ${number(py+phh*.61)} Q${number(px+sw*.77)} ${number(py+phh*.62)} ${number(px+sw*.92)} ${number(py+phh)}Z" fill="#bdc6c0"/><circle cx="${number(px+sw*.5)}" cy="${number(py+phh*.38)}" r="${number(Math.min(sw*.14,phh*.18))}" fill="#bec6be"/>`;
-   return `<g data-approved-photo-region="true" data-pose="${shot+1}">${bg}${photo}${rect(px,py,sw,phh,'none',`stroke="${theme.frame}" stroke-width="${Math.max(2,scale*1.5).toFixed(1)}"`)}</g>`;
-  }).join('');
+ const panels=Array.from({length:four?4:1},(_,shot)=>{
+  const py=y+shot*(slotHeight+gap),src=used[shot];
+  const bg=rect(x,py,pw,slotHeight,theme.key==='corporate'?'#dddcd5':'#e2e3dd');
+  const photo=src?`<image data-guest-photo="true" data-pose="${shot+1}" href="${esc(src)}" x="${number(x)}" y="${number(py)}" width="${number(pw)}" height="${number(slotHeight)}" preserveAspectRatio="${fit}"/>`:
+  `<path d="M${number(x+pw*.08)} ${number(py+slotHeight)} Q${number(x+pw*.23)} ${number(py+slotHeight*.62)} ${number(x+pw*.50)} ${number(py+slotHeight*.61)} Q${number(x+pw*.77)} ${number(py+slotHeight*.62)} ${number(x+pw*.92)} ${number(py+slotHeight)}Z" fill="#bdc6c0"/><circle cx="${number(x+pw*.5)}" cy="${number(py+slotHeight*.38)}" r="${number(Math.min(pw*.14,slotHeight*.18))}" fill="#bec6be"/>`;
+  return `<g data-approved-photo-region="true" data-pose="${shot+1}">${bg}${photo}${rect(x,py,pw,slotHeight,'none',`stroke="${theme.frame}" stroke-width="${Math.max(2,scale*1.5).toFixed(1)}"`)}</g>`;
  }).join('');
- art+=`<g data-fpr-preset-photo-areas="${four?'4':'1'}">${panels}</g>`;
+ // Mask the whole original photo area, including every old divider. Empty
+ // four-photo gutters therefore cannot reveal faces from the example artwork.
+ const maskPadding=2*scale;
+ art+=`<g data-fpr-preset-photo-areas="${four?'4':'1'}">${rect(x-maskPadding,y-maskPadding,pw+maskPadding*2,ph+maskPadding*2,theme.bg,'data-fpr-reference-mask="true"')}${panels}</g>`;
  // Replace example-specific printed names/dates with this event's actual details.
  // Generic headings and decorations remain as shown in the reference samples.
  const rw=(value,max)=>limited(value,max);
