@@ -1,5 +1,6 @@
 // Server-only delivery gateway. Never import this module from a client component.
 import {createHash, createHmac, randomBytes, randomUUID, timingSafeEqual} from 'node:crypto';
+import {validStaffSession} from './staff-auth.mjs';
 
 export const MAX_IMAGE = 2 * 1024 * 1024;
 const COOKIE='__Host-booth-delivery', DAY=86400000;
@@ -27,7 +28,7 @@ export function configuration(env=process.env){
   if(!/^AC[a-fA-F0-9]{32}$/.test(env.TWILIO_ACCOUNT_SID||''))sms.push('TWILIO_ACCOUNT_SID');
   if(!/^[a-fA-F0-9]{32}$/.test(env.TWILIO_AUTH_TOKEN||''))sms.push('TWILIO_AUTH_TOKEN');
   if(!/^MG[a-fA-F0-9]{32}$/.test(env.TWILIO_MESSAGING_SERVICE_SID||'')&&!/^\+[1-9]\d{7,14}$/.test(env.TWILIO_FROM_NUMBER||''))sms.push('TWILIO_MESSAGING_SERVICE_SID or TWILIO_FROM_NUMBER');
-  return {email:{configured:email.length===0,missing:email},sms:{configured:sms.length===0,missing:sms},pairingConfigured:common.length===0,limits,linkHours:24};
+  return {email:{configured:email.length===0,missing:email,receiptsEnabled:env.BOOTH_EMAIL_RECEIPTS_ENABLED!=='false'},sms:{configured:sms.length===0,missing:sms},pairingConfigured:common.length===0,limits,linkHours:24};
 }
 export function session(request,env=process.env){
   if(secret(env).length<32)return null;
@@ -36,6 +37,22 @@ export function session(request,env=process.env){
   const [body,sig]=c.slice(COOKIE.length+1).split('.');
   if(!body||!same(hmac(body,env),sig))return null;
   try{const s=JSON.parse(Buffer.from(body,'base64url').toString());return uuid.test(s.device)&&s.expires>Date.now()?s:null;}catch{return null;}
+}
+export function deliverySessionCookie(request,env=process.env){
+  if(!configuration(env).pairingConfigured)return null;
+  // Re-authorizing the same iPad must not reset its per-device rate limit or
+  // disconnect an existing request from its receipt.
+  const body=Buffer.from(JSON.stringify({device:session(request,env)?.device||randomUUID(),expires:Date.now()+12*3600000})).toString('base64url');
+  return `${COOKIE}=${body}.${hmac(body,env)}; HttpOnly; Secure; SameSite=Strict; Path=/; Max-Age=43200`;
+}
+export async function authorizeStaffEventDelivery(request,response,{staffCookie,env=process.env}={}){
+  // The event handler must have already accepted the revision-checked save.
+  // Reading a booking, a backup bearer, or a failed save never authorizes send.
+  if(request.method!=='POST'||response.status!==200||request.headers.get('origin')!==origin(env)||
+    !await validStaffSession(staffCookie,env.BOOTH_STAFF_SESSION_SECRET))return response;
+  const cookie=deliverySessionCookie(request,env);
+  if(cookie)response.headers.append('Set-Cookie',cookie);
+  return response;
 }
 function requireSession(request,env){const s=session(request,env);if(!s)fail(401,'The owner must authorize this iPad for photo delivery first.');return s;}
 function sameOrigin(request,env){if(request.headers.get('origin')!==origin(env))fail(403,'This request must come from the authorized booth.');}
@@ -97,6 +114,7 @@ export async function sendProvider(job,env,fetcher=fetch){
 }
 export async function providerStatus(job,env,fetcher=fetch){
   const email=job.channel==='email';
+  if(email&&env.BOOTH_EMAIL_RECEIPTS_ENABLED==='false')throw new Error('Email receipt checks are not enabled for this sending credential');
   const response=await fetcher(email?`https://api.resend.com/emails/${encodeURIComponent(job.provider_id)}`:`https://api.twilio.com/2010-04-01/Accounts/${env.TWILIO_ACCOUNT_SID}/Messages/${encodeURIComponent(job.provider_id)}.json`,{headers:email?{Authorization:'Bearer '+env.RESEND_API_KEY,'User-Agent':'FriendlyBooth/1.0'}:{Authorization:'Basic '+Buffer.from(env.TWILIO_ACCOUNT_SID+':'+env.TWILIO_AUTH_TOKEN).toString('base64')},signal:AbortSignal.timeout(10000),cache:'no-store'});
   if(!response.ok)throw new Error('Receipt temporarily unavailable');
   const data=await response.json();return String((email?data.last_event:data.status)||job.status).replace(/^email\./,'');
@@ -121,8 +139,7 @@ export async function pair(request,env=process.env){
   const {rows}=await p.query(`INSERT INTO booth_delivery_v1.pair_attempts(key,count) VALUES($1,1) ON CONFLICT(key) DO UPDATE SET count=CASE WHEN booth_delivery_v1.pair_attempts.started_at<now()-interval '10 minutes' THEN 1 ELSE booth_delivery_v1.pair_attempts.count+1 END, started_at=CASE WHEN booth_delivery_v1.pair_attempts.started_at<now()-interval '10 minutes' THEN now() ELSE booth_delivery_v1.pair_attempts.started_at END RETURNING count`,[hmac(ip,env)]);
   if(rows[0].count>8)fail(429,'Too many authorization attempts. Wait ten minutes.');
   if(!same(String(input.code||''),env.BOOTH_PAIRING_CODE))fail(401,'Incorrect booth authorization code.');
-  const body=Buffer.from(JSON.stringify({device:randomUUID(),expires:Date.now()+12*3600000})).toString('base64url');
-  return new Response(JSON.stringify({paired:true,hours:12}),{headers:{'Content-Type':'application/json','Cache-Control':'no-store','Set-Cookie':`${COOKIE}=${body}.${hmac(body,env)}; HttpOnly; Secure; SameSite=Strict; Path=/; Max-Age=43200`}});
+  return new Response(JSON.stringify({paired:true,hours:12}),{headers:{'Content-Type':'application/json','Cache-Control':'no-store','Set-Cookie':deliverySessionCookie(request,env)}});
 }
 function receipt(row,token){return {id:row.id,receiptToken:token,channel:row.channel,recipient:row.masked,status:row.status,message:statusLabel(row.channel,row.status)};}
 export async function send(request,env=process.env){

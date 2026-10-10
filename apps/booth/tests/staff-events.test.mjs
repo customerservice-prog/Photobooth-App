@@ -135,7 +135,7 @@ test('Next routes pass only the signed staff cookie and path event ID to the sha
  for(const [file,path,id] of [['../app/api/staff/events/route.js','/api/staff/events',undefined],['../app/api/staff/events/[id]/route.js','/api/staff/events/event-a','event-a']]){
   const source=await readFile(new URL(file,import.meta.url),'utf8');
   assert.doesNotMatch(source,/admin\//);assert.match(source,/dynamic='force-dynamic'/);
-  const routes=new Function('cookies','STAFF_COOKIE','staffEventsResponse',source.replace(/^import .*;\n/gm,'').replace(/\bexport /g,'')+'\nreturn {GET,'+(id?'POST':'POST:undefined')+'};')(()=>({get:key=>{assert.equal(key,'staff-cookie');return {value:'signed-cookie'};}}),'staff-cookie',handler);
+  const routes=new Function('cookies','STAFF_COOKIE','staffEventsResponse','authorizeStaffEventDelivery',source.replace(/^import .*;\n/gm,'').replace(/\bexport /g,'')+'\nreturn {GET,'+(id?'POST':'POST:undefined')+'};')(()=>({get:key=>{assert.equal(key,'staff-cookie');return {value:'signed-cookie'};}}),'staff-cookie',handler,async(req,response,context)=>{assert.equal(req.method,'POST');assert.deepEqual(context,{eventId:id,staffCookie:'signed-cookie'});return response;});
   for(const method of id?['GET','POST']:['GET']){
    const req=new Request(origin+path,{method});await routes[method](req,{params:{id}});assert.equal(calls.at(-1)[0],req);assert.deepEqual(calls.at(-1)[1],{...(id?{eventId:id}:{}),staffCookie:'signed-cookie'});
   }
