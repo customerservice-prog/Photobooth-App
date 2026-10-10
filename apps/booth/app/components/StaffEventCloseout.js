@@ -53,7 +53,7 @@ export default function StaffEventCloseout({scope,eventName}){
    {eligible&&<a className="operatorSecondary" href={'https://photobooth-app-production.up.railway.app/events/'+encodeURIComponent(scope.id)+'/backups'} target="_blank" rel="noopener noreferrer">Open this event’s digital gallery</a>}
    <button type="button" className="operatorPrimary" disabled={busy||count===null} onClick={exportGallery} data-testid="staff-export-gallery">{busy?'Working…':count===0?'Download empty-event record ZIP':'Download complete event gallery ZIP'}</button>
    {count===0&&<p>There are no captured sessions in this event on this device. Download and check the empty-event ZIP before removing its setup.</p>}
-   {exported&&<p className="operatorNotice" data-testid="staff-export-result">ZIP requested: {exported.count} photo sessions, {exported.finished} finished keepsakes. Open the ZIP to check that everything is there. {exported.finished<exported.count?'Some sessions only have original captures and a collage.':''}</p>}
+   {exported&&<p className="operatorNotice" data-testid="staff-export-result">ZIP requested: {exported.count} photo sessions, {exported.finished} finished keepsakes. Open the ZIP to check that everything is there. {exported.finished<exported.count?'Some sessions have no finished keepsake; all available originals and collages are included.':''}</p>}
    {eligible&&<details className="operatorFold" data-testid="staff-finish-event-fold">
     <summary>2. Remove this completed event from the iPad <span>Only after saving and verifying the gallery</span></summary>
     <div className="operatorFoldContent">

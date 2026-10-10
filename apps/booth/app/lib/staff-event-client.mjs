@@ -1,5 +1,5 @@
 import {applyBoothHandoff,validateBoothHandoff,MAX_BOOTH_SETUP_BYTES} from './booth-handoff.mjs';
-import {workspace} from './event-workspace.mjs';
+import {workspace,usage} from './event-workspace.mjs';
 import {saveBackupToken,tokenKey} from './backup-sync.mjs';
 import {assignActiveEvent,ACTIVE_EVENT_KEY} from './active-event.mjs';
 
@@ -62,6 +62,10 @@ export function applyStaffEvent(storage,{payload,token},{activate=true}={}){
  const scope=workspace('?booth_event='+encodeURIComponent(payload.id));
  const ticket=token===undefined?storage.getItem(tokenKey(payload.id)):token;
  if(!validToken(ticket))throw new StaffEventError('Photo saving is not ready. Connect to Wi-Fi and start the event again.');
+ // Complete already-authorized refunds before taking the settings rollback
+ // snapshot. A later save failure must keep the recovered counter and ledger
+ // together, including linked October or recognized legacy allowances.
+ usage(storage,scope);
  // Include every key written by the existing handoff so a quota failure cannot
  // leave the newly selected event active with a missing backup authorization.
  const keys=[scope.config,scope.previous,scope.usage,tokenKey(payload.id),...(activate?[ACTIVE_EVENT_KEY]:[])];
