@@ -14,11 +14,16 @@
 .staffStartHeaderActions { display:flex; align-items:center; gap:14px; }
 .staffStartHeaderActions a { color:#47664c; font-size:14px; text-decoration:none; min-height:44px; display:flex; align-items:center; }
 .staffStartBadge { background:#e6ecdf; color:#4b654d; font-size:12px; font-weight:600; padding:8px 12px; border-radius:20px; white-space:nowrap; }
-.staffStartContent { max-width:1200px; margin:16px auto 0; }
+.staffStartContent { max-width:1200px; margin:12px auto 0; }
 .staffStartEventBar { display:grid; grid-template-columns:230px minmax(0,1fr); align-items:center; gap:24px; }
 .staffStartIntro h1 { font-size:23px; font-weight:700; line-height:1.2; margin:0 0 6px; letter-spacing:-.4px; }
-.staffStartIntro p { color:#657562; margin:0; font-size:14px; line-height:1.4; }
+.staffStartIntro p { color:#657562; margin:0; font-size:13px; line-height:1.4; white-space:nowrap; }
 .staffStartEventPicker { min-width:0; display:grid; gap:6px; }
+.staffStartCurrent { margin-top:4px; color:#546d4c; }
+.staffStartCurrent>div { display:flex; align-items:baseline; gap:16px; min-width:0; }
+.staffStartCurrent p { flex:1; min-width:0; margin:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:13px; line-height:1.3; }
+.staffStartCurrent p strong { color:#304e39; }
+.staffStartCurrent small { flex:1; display:block; font-size:12px; line-height:1.4; }
 .staffStartPage label { font-size:14px; font-weight:600; }
 .staffStartEventPicker select,.staffStartNames input,.staffStartSignIn input {
  width:100%; min-width:0; min-height:46px; padding:10px 12px; font:16px Arial,sans-serif;
@@ -27,7 +32,7 @@
 .staffStartPage button { font-family:Arial,sans-serif; cursor:pointer; touch-action:manipulation; }
 .staffStartPage button:disabled { cursor:default; opacity:.55; }
 .staffStartPage :is(button,input,select,summary,a):focus-visible { outline:3px solid #a78843; outline-offset:3px; }
-.staffStartForm { margin-top:18px; }
+.staffStartForm { margin-top:10px; }
 .staffStartWorkspace { display:grid; grid-template-columns:minmax(0,1.7fr) minmax(280px,1fr); gap:20px; align-items:start; border:0; margin:0; padding:0; min-width:0; }
 .staffStartChoices { min-width:0; }
 .staffStartLayoutHeader { min-height:44px; display:flex; align-items:baseline; justify-content:space-between; gap:12px; }
@@ -154,17 +159,22 @@
 }
 @media (max-width:739px) {
  .staffStartPage { padding:0 16px 126px; }
- .staffStartHeader { height:54px; gap:12px; }
+ .staffStartHeader { height:auto; min-height:54px; flex-wrap:wrap; gap:0 12px; }
  .staffStartBrand { font-size:23px; }
  .staffStartBrand span { display:none; }
- .staffStartHeaderActions { gap:8px; }
+ .staffStartHeaderActions { display:contents; }
  .staffStartHeaderActions a { font-size:12px; }
- .staffStartBadge { font-size:11px; padding:7px 10px; }
+ .staffStartHeaderActions>a:first-child { margin-left:auto; }
+ .staffStartHeaderActions .staffStartResume { flex-basis:100%; }
+ .staffStartBadge { display:none; }
  .staffStartContent { margin-top:14px; }
  .staffStartEventBar { grid-template-columns:1fr; gap:12px; }
  .staffStartIntro h1 { font-size:22px; margin-bottom:4px; }
  .staffStartIntro p { font-size:13px; }
  .staffStartEventPicker { gap:5px; }
+ .staffStartCurrent { margin-top:10px; }
+ .staffStartCurrent>div { display:block; }
+ .staffStartCurrent p { margin-bottom:3px; }
  .staffStartWorkspace { display:grid; grid-template-columns:1fr; gap:18px; }
  .staffStartForm { margin-top:16px; }
  .staffStartLayoutHeader { min-height:49px; padding-bottom:10px; }

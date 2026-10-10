@@ -271,6 +271,9 @@ try{
    await done(page);phase='preset-four-photo';await capture(page,4,'fpr-wedding');await waitSaved(page,9);await done(page);
    // Reopening the app remembers this event; nobody repeats a handoff.
    await page.goto(origin+'/',{waitUntil:'networkidle'});await page.waitForURL(origin+scope.home);await page.getByTestId('welcome-four-photo').waitFor();
+   // The server-rendered welcome appears before the local archive thumbnails
+   // finish loading. Wait for the booth's initialized state before leaving it.
+   await page.waitForFunction(()=>document.querySelector('[data-testid="welcome-start-session"]')?.disabled===false);
    phase='custom-build-start';await openStaff(page,origin);await page.getByTestId('staff-layout-custom').click();await page.getByTestId('staff-custom-dialog').waitFor();await page.getByTestId('custom-heading').fill('Custom Staff Celebration');await page.getByTestId('custom-footer').fill('Prepared before guests arrive');await page.getByTestId('staff-custom-done').click();await readyProofs(page);
    await page.getByTestId('staff-start-event').click();await page.waitForURL(origin+scope.home);await page.getByTestId('welcome-quick-photo').waitFor();assert.equal(payload.customDesign.mode,'build');assert.equal(payload.customDesign.heading,'Custom Staff Celebration');
    phase='custom-build-one-photo';await capture(page,1,'custom');await waitSaved(page,12);await done(page);

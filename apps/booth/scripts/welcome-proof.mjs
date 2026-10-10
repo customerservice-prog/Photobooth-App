@@ -21,7 +21,7 @@ async function settleWelcome(page){
  // otherwise reports the deliberately aborted fetch as an access-control error.
  if(await page.locator('.bwWelcome').count())await page.waitForLoadState('networkidle',{timeout:15000});
 }
-async function open(page){await settleWelcome(page);await page.goto(base,{waitUntil:'networkidle'});await page.waitForSelector('.bwWelcome[data-capture-mode="photo"]');await page.waitForFunction(()=>document.querySelector('#bwEventTitle')?.textContent==='October 10 Photo Booth Party');await page.waitForTimeout(400);await settleWelcome(page);}
+async function open(page){await settleWelcome(page);await page.goto(base+'/?local=1',{waitUntil:'networkidle'});await page.waitForSelector('.bwWelcome[data-capture-mode="photo"]');await page.waitForFunction(()=>document.querySelector('#bwEventTitle')?.textContent==='October 10 Photo Booth Party');await page.waitForTimeout(400);await settleWelcome(page);}
 async function assertPhotoOnly(page){assert.equal(await page.locator('.bwSessionChoices button').count(),2);assert.equal(await page.getByTestId('welcome-quick-photo').count(),1);assert.equal(await page.getByTestId('welcome-four-photo').count(),1);assert.equal(await page.getByTestId('welcome-video').count(),0);assert.equal(await page.getByTestId('booth-sound-test').count(),0,'Speaker testing belongs only in Staff Tools, not the guest welcome screen');assert.equal(await page.getByText('Test speaker',{exact:true}).count(),0);assert.equal(await page.getByTestId('welcome-gif').count(),0);assert.equal(await page.locator('.bwSessionCard .bwLayoutPreview svg').count(),2,'both choices show the actual print layout');assert.equal(await page.getByTestId('welcome-large-proof').locator('svg').count(),1,'one large matching print proof');assert.equal(await page.getByTestId('welcome-start-session').count(),1);assert.equal(await page.locator('.bwShowcase,.bwPaperStack,.bwPhotoSteps').count(),0,'guest choices replace the old showcase and prose');assert.equal(await page.locator('.bwSessionCard .bwPreviewCaption').count(),2);assert(!/\b(video|gif|boomerang)\b/i.test(await page.locator('.bwWelcome').innerText()));}
 async function layout(page,name,w,h){
  await page.setViewportSize({width:w,height:h});await open(page);await assertPhotoOnly(page);assert.equal(await page.locator('h1').count(),1);
@@ -94,12 +94,18 @@ try{
   await page.getByTestId('operator-lock-ipad').click();
   assert.equal(await page.getByTestId('operator-guided-access').getAttribute('open'),'');
   assert((await page.getByTestId('operator-guided-access').innerText()).includes('Display Auto-Lock'));
-  assert.equal(await page.getByTestId('operator-load-event').getAttribute('href'),'/staff/start','staff choose the layout directly in the booth');
+  const staffStartLink=new URL(await page.getByTestId('operator-load-event').getAttribute('href'),base);
+  assert.equal(staffStartLink.origin,new URL(base).origin,'staff setup stays in this booth');
+  assert.equal(staffStartLink.pathname,'/staff/start','staff choose the layout directly in the booth');
+  assert.equal(staffStartLink.searchParams.get('returnTo'),'/?local=1','staff setup returns to this local event');
   assert((await page.getByTestId('operator-load-event').innerText()).includes('Choose layout'));
   assert(await page.getByTestId('operator-reset-guest').isVisible());
   assert(await page.getByTestId('operator-sound-test').isVisible());
   assert((await page.getByTestId('operator-sound-test').innerText()).includes('Play voice sample'));
-  assert.equal(await page.getByRole('link',{name:/Advanced local setup/}).getAttribute('href'),'/setup');
+  const localSetupLink=new URL(await page.getByRole('link',{name:/Advanced local setup/}).getAttribute('href'),base);
+  assert.equal(localSetupLink.origin,new URL(base).origin);
+  assert.equal(localSetupLink.pathname,'/setup');
+  assert.equal(localSetupLink.searchParams.get('returnTo'),'/?local=1','local setup retains the current guest welcome');
   await page.screenshot({path:`${out}/${engine}-staff-tools.png`});
   await page.getByRole('button',{name:'Close controls',exact:true}).click();
   assert.equal(await page.getByRole('dialog',{name:'Operator controls'}).count(),0);
@@ -119,7 +125,7 @@ try{
   await staff.click();await page.getByTestId('staff-confirm').click();
   // The primary action above opens direct staff start. Preserve the separate
   // local rehearsal editor and its saved settings regression coverage.
-  await page.getByRole('link',{name:/Advanced local setup/}).click();await page.waitForURL('**/setup');
+  await page.getByRole('link',{name:/Advanced local setup/}).click();await page.waitForURL(url=>url.pathname==='/setup'&&url.searchParams.get('returnTo')==='/?local=1');
   await page.getByTestId('premium-event-setup').waitFor();
   assert.equal(await page.getByTestId('setup-one-photo').getAttribute('aria-pressed'),'false');
   await page.getByTestId('setup-pause-seconds').selectOption('9');
@@ -158,7 +164,8 @@ try{
   await page.getByRole('button',{name:/Next: personalize/}).click();
   assert(await page.getByTestId('setup-preview-strip').isDisabled());
   await page.getByRole('button',{name:/Save event & open booth/}).click();
-  await page.waitForURL('**/');
+  await page.waitForURL(url=>url.pathname==='/'&&url.searchParams.get('local')==='1');
+  await page.getByTestId('welcome-four-photo').waitFor();await settleWelcome(page);
   const prepared=await page.evaluate(()=>JSON.parse(localStorage.getItem('friendly-booth-event-v1')));
   assert.equal(prepared.defaultPhotoExperience,'one');
   assert.equal(prepared.photoPauseSeconds,9);
@@ -173,9 +180,9 @@ try{
   assert.equal(await page.getByTestId('welcome-four-photo').count(),1);
   await page.evaluate(config=>localStorage.setItem('friendly-booth-event-v1',JSON.stringify(config)),cfg);
   await open(page);
-  await page.getByRole('link',{name:'Help',exact:true}).click();await page.waitForURL('**/help');results.push({test:engine+'-setup-and-help-navigation',passed:true});
+  await page.getByRole('link',{name:'Help',exact:true}).click();await page.waitForURL(url=>url.pathname==='/help'&&url.searchParams.get('returnTo')==='/?local=1');results.push({test:engine+'-setup-and-help-navigation',passed:true});
   await open(page);await page.evaluate(()=>{const c=JSON.parse(localStorage.getItem('friendly-booth-event-v1'));c.title='A Very Long Family Celebration With Everyone We Love And A Wonderfully Long Event Name';c.details.eventName=c.title;localStorage.setItem('friendly-booth-event-v1',JSON.stringify(c));});await page.reload({waitUntil:'networkidle'});await page.waitForTimeout(250);assert(!await page.evaluate(()=>{const r=document.querySelector('.bwWelcome');return r.scrollWidth>r.clientWidth+1;}));await page.screenshot({path:`${out}/${engine}-long-title.png`,fullPage:true});results.push({test:engine+'-long-event-name',passed:true});
-  await page.evaluate(config=>localStorage.setItem('friendly-booth-event-v1',JSON.stringify({...config,mode:'gif',captureMode:'VIDEO',videoEnabled:true,gifEnabled:true})),cfg);await page.goto(base+'/?mode=boomerang',{waitUntil:'networkidle'});await page.waitForSelector('.bwWelcome[data-capture-mode="photo"]');await assertPhotoOnly(page);assert.equal(await page.evaluate(()=>localStorage.getItem('friendly-booth-print-usage-v1')),'7');results.push({test:engine+'-legacy-mode-cannot-enable-motion',passed:true});
+  await page.evaluate(config=>localStorage.setItem('friendly-booth-event-v1',JSON.stringify({...config,mode:'gif',captureMode:'VIDEO',videoEnabled:true,gifEnabled:true})),cfg);await page.goto(base+'/?local=1&mode=boomerang',{waitUntil:'networkidle'});await page.waitForSelector('.bwWelcome[data-capture-mode="photo"]');await assertPhotoOnly(page);assert.equal(await page.evaluate(()=>localStorage.getItem('friendly-booth-print-usage-v1')),'7');results.push({test:engine+'-legacy-mode-cannot-enable-motion',passed:true});
   await page.evaluate(config=>localStorage.setItem('friendly-booth-event-v1',JSON.stringify(config)),cfg);await open(page);
   if(engine==='chromium'){
    await page.getByTestId('welcome-four-photo').click();await page.getByTestId('welcome-start-session').click();await assertFinishedGuest(page,4);assert.equal(await page.evaluate(()=>localStorage.getItem('friendly-booth-print-usage-v1')),'7');assert.equal(await page.evaluate(()=>window.__proofRecordingCalls),0);const savedCapture=await page.evaluate(async source=>{const api=new Function(source.replace(/\bexport /g,'')+'\nreturn {listCaptures};')();const records=await api.listCaptures('legacy');return {count:records.length,poses:records[0].poses.length,keepsake:records[0].keepsake.size};},archiveSource);assert.deepEqual({count:savedCapture.count,poses:savedCapture.poses},{count:1,poses:4});assert(savedCapture.keepsake>0);results.push({test:'chromium-legacy-four-photo-session-has-one-finished-preview-and-only-print-send-done',passed:true});

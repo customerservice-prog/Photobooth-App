@@ -37,6 +37,7 @@ export default async function EventDetailPage({params}){
    <section className="card cardPad ownerEventStep" id="start-event" data-testid="owner-start-event">
     <header className="ownerStepHeader"><span className="ownerEventStepNumber" aria-hidden="true">2</span><div><h2 className="sectionTitle">Start the event</h2><p className="sectionLead">On the booth iPad, choose this event and a layout or Custom, then tap Start event.</p></div></header>
     <a className="btn" data-testid="choose-layout-start-event" href={start}>Choose layout &amp; start event →</a>
+    <p className="ownerGalleryHelp">Use this on the event iPad. Choose the booking shown above, check the saved design, then tap Start event.</p>
     <p className="ownerGalleryHelp">Starting the event preloads this design for 1 Photo and 4 Photos, opens the guest screen and connects its private photo gallery automatically.</p>
    </section>
    <section className="card cardPad ownerEventStep" id="after-event" data-testid="owner-finish-event">

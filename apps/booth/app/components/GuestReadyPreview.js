@@ -4,6 +4,7 @@ import {eventMonogram} from '../lib/event-config.mjs';
 import {makeKeepsakeExport,exportKey,latestOnly,sharePrepared,downloadPrepared} from '../lib/keepsake-export.mjs';
 import {normalizePrintPackage,printsRemaining,canPrint} from '../lib/print-package.mjs';
 import StudioDialog from './StudioDialog';
+import StaffAccessGate from './StaffAccessGate';
 import DeliveryPanel from './DeliveryPanel';
 import {guestEventConfig} from '../lib/guest-design.mjs';
 import {guestFinishTheme,themeFromArtwork} from '../lib/guest-finish-theme.mjs';
@@ -14,7 +15,7 @@ import './guest-ready.css';
 // A pre-approved layout: guests never choose themes, frames, strip modes,
 // event details, or templates. All of those are set by the operator beforehand.
 export default function GuestReadyPreview({photo,poses=[],sessionShots,cfg:storedCfg,printing,printPackage,printsUsed=0,
- onPrint,onPrintOutcome,onFinish,onArchive,onSessionActive}){
+ onPrint,onPrintOutcome,onFinish,onArchive,onSessionActive,onOperator}){
  const cfg=guestEventConfig(storedCfg);
  const four=sessionShots!==1,layout=four?'photo_strip':'card';
  const template=cfg.defaultTemplate;
@@ -27,6 +28,7 @@ export default function GuestReadyPreview({photo,poses=[],sessionShots,cfg:store
  const [archiveBusy,setArchiveBusy]=useState(false),[archived,setArchived]=useState(false),[archiveError,setArchiveError]=useState('');
  const [printRequested,setPrintRequested]=useState(false),[recoverySaved,setRecoverySaved]=useState(false),[retry,setRetry]=useState(0),[archiveRetry,setArchiveRetry]=useState(0);
  const [sharing,setSharing]=useState(false),[nativeBusy,setNativeBusy]=useState(false),[deliveryBusy,setDeliveryBusy]=useState(false);
+ const [staffPrompt,setStaffPrompt]=useState(false);
  const prepared=artifact?.key===key?artifact:null;
  const packageRules=normalizePrintPackage(printPackage||cfg.printPackage),remaining=printsRemaining(packageRules,printsUsed);
  const busy=printing||archiveBusy||nativeBusy||deliveryBusy;
@@ -52,12 +54,12 @@ export default function GuestReadyPreview({photo,poses=[],sessionShots,cfg:store
   return()=>{active=false;};
  },[prepared?.key,onArchive,archiveRetry]);
  useEffect(()=>{
-  // Keep the capture on screen while sharing, or until a failed archive has
-  // been retried/recovered. An idle reset must not discard its finished JPEG.
-  const active=Boolean(!prepared&&!exportError||busy||sharing||prepared&&onArchive&&!archived&&!recoverySaved);
+  // Keep the capture on screen while preparing/sharing, or until an export or
+  // archive failure has been recovered. Staff may need the original photos.
+  const active=Boolean(!prepared||exportError||busy||sharing||staffPrompt||prepared&&onArchive&&!archived&&!recoverySaved);
   onSessionActive?.(active);
   return()=>onSessionActive?.(false);
- },[Boolean(prepared),exportError,busy,sharing,archived,recoverySaved,onArchive,onSessionActive]);
+ },[Boolean(prepared),exportError,busy,sharing,staffPrompt,archived,recoverySaved,onArchive,onSessionActive]);
  function printNow(){
   if(!printAllowed||actionGuard.current)return;
   actionGuard.current=true;
@@ -108,6 +110,7 @@ export default function GuestReadyPreview({photo,poses=[],sessionShots,cfg:store
   <div className="agNotices">
   <p className="agSaved" data-testid="approved-gallery-status">{archiveBusy?'Saving your photo…':archiveError?'Please ask the attendant for help saving this photo.':archived?'✓ Your photo is saved':prepared&&!onArchive?'Ready to print or send':prepared?'Saving your photo…':'Preparing your photo…'}</p>
   {(archiveError||status||exportError)&&<p className={'agStatus'+(archiveError||exportError?' agWarning':'')} role={archiveError||exportError?'alert':'status'}>{archiveError||exportError||status}{archiveError&&prepared&&<><button type="button" data-testid="approved-retry-save" disabled={busy} onClick={()=>setArchiveRetry(n=>n+1)}>Retry saving</button><button type="button" disabled={busy} onClick={saveRecovery}>Save recovery JPEG</button></>}{exportError&&<button type="button" onClick={()=>setRetry(n=>n+1)}>Retry photo</button>}</p>}
+  {(exportError||archiveError)&&onOperator&&<div className="agErrorHelp"><span>Your photo stays here while staff helps.</span><button type="button" data-testid="approved-error-staff" disabled={busy} onClick={()=>setStaffPrompt(true)}>Staff tools</button></div>}
   {printRequested&&<div className="agPrintRecovery"><span>Only retry if you canceled or no sheet printed.</span><button type="button" data-testid="approved-retry-print" disabled={busy} onClick={retryPrint}>Retry print</button></div>}
   </div>
   <footer className="agDock" aria-label="Finished photo actions">
@@ -125,6 +128,7 @@ export default function GuestReadyPreview({photo,poses=[],sessionShots,cfg:store
     {status&&<p role="status">{status}</p>}
    </div>
   </StudioDialog>}
+  {staffPrompt&&<StaffAccessGate onClose={()=>setStaffPrompt(false)} onConfirm={()=>{setStaffPrompt(false);onOperator?.();}}/>}
  </section>;
 }
 

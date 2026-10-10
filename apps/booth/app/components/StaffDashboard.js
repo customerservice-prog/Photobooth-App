@@ -6,6 +6,7 @@ import StaffEventCloseout from './StaffEventCloseout';
 import AppUpdate from './AppUpdate';
 import StaffPrintPanel from './StaffPrintPanel';
 import StaffDeviceChecklist from './StaffDeviceChecklist';
+import {eventHome,withReturnTo} from '../lib/staff-navigation.mjs';
 import './staff-dashboard.css';
 
 // A functional staff dashboard shared by demo and live contexts. The staff
@@ -13,6 +14,8 @@ import './staff-dashboard.css';
 export default function StaffDashboard({onClose,onReset,onVoiceTest,onRecover,onSaveConfig,onLoadBryan,
  online,saved,installed,managed,demo,remaining,setupHref,photos=[],cfg,eventTypes,voiceStatus,eventScope,
  keepScreenAwake=true,screenAwakeStatus='requesting',onToggleScreenAwake,onRetryScreenAwake,onReviewPrint}){
+ const home=eventHome(eventScope||{id:'legacy',home:'/'});
+ const link=path=>withReturnTo(path,home);
  const ref=useRef(null),closeRef=useRef(onClose),transferRef=useRef(null),kioskRef=useRef(null);closeRef.current=onClose;
  function showKioskGuide(){
   const section=kioskRef.current;if(!section)return;
@@ -103,16 +106,16 @@ export default function StaffDashboard({onClose,onReset,onVoiceTest,onRecover,on
      </div>
     </details>
    </section>
-   <h3 className="operatorSectionTitle">What do you need to do?</h3>
+   <h3 className="operatorSectionTitle">What do you need to do?</h3><p className="operatorPrivacy">Current event: <strong>{cfg.title}</strong>. Choose event setup only when preparing or switching an event. <a href="/launch">Back to booth start</a></p>
    <nav className="operatorQuickGrid" aria-label="Staff quick actions">
     <button className="operatorQuickCard operatorGuestCard" type="button" data-testid="operator-lock-ipad" onClick={showKioskGuide}><span aria-hidden="true">▣</span><strong>Lock iPad for guests</strong><small>Guided Access setup steps</small></button>
-    <a className="operatorQuickCard operatorGuestCard" data-testid="operator-load-event" href={'/staff/start'+(eventScope?.imported?'?event='+encodeURIComponent(eventScope.id):'')}><span aria-hidden="true">✦</span><strong>Choose layout &amp; start event</strong><small>Pick the event · layout or Custom · start</small></a>
-    {!eventScope?.imported&&<a className="operatorQuickCard" href={setupHref}><span aria-hidden="true">✎</span><strong>Advanced local setup</strong><small>Local rehearsal settings</small></a>}
+    <a className="operatorQuickCard operatorGuestCard" data-testid="operator-load-event" href={link('/staff/start'+(eventScope?.imported?'?event='+encodeURIComponent(eventScope.id):''))}><span aria-hidden="true">✦</span><strong>Choose layout &amp; start event</strong><small>Pick the event · layout or Custom · start</small></a>
+    {!eventScope?.imported&&<a className="operatorQuickCard" href={link(setupHref)}><span aria-hidden="true">✎</span><strong>Advanced local setup</strong><small>Local rehearsal settings</small></a>}
     <button className="operatorQuickCard" type="button" data-testid="operator-sound-test" onClick={onVoiceTest}><span aria-hidden="true">♫</span><strong>Play voice sample</strong><small>Staff-only sound check</small></button>
-    <a className="operatorQuickCard" href="/print-test"><span aria-hidden="true">▤</span><strong>Canon wireless printing</strong><small>AirPrint and 4×6 instructions</small></a>
-    <a className="operatorQuickCard" href="/delivery-check"><span aria-hidden="true">↗</span><strong>Digital delivery</strong><small>Test sharing and receipts</small></a>
-    <a className="operatorQuickCard" href="/help#guided-access"><span aria-hidden="true">◇</span><strong>iPad help</strong><small>Guided Access & fixes</small></a>
-    <button className="operatorQuickCard operatorGuestCard" type="button" data-testid="operator-reset-guest" onClick={onReset}><span aria-hidden="true">⌂</span><strong>Guest welcome screen</strong><small>Ready for the next guest</small></button>
+    <a className="operatorQuickCard" href={link("/print-test")}><span aria-hidden="true">▤</span><strong>Canon wireless printing</strong><small>AirPrint and 4×6 instructions</small></a>
+    <a className="operatorQuickCard" href={link("/delivery-check")}><span aria-hidden="true">↗</span><strong>Digital delivery</strong><small>Test sharing and receipts</small></a>
+    <a className="operatorQuickCard" href={link("/help#guided-access")}><span aria-hidden="true">◇</span><strong>iPad help</strong><small>Guided Access & fixes</small></a>
+    <button className="operatorQuickCard operatorGuestCard" type="button" data-testid="operator-reset-guest" onClick={onReset}><span aria-hidden="true">⌂</span><strong>{onReset?'Return to guest screen':'Guest screen'}</strong><small>Close staff tools and continue</small></button>
    </nav>
    <details ref={transferRef} className="operatorFold" data-testid="staff-load-event">
     <summary>Older event setup links <span>Optional recovery</span></summary>
@@ -136,7 +139,7 @@ export default function StaffDashboard({onClose,onReset,onVoiceTest,onRecover,on
     <div className="operatorFoldContent">
      <p>Choose a saved capture to return to its preview. No new photos are taken.</p>
      {photos.length?<div className="recoveryGrid">{photos.slice(0,8).map(p=><button type="button" key={p.id} onClick={()=>onRecover(p)} aria-label="Open saved photo"><img src={p.data} alt="Saved photo preview"/></button>)}</div>:<p>There are no recent photos saved in this session.</p>}
-     {managed&&<a className="operatorTextLink" href="/event-prep">Photo archive and event backups →</a>}
+     {managed&&<a className="operatorTextLink" href={link("/event-prep")}>Photo archive and event backups →</a>}
     </div>
    </details>
    {!managed&&!eventScope?.imported&&<details className="operatorFold">

@@ -1,7 +1,11 @@
 'use client';
+import {useState} from 'react';
+import StudioDialog from './StudioDialog';
+import './studio-experience.css';
 import './photo-capture.css';
 function Smile({small=false}){return <svg className={small?'pcSmileSmall':'pcSmile'} viewBox="0 0 64 64" fill="none" aria-hidden="true"><circle cx="32" cy="32" r="27" stroke="currentColor" strokeWidth="2"/><path d="M20 37c5 12 19 12 24 0" stroke="currentColor" strokeWidth="2.8" strokeLinecap="round"/><path d="M21 23v3m22-3v3" stroke="currentColor" strokeWidth="4" strokeLinecap="round"/><path d="m51 3 1.5 5L58 10l-5.5 2-1.5 5-2-5-5-2 5-2z" fill="currentColor"/></svg>;}
 export default function PhotoCapture({videoRef,progress,onCancel,onReady,soundStatus='idle'}){
+ const [helpOpen,setHelpOpen]=useState(false);
  const {phase='ready',current=1,total=4,count=null,completed=0,shots=[]}=progress;
  const processing=phase==='processing',next=phase==='next',pause=phase==='pause',captured=phase==='captured',snap=phase==='smile';
  const visualOnly=soundStatus==='blocked'||soundStatus==='unavailable';
@@ -15,6 +19,16 @@ export default function PhotoCapture({videoRef,progress,onCancel,onReady,soundSt
    <div className={'pcCircle'+(['countdown','smile'].includes(phase)?' isTalking':'')} aria-hidden="true"><span className="pcHaloCore"/><span className="pcSoundWave pcSoundWave1"/><span className="pcSoundWave pcSoundWave2"/><span className="pcGlimmer pcGlimmerOne"/><span className="pcGlimmer pcGlimmerTwo"/><span className="pcGlimmer pcGlimmerThree"/><span className="pcGlimmer pcGlimmerFour"/><svg className="pcRing" viewBox="0 0 220 220"><circle className="pcRingBase" cx="110" cy="110" r="102"/><circle className="pcRingArc" cx="110" cy="110" r="102" pathLength="100" strokeDasharray="100" strokeDashoffset={phase==='countdown'?(3-count)/3*100:0}/></svg>{phase==='countdown'?<span className="pcDigit" data-testid="premium-countdown-number" key={current+'-'+count}>{count}</span>:next||pause?<span className="pcNextDigit" data-testid="next-photo-number">{current}<small>OF {total}</small></span>:captured||processing?<span className="pcComplete">✓</span>:<Smile/>}</div>
    <div className={'pcWords'+(next?' pcNextWords':'')} role="status" aria-live="polite" aria-atomic="true">{phase==='countdown'&&<span className="pcVisuallyHidden">Photo {current} of {total}. {count}.</span>}<h1>{title}</h1><p>{instruction}</p></div>{pause&&<div className="pcPoseBreak" data-testid="pose-break" aria-label="Pause before the next photo"><div className="pcPoseTimer"><strong>{count}</strong><span>seconds to get ready</span></div><button type="button" className="pcPoseReady" onClick={onReady}>I’m ready — start countdown <span aria-hidden="true">→</span></button></div>}
   </div>
-  <footer className="pcFooter"><ol className="pcStrip" aria-label="Photos captured this session">{Array.from({length:total},(_,i)=><li key={i} data-filled={Boolean(shots[i])} data-active={current===i+1&&!shots[i]}>{shots[i]?<img src={shots[i]} alt={'Photo '+(i+1)+' captured'}/>:<span className="pcEmpty" aria-hidden="true">{String(i+1).padStart(2,'0')}</span>}<span className="pcThumbCaption">{shots[i]?'Captured':current===i+1?'Your pose':'Up next'}</span></li>)}</ol><div className="pcFooterBar"><button type="button" onClick={onCancel} disabled={processing}>Cancel session</button><p>{completed} of {total} photos captured · {processing?'preparing your design':'print choices appear after the last photo'}</p><a href="/help">Help</a></div></footer>
+  <footer className="pcFooter"><ol className="pcStrip" aria-label="Photos captured this session">{Array.from({length:total},(_,i)=><li key={i} data-filled={Boolean(shots[i])} data-active={current===i+1&&!shots[i]}>{shots[i]?<img src={shots[i]} alt={'Photo '+(i+1)+' captured'}/>:<span className="pcEmpty" aria-hidden="true">{String(i+1).padStart(2,'0')}</span>}<span className="pcThumbCaption">{shots[i]?'Captured':current===i+1?'Your pose':'Up next'}</span></li>)}</ol><div className="pcFooterBar"><button type="button" onClick={onCancel} disabled={processing}>Cancel session</button><p>{completed} of {total} photos captured · {processing?'preparing your design':'print choices appear after the last photo'}</p><button type="button" data-testid="capture-help" onClick={()=>setHelpOpen(true)}>Help</button></div></footer>
+  {helpOpen&&<StudioDialog title="Photo session help" onClose={()=>setHelpOpen(false)}>
+   <div className="pcHelpContent">
+    <p>Your session stays on this screen. The countdown continues while this guide is open.</p>
+    <h3>Ready for your photo?</h3>
+    <p>Keep everyone inside the camera view and watch for 3, 2, 1, Smile. The on-screen countdown works even with sound off.</p>
+    {total>1&&<p>Between photos, change your pose. Tap “I’m ready” to start the next countdown sooner.</p>}
+    <p>If the camera freezes or you need to stop, cancel the session and ask the attendant. Photos already captured stay saved.</p>
+    <div className="pcHelpActions"><button type="button" className="pcHelpReturn" onClick={()=>setHelpOpen(false)}>Back to camera</button><button type="button" disabled={processing} onClick={()=>{setHelpOpen(false);onCancel?.();}}>Cancel session</button></div>
+   </div>
+  </StudioDialog>}
  </section>;
 }

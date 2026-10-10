@@ -1,6 +1,7 @@
 'use client';
 import {useEffect,useState} from 'react';
 import {resolveBoothHandoff,applyBoothHandoff} from '../lib/booth-handoff.mjs';
+import StaffPageNav from '../components/StaffPageNav';
 import {workspace,usage} from '../lib/event-workspace.mjs';
 import {assignActiveEvent} from '../lib/active-event.mjs';
 import {getDesign} from '../lib/template-registry.mjs';
@@ -38,8 +39,8 @@ export default function HandoffPage(){
  const ready=Boolean(p);
  return <main className="hbPage">
   <header className="hbHeader"><span className="hbBrand">✦</span><span><strong>FRIENDLY PHOTO BOOTH</strong><small>STAFF → EVENT IPAD</small></span></header>
-  <div className="hbWrap">
-   <div className="hbKicker">EVENT HANDOFF · STEP 3 OF 4</div>
+  <div className="hbWrap"><StaffPageNav/>
+   <div className="hbKicker">OLDER SETUP LINK · STAFF RECOVERY</div>
    <h1>{state.loading?'Opening your event…':p?'Ready to load your event?':'This link needs attention'}</h1>
    {state.error&&<div className="hbError" role="alert">{state.error}</div>}
    {p?<div className="hbCard" data-testid="booth-handoff-review">
@@ -58,8 +59,8 @@ export default function HandoffPage(){
      <button className="hbApply" type="button" onClick={apply} disabled={saving} data-testid="booth-handoff-apply">{saving?'Saving on this iPad…':'Apply event to this iPad →'}</button>
      <p>Apply only on the iPad that will take event photos. The event is stored locally so it can still capture photos without internet.</p>
     </div>
-   </div>:!state.loading?<div className="hbCard"><p>Open the **Send to Booth** link from the event in the staff dashboard, or scan its QR code using the event iPad.</p><a href="/" className="hbBack">Return to booth welcome</a></div>:null}
-   <div className="hbHelp"><span className="hbHelpNumber">4</span><div><strong>Next: Test & Start</strong><p>After applying, test one photo, a four-photo session, the speaker, and a physical 4×6 printer sheet. Never assume the printer is ready just because the setup was transferred.</p></div></div>
+   </div>:!state.loading?<div className="hbCard"><p>For a current booking, choose the event and its design on this iPad. This page is only for recovering an older setup link.</p><a href="/staff/start" className="hbBack">Choose event &amp; design</a></div>:null}
+   <div className="hbHelp"><span className="hbHelpNumber">4</span><div><strong>Before welcoming guests</strong><p>After applying, test one photo, a four-photo session, the speaker, and a physical 4×6 printer sheet. Never assume the printer is ready just because the setup was transferred.</p></div></div>
   </div>
  </main>;
 }

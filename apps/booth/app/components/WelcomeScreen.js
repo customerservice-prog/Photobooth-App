@@ -77,7 +77,7 @@ const WelcomeProof=memo(function WelcomeProof({cfg,shots,poses}){
  </span>;
 });
 
-export default function WelcomeScreen({cfg,eventName,online,starting,installed,printsUsed=0,onStartQuick,onStartFour,onInstall,onOperator,voiceStatus='idle',showGraduationPreview=false}){
+export default function WelcomeScreen({cfg,eventName,online,starting,installed,printsUsed=0,onStartQuick,onStartFour,onInstall,onOperator,voiceStatus='idle',showGraduationPreview=false,helpHref='/help'}){
  const [staffPrompt,setStaffPrompt]=useState(false);
  const preferred=normalizePhotoPreference(cfg.defaultPhotoExperience),[choice,setChoice]=useState(preferred);
  const family=sampleFamily(cfg),poses=useSamplePoses(family);
@@ -137,7 +137,7 @@ export default function WelcomeScreen({cfg,eventName,online,starting,installed,p
      </div>
     </section>
    </div>
-   <footer className="bwFooter"><span className={'bwConnection'+(online?'':' bwOffline')} role="status"><i/>{online?'Ready to capture':'Offline · booth still works'}</span><span className="bwCredit">Made with smiles · Friendly Party Rental</span><div className="bwUtilities">{!approved&&showGraduationPreview&&<a className="bwGradPreviewLink" data-testid="welcome-graduation-demo" href="/lamarr-preview">Graduation preview</a>}{!approved&&<a className="bwHelp" href="/help" aria-label="Help">Help</a>}{!approved&&<AppUpdate disabled={starting}/>} {!approved&&!installed&&<button type="button" onClick={onInstall}>Add to iPad</button>}</div></footer>
+   <footer className="bwFooter"><span className={'bwConnection'+(online?'':' bwOffline')} role="status"><i/>{online?'Ready to capture':'Offline · booth still works'}</span><span className="bwCredit">Made with smiles · Friendly Party Rental</span><div className="bwUtilities">{!approved&&showGraduationPreview&&<a className="bwGradPreviewLink" data-testid="welcome-graduation-demo" href="/lamarr-preview">Graduation preview</a>}{!approved&&helpHref&&<a className="bwHelp" href={helpHref} aria-label="Help">Help</a>}{!approved&&<AppUpdate disabled={starting}/>} {!approved&&!installed&&<button type="button" onClick={onInstall}>Add to iPad</button>}</div></footer>
   </div>
   {staffPrompt&&<StaffAccessGate onClose={()=>setStaffPrompt(false)} onConfirm={()=>{setStaffPrompt(false);onOperator?.();}}/>}
  </div>;
