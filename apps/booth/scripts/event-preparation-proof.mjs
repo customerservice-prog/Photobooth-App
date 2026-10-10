@@ -10,7 +10,7 @@ const archiveSource=await readFile(new URL('../app/lib/event-photo-archive.mjs',
 const results=[];let browser,page;
 const pass=name=>results.push({test:name,passed:true});
 const tab=async name=>page.getByRole('tab',{name,exact:true}).click();
-function inspectZip(buffer,count){execFileSync('python3',['-c',"import io,json,sys,zipfile\nz=zipfile.ZipFile(io.BytesIO(sys.stdin.buffer.read()))\nassert z.testzip() is None\nm=json.loads(z.read('manifest.json'))\nassert m['sessions']==int(sys.argv[1])\nassert len(z.namelist())==1+5*m['sessions']\nassert all(not n.startswith('/') and '..' not in n for n in z.namelist())",String(count)],{input:buffer});}
+function inspectZip(buffer,count){execFileSync('python3',['-c',"import io,json,sys,zipfile\nz=zipfile.ZipFile(io.BytesIO(sys.stdin.buffer.read()))\nassert z.testzip() is None\nm=json.loads(z.read('manifest.json'))\nsessions=int(sys.argv[1])\nassert m['sessions']==sessions\nassert m['originalPhotos']==4*sessions\nassert m['captureCollages']==sessions\nassert m['finishedKeepsakes']==1\nassert m['fileCount']==m['originalPhotos']+m['captureCollages']+m['finishedKeepsakes']\nnames=z.namelist()\nassert len(names)==1+m['fileCount'] and len(names)==len(set(names))\nassert all(not n.startswith('/') and '..' not in n for n in names)\nfor n in range(1,sessions+1):\n folder=f'session-{n:04d}/'\n assert folder+'collage.jpg' in names\n assert all(folder+f'pose-{pose}.jpg' in names for pose in range(1,5))\nassert sum(name.endswith('/keepsake.jpg') for name in names)==1",String(count)],{input:buffer});}
 try{
  const engines=process.env.WELCOME_CHROMIUM_ONLY==='1'?[['chromium',chromium]]:[['chromium',chromium],['webkit',webkit]];
  for(const [engine,api] of engines){
