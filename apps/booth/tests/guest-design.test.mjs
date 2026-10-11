@@ -25,8 +25,9 @@ for(const type of Object.keys(EVENT_LABELS))for(const design of getDesigns(type)
   assert.equal(attr(one.match(/<svg\b[^>]*>/)[0],'data-design'),`${type}-${design.id}`);
   assert.equal(attr(four.match(/<svg\b[^>]*>/)[0],'data-design'),`${type}-${design.id}`);
   assert.equal(guestImages(one).length,1);
-  assert.equal(guestImages(four).length,4);
-  assert.deepEqual(guestImages(four).map(tag=>attr(tag,'href')),poses);
+  const copies=design.id==='grad-gala'?2:1;
+  assert.equal(guestImages(four).length,4*copies);
+  assert.deepEqual(guestImages(four).map(tag=>attr(tag,'href')),copies===2?[...poses,...poses]:poses);
   assert(!four.includes('data-design="arcade-four"'));
   assert.equal(JSON.stringify(saved),before,'guest rendering cannot change saved event configuration');
   assert.equal(saved.guestMode,undefined);

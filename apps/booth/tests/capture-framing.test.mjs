@@ -23,14 +23,16 @@ function assertMatches(frame,window,fit){
 }
 
 for(const template of [...FPR_PRINT_PRESETS.map(p=>p.id),'grad-gala']){
- test(template+' camera framing matches all four actual approved print apertures',()=>{
+ test(template+' camera framing matches all four poses in both printed strips',()=>{
   for(const photoFit of ['fill','fit']){
    const cfg={...cfgFor(template),photoFit},windows=renderedWindows(cfg);
-   assert.equal(windows.length,4);
+   assert.equal(windows.length,8);
    for(let pose=1;pose<=4;pose++){
     const frame=approvedCaptureFrame(cfg,pose,4);
-    assert.equal(frame.aspect,552/650,'the preview uses the large portrait photograph, not the previous strip crop');
-    assertMatches(frame,windows[pose-1],photoFit==='fit'?'contain':'cover');
+    assert.equal(frame.aspect,548/336,'the live preview matches the landscape opening in each matching strip');
+    const copies=windows.filter(window=>window.pose===pose);
+    assert.deepEqual(copies.map(window=>window.copy),[1,2]);
+    for(const window of copies)assertMatches(frame,window,photoFit==='fit'?'contain':'cover');
    }
   }
  });
@@ -38,6 +40,7 @@ for(const template of [...FPR_PRINT_PRESETS.map(p=>p.id),'grad-gala']){
 
 test('custom camera framing follows the current pose when approved openings have different proportions',()=>{
  const customDesign=createCustomDesign();
+ delete customDesign.layouts.four.copies;
  customDesign.layouts.four.rects=[
   {x:4,y:12,w:38,h:28},{x:55,y:14,w:35,h:22},
   {x:8,y:52,w:30,h:34},{x:51,y:49,w:43,h:37}
@@ -45,6 +48,7 @@ test('custom camera framing follows the current pose when approved openings have
  validateCustomDesign(customDesign);
  for(const photoFit of ['fill','fit']){
   const cfg={...cfgFor('custom'),customDesign,photoFit},before=JSON.stringify(cfg),windows=renderedWindows(cfg);
+  assert.equal(windows.length,4,'a saved full-sheet custom design retains its four individual apertures');
   assert.equal(new Set(windows.map(w=>w.width/w.height)).size,4);
   for(let pose=1;pose<=4;pose++){
    const rect=customDesign.layouts.four.rects[pose-1],frame=approvedCaptureFrame(cfg,pose,4);
@@ -52,6 +56,22 @@ test('custom camera framing follows the current pose when approved openings have
    assertMatches(frame,windows[pose-1],photoFit==='fit'?'contain':'cover');
   }
   assert.equal(JSON.stringify(cfg),before,'framing never changes the approved customer artwork');
+ }
+});
+
+test('new custom builder camera framing matches its default two matching strips',()=>{
+ const customDesign=createCustomDesign();
+ assert.equal(customDesign.layouts.four.copies,2);
+ for(const photoFit of ['fill','fit']){
+  const cfg={...cfgFor('custom'),customDesign,photoFit},windows=renderedWindows(cfg);
+  assert.equal(windows.length,8);
+  for(let pose=1;pose<=4;pose++){
+   const frame=approvedCaptureFrame(cfg,pose,4);
+   assert.equal(frame.width,548);assert.equal(frame.height,336);
+   const copies=windows.filter(window=>window.pose===pose);
+   assert.deepEqual(copies.map(window=>window.copy),[1,2]);
+   for(const window of copies)assertMatches(frame,window,photoFit==='fit'?'contain':'cover');
+  }
  }
 });
 
@@ -74,6 +94,7 @@ test('saved two-copy custom artwork keeps its original per-pose camera geometry'
 
 test('custom pose selection is bounded to the first or last approved aperture',()=>{
  const customDesign=createCustomDesign();
+ delete customDesign.layouts.four.copies;
  customDesign.layouts.four.rects=[
   {x:4,y:12,w:38,h:28},{x:55,y:14,w:35,h:22},
   {x:8,y:52,w:30,h:34},{x:51,y:49,w:43,h:37}

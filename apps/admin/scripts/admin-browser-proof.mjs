@@ -141,7 +141,7 @@ try{
   fourValues:[...editor.querySelectorAll('.customApertures fieldset')[1].querySelectorAll('input[type="number"]')].slice(0,4).map(input=>input.valueAsNumber),
   invalid:[...editor.querySelectorAll('input[type="number"]')].filter(input=>!input.validity.valid).map(input=>({label:input.getAttribute('aria-label'),value:input.value,stepMismatch:input.validity.stepMismatch,message:input.validationMessage}))
  }));
- assert.deepEqual(customNativeValidity.fourValues.map(coordinate),[36/12,144/18,552/12,650/18].map(coordinate),'the owner builder keeps the precise default four-photo grid coordinates');
+ assert.deepEqual(customNativeValidity.fourValues.map(coordinate),[26/12,120/18,548/12,336/18].map(coordinate),'the owner builder keeps the precise default strip coordinates');
  assert.deepEqual(customNativeValidity.invalid,[],'native number-input validation must accept the precise default coordinates before saving');
  assert.equal(await page.locator('form.ownerEventForm').evaluate(form=>form.checkValidity()),true,'the complete custom builder form is valid before Save event changes');
  await page.screenshot({animations:'disabled',path:'admin-proof/custom-built-desktop.png',fullPage:true});

@@ -4,7 +4,7 @@ import {renderKeepsake,getDesigns} from '../app/lib/keepsake-designs.mjs';
 import {graduationShowcaseConfig,startGraduationShowcase,GRADUATION_SHOWCASE_KEY} from '../app/lib/graduation-showcase.mjs';
 import {workspace} from '../app/lib/event-workspace.mjs';
 import {finalizeEventSetup} from '../app/lib/event-config.mjs';
-import {assertFourPhotoSheet} from '../scripts/assert-four-photo-sheet.mjs';
+import {assertApprovedStripWindows} from '../scripts/assert-approved-strips.mjs';
 
 const cfg={type:'graduation',title:'LaMarr',date:'October 10, 2026',
  details:{graduate:'LaMarr',classYear:'2026'},defaultTemplate:'grad-gala',
@@ -18,25 +18,25 @@ test('navy and gold graduation style is an explicit selectable design',()=>{
  assert.equal(getDesigns('wedding').length,3);
  assert.equal(getDesigns('birthday').length,3);
 });
-test('four-photo graduation print uses each of the four originals exactly once',()=>{
+test('four-photo graduation print uses the four originals in order in each matching strip',()=>{
  const svg=renderKeepsake({layout:'photo_strip',stripMode:'single',cfg,template:'grad-gala',poses,photo:poses[0]});
  assert.match(svg,/data-design="graduation-grad-gala"/);
  assert.match(svg,/viewBox="0 0 1200 1800"/);
- assert.equal((svg.match(/data-guest-photo="true"/g)||[]).length,4);
- assert.deepEqual([...svg.matchAll(/<image\b(?=[^>]*data-guest-photo="true")[^>]*\/>/g)].map(m=>m[0].match(/ href="([^"]+)"/)[1]),poses);
+ assert.equal((svg.match(/data-guest-photo="true"/g)||[]).length,8);
+ assert.deepEqual([...svg.matchAll(/<image\b(?=[^>]*data-guest-photo="true")[^>]*\/>/g)].map(m=>m[0].match(/ href="([^"]+)"/)[1]),[...poses,...poses]);
  assert.match(svg,/OCTOBER 10TH 2026/);
  assert.match(svg,/LaMarr/);
  assert.match(svg,/2026/);
  assert.doesNotMatch(svg,/Page 1 of 1|photobooth\.com/);
 });
-test('four-photo graduation gala produces four large photographs using most of the 4x6 sheet',()=>{
+test('four-photo graduation gala produces two matching landscape strips using most of the 4x6 sheet',()=>{
  const svg=renderKeepsake({layout:'photo_strip',stripMode:'single',cfg,template:'grad-gala',poses,photo:poses[0]});
  const slots=[...svg.matchAll(/<image\b(?=[^>]*data-guest-photo="true")[^>]*\/>/g)].map(match=>{
   const tag=match[0],attr=name=>tag.match(new RegExp(' '+name+'="([^"]*)"'))?.[1];
   const copy=Number(attr('data-copy'));
-  return {...Object.fromEntries(['x','y','width','height'].map(key=>[key,Number(attr(key))])),x:Number(attr('x')),pose:Number(attr('data-pose')),copy,source:attr('href')};
+  return {...Object.fromEntries(['x','y','width','height'].map(key=>[key,Number(attr(key))])),x:Number(attr('x'))+(copy-1)*600,pose:Number(attr('data-pose')),copy,source:attr('href')};
  });
- assertFourPhotoSheet(slots,'graduation gala');
+ assertApprovedStripWindows(slots,'graduation gala');
 });
 test('one-photo 4×6 graduation print contains only the chosen original JPEG',()=>{
  const svg=renderKeepsake({layout:'card',cfg,template:'grad-gala',photo:poses[0]});
@@ -52,7 +52,7 @@ test('graduate name and class year remain customizable and cannot inject SVG',()
  assert.doesNotMatch(renderKeepsake({layout:'card',cfg:{...cfg,details:{...cfg.details,graduate:'<script>alert(1)</script>'}},template:'grad-gala',photo:poses[0]}),/<script>/);
  assert.doesNotMatch(renderKeepsake({layout:'card',cfg,template:'grad-gala',photo:'https://bad.example/person.jpg'}),/<image data-guest-photo/);
 });
-test('long graduate and approved print names remain complete in one fitted four-photo footer',()=>{
+test('long graduate and approved print names remain complete in each fitted matching-strip footer',()=>{
  const name='Alexandria Elizabeth Montgomery Washington Graduation';
  for(const event of [
   {...cfg,details:{...cfg.details,graduate:name}},
@@ -60,13 +60,15 @@ test('long graduate and approved print names remain complete in one fitted four-
  ]){
   const svg=renderKeepsake({layout:'photo_strip',cfg:event,template:'grad-gala',poses});
   const groups=[...svg.matchAll(/<g data-text-role="name">([\s\S]*?)<\/g>/g)];
-  assert.equal(groups.length,1,'the full-sheet design prints the name in one footer, without repeated strip captions');
-  const lines=[...groups[0][1].matchAll(/<text\b([^>]*)>([^<]*)<\/text>/g)];
-  assert(lines.length>=1&&lines.length<=2,'the long name fits in at most two lines');
-  assert.equal(lines.map(match=>match[2]).join(' '),name,'the full customer name is preserved beyond the previous thirty-character cutoff');
-  for(const [,attributes]of lines){
-   const y=Number(attributes.match(/\by="([^"]+)"/)[1]),size=Number(attributes.match(/\bfont-size="([^"]+)"/)[1]);
-   assert(y>1468&&y<1720&&size>0&&size<=96,'the fitted name stays below the photos and above the date within the sheet');
+  assert.equal(groups.length,2,'each matching strip has one complete fitted name footer');
+  for(const group of groups){
+   const lines=[...group[1].matchAll(/<text\b([^>]*)>([^<]*)<\/text>/g)];
+   assert(lines.length>=1&&lines.length<=2,'the long name fits in at most two lines');
+   assert.equal(lines.map(match=>match[2]).join(' '),name,'the full customer name is preserved beyond the previous thirty-character cutoff');
+   for(const [,attributes]of lines){
+    const y=Number(attributes.match(/\by="([^"]+)"/)[1]),size=Number(attributes.match(/\bfont-size="([^"]+)"/)[1]);
+    assert(y>1506&&y<1701&&size>0&&size<=44,'the fitted name stays below the four photos and above the date within its own strip');
+   }
   }
   assert.doesNotMatch(svg,/Outdated graduate name/,'approved print copy takes precedence over old event details');
  }

@@ -20,20 +20,21 @@ const themes={
  'fpr-corporate':{key:'corporate',ref:[420,1053],src:corporateArt,bg:'#070705',frame:'#f0c266',panels:[[22,144,375,229],[22,386,375,231],[22,630,375,230]],caption:'#fae3a1'},
 };
 const caption=(x,y,value,size,color,face='Georgia,serif',extra='')=>`<text x="${number(x)}" y="${number(y)}" text-anchor="middle" font-family="${face}" font-size="${Math.min(size,Math.floor(1050/(Math.max(1,String(value).length)*.6)))}" fill="${color}" paint-order="stroke" stroke-width="0.4" ${extra}>${esc(value)}</text>`;
-// Four captured poses appear once each on one complete portrait 4x6 sheet.
+// A four-pose rental prints two matching 2x6 keepsakes on one 4x6 sheet.
 // Decorative crops contain only borders, flowers, balloons or emblems: none
 // includes a sample photo, event name, class year or date from the reference.
-const sheetDecorations={
+const stripDecorations={
  graduation:{gradient:['#071b36','#0b2547','#06182f'],edges:[[0,0,20,746],[400,0,20,746]],corners:[[0,0,82,111],[337,0,83,111],[0,668,58,77],[361,668,59,77]],emblem:[145,614,130,52]},
  wedding:{gradient:['#faf8f2','#f3f0e7','#faf8f2'],edges:[[0,0,24,1045],[396,0,24,1045]],top:[0,0,420,145],corners:[null,null,[0,968,160,77],[260,968,160,77]]},
  birthday:{gradient:['#e98bae','#dc76a2','#ec8db1'],edges:[[0,0,24,1012],[398,0,22,1012]],corners:[[0,0,92,102],[335,0,85,102],[0,830,55,182],[370,830,50,182]]},
  quince:{gradient:['#d8b3ef','#cca2e5','#dab9ee'],edges:[[0,0,14,1069],[406,0,14,1069]],corners:[[0,0,81,130],[340,0,80,130],[0,886,52,183],[371,886,49,183]],emblem:[145,25,126,50]},
  corporate:{gradient:['#080806','#11110b','#050504'],edges:[[0,0,20,1053],[400,0,20,1053]],corners:[[0,0,78,70],[365,0,55,70],[0,958,26,95],[399,958,21,95]],emblem:[147,7,126,66]},
 };
-function renderFourPhotoSheet({theme,used,name,eventDay,year,fit,idSafe}){
- const decor=sheetDecorations[theme.key];
- const windowWidth=552,windowHeight=650,windowX=36,windowTop=144,columnStep=576,rowStep=674;
- const offset=0,prefix=`${idSafe}-four-photo-sheet`;
+function renderFourPhotoStrips({theme,used,name,eventDay,year,fit,idSafe}){
+ const decor=stripDecorations[theme.key];
+ const windowWidth=548,windowHeight=336,windowX=26,windowTop=120,rowStep=350;
+ const strips=[1,2].map(copy=>{
+  const offset=(copy-1)*600,prefix=`${idSafe}-strip-${copy}`;
   let decorationIndex=0;
   // Scale every crop uniformly and clip it to its destination. Flowers and
   // balloons therefore retain their aspect ratio, including on narrow edges.
@@ -43,7 +44,7 @@ function renderFourPhotoSheet({theme,used,name,eventDay,year,fit,idSafe}){
    const dx=alignment==='left'?0:alignment==='right'?tw-cw:(tw-cw)/2;
    const dy=alignment==='top'?0:alignment==='bottom'?th-ch:(th-ch)/2;
    const clipId=`${prefix}-decoration-${++decorationIndex}`;
-   let sourceArt=`<use href="#${idSafe}-sheet-source-art" transform="translate(${number(offset+tx+dx-sx*scale)} ${number(ty+dy-sy*scale)}) scale(${scale.toFixed(6)})"/>`,softDefs='';
+   let sourceArt=`<use href="#${idSafe}-strip-source-art" transform="translate(${number(offset+tx+dx-sx*scale)} ${number(ty+dy-sy*scale)}) scale(${scale.toFixed(6)})"/>`,softDefs='';
    if(softCorner!==null){
     const gx=offset+tx,isLeft=softCorner%2===0,isTop=softCorner<2;
     const stops=(leading)=>leading?'<stop offset="0" stop-color="white"/><stop offset=".45" stop-color="white"/><stop offset="1" stop-color="white" stop-opacity="0"/>':'<stop offset="0" stop-color="white" stop-opacity="0"/><stop offset=".55" stop-color="white"/><stop offset="1" stop-color="white"/>';
@@ -53,12 +54,12 @@ function renderFourPhotoSheet({theme,used,name,eventDay,year,fit,idSafe}){
    return `<g data-fpr-decoration-source="true" data-source-crop="${source.join(',')}"><defs><clipPath id="${clipId}">${rect(offset+tx,ty,tw,th,'white')}</clipPath>${softDefs}</defs><g clip-path="url(#${clipId})">${sourceArt}</g></g>`;
   };
   const text=(value,y,size,color=theme.caption,face='Georgia,serif',extra='')=>{
-   const fontSize=Math.min(size,Math.floor(1060/(Math.max(1,String(value).length)*.58)));
-   return `<text x="600" y="${y}" text-anchor="middle" font-family="${face}" font-size="${fontSize}" fill="${color}" ${extra}>${esc(value)}</text>`;
+   const fontSize=Math.min(size,Math.floor(520/(Math.max(1,String(value).length)*.58)));
+   return `<text x="${offset+300}" y="${y}" text-anchor="middle" font-family="${face}" font-size="${fontSize}" fill="${color}" ${extra}>${esc(value)}</text>`;
   };
   const words=name.split(/\s+/);
   let nameLines=[name];
-  if(name.length>36&&words.length>1){
+  if(name.length>23&&words.length>1){
    let split=1,difference=Infinity;
    for(let i=1;i<words.length;i++){
     const delta=Math.abs(words.slice(0,i).join(' ').length-words.slice(i).join(' ').length);
@@ -66,48 +67,46 @@ function renderFourPhotoSheet({theme,used,name,eventDay,year,fit,idSafe}){
    }
    nameLines=[words.slice(0,split).join(' '),words.slice(split).join(' ')];
   }
-  const footerName=(y=1638,size=47,color=theme.caption)=>{
-   const fontSize=nameLines.length>1?Math.min(size,54):size,startY=nameLines.length>1?1594:y;
-   return nameLines.map((line,index)=>text(line,startY+index*64,fontSize,color,'Georgia,serif','font-style="italic"')).join('');
-  };
-  let art=rect(0,0,1200,1800,`url(#${prefix}-background)`);
-  art+=crop(decor.edges[0],[0,0,34,1800],'left')+crop(decor.edges[1],[1166,0,34,1800],'right');
-  if(decor.top)art+=crop(decor.top,[0,0,1200,142],'top');
-  const cornerTargets=theme.key==='wedding'?[[0,0,240,142],[960,0,240,142],[0,1560,280,240],[920,1560,280,240]]:[[0,0,210,142],[990,0,210,142],[0,1540,174,260],[1026,1540,174,260]];
+  const footerName=(y=1638,size=47,color=theme.caption)=>nameLines.map((line,index)=>text(line,y+index*55,size,color,'Georgia,serif','font-style="italic"')).join('');
+  let art=rect(offset,0,600,1800,`url(#${prefix}-background)`, 'data-fpr-strip-bounds="true"');
+  art+=crop(decor.edges[0],[0,0,24,1800],'left')+crop(decor.edges[1],[576,0,24,1800],'right');
+  if(decor.top)art+=crop(decor.top,[0,0,600,118],'top');
+  const cornerTargets=theme.key==='wedding'?[[0,0,140,115],[460,0,140,115],[0,1688,190,112],[410,1688,190,112]]:[[0,0,132,118],[468,0,132,118],[0,1620,104,180],[496,1620,104,180]];
   decor.corners.forEach((source,index)=>{if(source)art+=crop(source,cornerTargets[index],index<2?'top':'bottom',index);});
-  // A narrow outer border leaves more room for the photographs while
-  // keeping the approved decoration continuous across the complete sheet.
-  art+=rect(2,2,1196,1796,'none',`stroke="${theme.frame}" stroke-width="2"`);
+  // The thin frame reaches the sheet edge; the 26px photo inset leaves just
+  // enough themed border for a clean cut and a small printer trim tolerance.
+  art+=rect(offset+2,2,596,1796,'none',`stroke="${theme.frame}" stroke-width="2"`);
   const photos=used;
-  art+=`<g data-fpr-preset-photo-areas="4" data-fpr-sheet-photo-windows="4">${Array.from({length:4},(_,pose)=>{
-   const px=windowX+(pose%2)*columnStep,py=windowTop+Math.floor(pose/2)*rowStep,clipId=`${prefix}-pose-${pose+1}`;
+  art+=`<g data-fpr-preset-photo-areas="4" data-fpr-sheet-photo-windows="8">${Array.from({length:4},(_,pose)=>{
+   const px=offset+windowX,py=windowTop+pose*rowStep,clipId=`${prefix}-pose-${pose+1}`;
    const base=rect(px,py,windowWidth,windowHeight,theme.key==='corporate'?'#dddcd5':'#e2e3dd','data-fpr-reference-mask="true"');
-   const photo=photos[pose]?`<image data-guest-photo="true" data-pose="${pose+1}" href="${esc(photos[pose])}" x="${px}" y="${py}" width="${windowWidth}" height="${windowHeight}" preserveAspectRatio="${fit}" clip-path="url(#${clipId})"/>`:
-    `<path d="M${number(px+windowWidth*.08)} ${py+windowHeight} Q${number(px+windowWidth*.23)} ${number(py+windowHeight*.62)} ${number(px+windowWidth*.5)} ${number(py+windowHeight*.61)} Q${number(px+windowWidth*.77)} ${number(py+windowHeight*.62)} ${number(px+windowWidth*.92)} ${py+windowHeight}Z" fill="#bdc6c0"/><circle cx="${number(px+windowWidth*.5)}" cy="${number(py+windowHeight*.38)}" r="${number(Math.min(windowWidth*.14,windowHeight*.18))}" fill="#bec6be"/>`;
-   return `<g data-approved-photo-region="true" data-pose="${pose+1}">${base}<defs><clipPath id="${clipId}">${rect(px,py,windowWidth,windowHeight,'white')}</clipPath></defs>${photo}${rect(px,py,windowWidth,windowHeight,'none',`stroke="${theme.frame}" stroke-width="3"`)}</g>`;
+   const photo=photos[pose]?`<image data-guest-photo="true" data-pose="${pose+1}" data-copy="${copy}" href="${esc(photos[pose])}" x="${px}" y="${py}" width="${windowWidth}" height="${windowHeight}" preserveAspectRatio="${fit}" clip-path="url(#${clipId})"/>`:
+    `<path d="M${px+44} ${py+windowHeight} Q${px+126} ${py+208} ${px+274} ${py+205} Q${px+422} ${py+208} ${px+504} ${py+windowHeight}Z" fill="#bdc6c0"/><circle cx="${px+274}" cy="${py+128}" r="60" fill="#bec6be"/>`;
+   return `<g data-approved-photo-region="true" data-pose="${pose+1}" data-copy="${copy}">${base}<defs><clipPath id="${clipId}">${rect(px,py,windowWidth,windowHeight,'white')}</clipPath></defs>${photo}${rect(px,py,windowWidth,windowHeight,'none',`stroke="${theme.frame}" stroke-width="3"`)}</g>`;
   }).join('')}</g>`;
   // Captions sit directly on the continuous theme field, without the large
   // opaque caption panels used to mask the original reference's lettering.
   if(theme.key==='wedding'){
-   art+=text('THE WEDDING OF',1525,29,theme.caption,'Arial,sans-serif','letter-spacing="3"');
-   art+=footerName(nameLines.length===1?1632:1600,70)+text(eventDay,1730,32);
+   art+=text('THE WEDDING OF',1565,21,theme.caption,'Arial,sans-serif','letter-spacing="3"');
+   art+=footerName(nameLines.length===1?1643:1615,49)+text(eventDay,1736,24);
   }else if(theme.key==='graduation'){
-   art+=text(`Class of ${year||'GRAD'}`,92,61,theme.caption,'Georgia,serif','font-style="italic"');
-   art+=crop(decor.emblem,[542,1484,116,46]);
-   art+=footerName(nameLines.length===1?1625:1600,66,'#ffffff');
-   art+=text('THE FUTURE IS BRIGHT',nameLines.length===1?1692:1700,24,'#fff0b2','Arial,sans-serif','letter-spacing="2"')+text(eventDay,1751,29,'#fff0b2');
+   art+=text(`Class of ${year||'GRAD'}`,78,43,theme.caption,'Georgia,serif','font-style="italic"');
+   art+=crop(decor.emblem,[252,1529,96,39]);
+   art+=footerName(nameLines.length===1?1630:1610,46,'#ffffff');
+   art+=text('THE FUTURE IS BRIGHT',nameLines.length===1?1689:1700,17,'#fff0b2','Arial,sans-serif','letter-spacing="2"')+text(eventDay,1750,22,'#fff0b2');
   }else if(theme.key==='birthday'){
-   art+=text('Celebrate!',99,62,theme.caption,'Georgia,serif','font-style="italic"');
-   art+=text('HAPPY BIRTHDAY',1525,31,'#fff9e2','Arial,sans-serif','letter-spacing="3"')+footerName(nameLines.length===1?1632:1600,70,'#ffffff')+text(eventDay,1730,32,'#fff9e2');
+   art+=text('Celebrate!',82,43,theme.caption,'Georgia,serif','font-style="italic"');
+   art+=text('HAPPY BIRTHDAY',1565,23,'#fff9e2','Arial,sans-serif','letter-spacing="3"')+footerName(nameLines.length===1?1643:1615,47,'#ffffff')+text(eventDay,1736,24,'#fff9e2');
   }else if(theme.key==='quince'){
-   art+=crop(decor.emblem,[554,8,92,37])+text('Mis XV',114,59,'#310952','Georgia,serif','font-style="italic"');
-   art+=text('A NIGHT TO REMEMBER',1525,28,'#310952','Arial,sans-serif','letter-spacing="2"')+footerName(nameLines.length===1?1632:1600,72,'#310952')+text(eventDay,1730,32,'#310952');
+   art+=crop(decor.emblem,[263,12,74,30])+text('Mis XV',94,42,'#310952','Georgia,serif','font-style="italic"');
+   art+=text('A NIGHT TO REMEMBER',1565,20,'#310952','Arial,sans-serif','letter-spacing="2"')+footerName(nameLines.length===1?1643:1615,50,'#310952')+text(eventDay,1736,24,'#310952');
   }else{
-   art+=crop(decor.emblem,[544,8,112,59])+text('CELEBRATE',120,36,'#fae3a1','Arial,sans-serif','letter-spacing="4"');
-   art+=text('MEMORIES TO KEEP',1525,28,'#fae3a1','Arial,sans-serif','letter-spacing="3"')+footerName(nameLines.length===1?1632:1600,68,'#fae3a1')+text(eventDay,1730,32,'#fae3a1');
+   art+=crop(decor.emblem,[257,13,86,45])+text('CELEBRATE',96,28,'#fae3a1','Arial,sans-serif','letter-spacing="4"');
+   art+=text('MEMORIES TO KEEP',1565,20,'#fae3a1','Arial,sans-serif','letter-spacing="3"')+footerName(nameLines.length===1?1643:1615,47,'#fae3a1')+text(eventDay,1736,24,'#fae3a1');
   }
- const sheet=`<g data-fpr-safe-decorations="true"><defs><linearGradient id="${prefix}-background" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${decor.gradient[0]}"/><stop offset=".55" stop-color="${decor.gradient[1]}"/><stop offset="1" stop-color="${decor.gradient[2]}"/></linearGradient></defs>${art}</g>`;
- return `<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="1800" viewBox="0 0 1200 1800" role="img" data-fpr-preset="${esc(theme.key)}" data-layout="photo_strip" data-fpr-sheet-composition="four-photo-grid" data-fpr-sheet-count="1" data-fpr-captured-poses="4" aria-label="${esc(name+' photo booth print: four photos on one 4x6 sheet')}" data-template-key="approved/${theme.key}"><defs><image id="${idSafe}-sheet-source-art" data-fpr-source-art="true" href="${theme.src}" x="0" y="0" width="${theme.ref[0]}" height="${theme.ref[1]}" preserveAspectRatio="xMinYMin meet"/></defs><g data-fpr-sheet-artwork="true">${rect(0,0,1200,1800,theme.bg,'data-fpr-sheet-bounds="true"')}${sheet}</g></svg>`;
+  return `<g data-fpr-strip-copy="${copy}" data-fpr-safe-decorations="true" clip-path="url(#${prefix}-bounds)"><defs><clipPath id="${prefix}-bounds">${rect(offset,0,600,1800,'white')}</clipPath><linearGradient id="${prefix}-background" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${decor.gradient[0]}"/><stop offset=".55" stop-color="${decor.gradient[1]}"/><stop offset="1" stop-color="${decor.gradient[2]}"/></linearGradient></defs>${art}</g>`;
+ }).join('');
+ return `<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="1800" viewBox="0 0 1200 1800" role="img" data-fpr-preset="${esc(theme.key)}" data-layout="photo_strip" data-fpr-strip-count="2" data-fpr-captured-poses="4" aria-label="${esc(name+' photo booth print: two matching four-photo strips')}" data-template-key="approved/${theme.key}"><defs><image id="${idSafe}-strip-source-art" data-fpr-source-art="true" href="${theme.src}" x="0" y="0" width="${theme.ref[0]}" height="${theme.ref[1]}" preserveAspectRatio="xMinYMin meet"/></defs><g data-fpr-sheet-artwork="true">${rect(0,0,1200,1800,theme.bg,'data-fpr-sheet-bounds="true"')}${strips}</g></svg>`;
 }
 export function renderFprPrint(input={}){
  const cfg=input.cfg&&typeof input.cfg==='object'?input.cfg:{};
@@ -130,7 +129,7 @@ export function renderFprPrint(input={}){
  if(four){
   if(!input.sample){if(!Array.isArray(input.poses)||input.poses.length!==4)throw new Error('Four distinct captured photographs are required.'); used=input.poses.map(onlyPhoto);if(used.some(v=>!v))throw new Error('A captured photo could not be read.');}
  }else if(input.photo){const one=onlyPhoto(input.photo);if(!one)throw new Error('The captured photograph could not be read.');used=[one];}
- if(four)return renderFourPhotoSheet({theme,used,name,eventDay,year,fit:cfg.photoFit==='fit'?'xMidYMid meet':'xMidYMid slice',idSafe});
+ if(four)return renderFourPhotoStrips({theme,used,name,eventDay,year,fit:cfg.photoFit==='fit'?'xMidYMid meet':'xMidYMid slice',idSafe});
  // The reference artwork has two or three example photographs. Treat their
  // combined space as one photo area, so the guest's choice changes the actual
  // composition rather than repeating one image or squeezing two into a row.
