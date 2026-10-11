@@ -1,6 +1,74 @@
 'use client';
+import {useEffect,useState} from 'react';
 import StaffPageNav from '../components/StaffPageNav';
 import BoothContextLink from '../components/BoothContextLink';
-import {useEffect,useState} from 'react';
-const event={name:'Bryan Wedding',couple:'Bryan & Partner',date:'September 19, 2026',venue:'Wedding Test Event',format:'4 × 6 Portrait',printer:'Canon SELPHY'};
-export default function TestEvent(){const [checks,setChecks]=useState({}),[diag,setDiag]=useState(null);useEffect(()=>{let storage=false;try{localStorage.setItem('__booth_test__','1');localStorage.removeItem('__booth_test__');storage=true}catch{}let fileShare=false;try{const f=new File([new Blob(['test'],{type:'text/plain'})],'test.txt',{type:'text/plain'});fileShare=!!navigator.canShare?.({files:[f]})}catch{}setDiag({secure:window.isSecureContext,camera:!!navigator.mediaDevices?.getUserMedia,share:!!navigator.share,fileShare,print:typeof window.print==='function',storage,online:navigator.onLine,standalone:navigator.standalone===true||window.matchMedia?.('(display-mode: standalone)').matches===true})},[]);const items=['Welcome screen looks correct','Camera permission granted','Live camera preview works','3-2-1 countdown works','Photo captures correctly','Photo is not backwards','Event print design looks correct','Photo backup is saved','Cancel returns to the same event','Send / Save Photo opens iPad share sheet','Messages option can send the photo file','Mail option can send the photo file','Save Image works','Print button opens print flow','4 × 6 page is selected','Canon SELPHY is visible','Physical print completes','Printed photo is not cropped','Offline capture test passes','Guest Lock is ON','Guided Access has been physically started','Operator recovery panel works','Help page opens inside the booth'];const done=Object.values(checks).filter(Boolean).length;return <main style={{height:'100dvh',background:'radial-gradient(circle at 50% 0,#2b261d,#090909 45%)',color:'#fff',padding:'32px 18px',fontFamily:'Inter,system-ui,sans-serif',overflow:'auto'}}><div style={{maxWidth:760,margin:'0 auto'}}><StaffPageNav/><div style={{color:'#c9a963',fontSize:10,letterSpacing:3,textTransform:'uppercase'}}>Friendly Party Rental · Live Event Simulation</div><h1 style={{fontFamily:'Georgia,serif',fontSize:'clamp(42px,7vw,70px)',fontWeight:400,margin:'12px 0 5px'}}>{event.name}</h1><p style={{color:'#aaa59b'}}>A complete rehearsal event for testing the exact booth workflow before the real wedding.</p><section style={{border:'1px solid #373126',borderRadius:18,padding:22,background:'#11110fe8',marginTop:24}}><div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(180px,1fr))',gap:16}}>{Object.entries(event).map(([k,v])=><div key={k}><div style={{fontSize:9,color:'#8d8066',letterSpacing:1.5,textTransform:'uppercase'}}>{k}</div><div style={{marginTop:6,fontSize:13}}>{v}</div></div>)}</div></section><section style={{border:'1px solid #e2ccd5',borderRadius:18,padding:20,background:'#fff8fb',marginTop:16,color:'#543944'}}><div style={{color:'#a85f7a',fontSize:10,letterSpacing:2,textTransform:'uppercase'}}>Automatic iPad capability check</div><h2 style={{fontFamily:'Georgia,serif',fontWeight:400,margin:'7px 0 12px'}}>Software readiness</h2>{diag&&<div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(180px,1fr))',gap:8}}>{[['Secure connection',diag.secure],['Camera API',diag.camera],['iPad share sheet',diag.share],['Photo-file sharing',diag.fileShare],['Print flow',diag.print],['Local backup',diag.storage],['Internet online',diag.online],['Home Screen app',diag.standalone]].map(([label,ok])=><div key={label} style={{padding:10,borderRadius:10,background:'#fff',border:'1px solid #eadde2',fontSize:11,color:ok?'#327254':'#a24d4d'}}>{ok?'✓':'!'} {label}</div>)}</div>}<p style={{fontSize:10,color:'#806d76',lineHeight:1.5,marginBottom:0}}>This verifies browser capabilities only. Messages/Mail delivery, Guided Access, printer visibility, paper, ink, and the final physical 4 × 6 still require a real iPad/printer test.</p></section><section style={{border:'1px solid #373126',borderRadius:18,padding:22,background:'#11110fe8',marginTop:16}}><div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}><div><div style={{color:'#c9a963',fontSize:10,letterSpacing:2,textTransform:'uppercase'}}>Rehearsal checklist</div><h2 style={{fontFamily:'Georgia,serif',fontWeight:400,margin:'7px 0'}}>Wedding-day test</h2></div><div style={{fontFamily:'Georgia,serif',fontSize:30,color:done===items.length?'#d8bd78':'#fff'}}>{done}/{items.length}</div></div><div style={{height:8,background:'#29261f',borderRadius:99,overflow:'hidden',margin:'12px 0 18px'}}><div style={{height:'100%',width:`${done/items.length*100}%`,background:'linear-gradient(90deg,#987236,#dfc37c)',transition:'.2s'}}/></div>{items.map((x,i)=><label key={x} style={{display:'flex',alignItems:'center',gap:12,padding:'12px 0',borderTop:'1px solid #282722',fontSize:13,cursor:'pointer'}}><input type="checkbox" checked={!!checks[i]} onChange={e=>setChecks({...checks,[i]:e.target.checked})} style={{width:20,height:20,accentColor:'#b89450'}}/><span style={{color:checks[i]?'#817c72':'#d4cfc4',textDecoration:checks[i]?'line-through':'none'}}>{x}</span></label>)}</section><div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:10,marginTop:16}}><a href="/staff/start" style={{padding:18,borderRadius:12,textAlign:'center',textDecoration:'none',background:'linear-gradient(135deg,#dec078,#9d7736)',color:'#17120a',fontWeight:800}}>Choose event &amp; design →</a><BoothContextLink href="/help" style={{padding:18,borderRadius:12,textAlign:'center',textDecoration:'none',background:'#fff4f8',border:'1px solid #e2ccd5',color:'#7f5264',fontWeight:800}}>Open Help Guide</BoothContextLink><button onClick={()=>setChecks({})} style={{padding:18,borderRadius:12,border:'1px solid #39352c',background:'#171715',color:'#fff',fontWeight:700}}>Reset Test</button></div>{done===items.length&&<div style={{marginTop:16,padding:20,border:'1px solid #80652e',borderRadius:14,textAlign:'center',background:'#17140d',color:'#dfc681'}}><strong>BRYAN WEDDING TEST PASSED</strong><div style={{fontSize:11,marginTop:6,color:'#aaa080'}}>The software checklist is complete. Keep the physical test print and confirm the SELPHY remains connected before leaving for the event.</div></div>}<p style={{fontSize:10,color:'#68645c',textAlign:'center',margin:'28px 0'}}>TEST EVENT · DO NOT USE AS A CUSTOMER BOOKING</p></div></main>}
+import {readPrintRehearsal} from '../lib/print-rehearsal.mjs';
+import {presetById} from '../lib/fpr-print-presets.mjs';
+import {readBoothCapabilities,probeLocalPhotoStorage,boothDiagnosticChecks,diagnosticLimits} from '../lib/booth-readiness.mjs';
+import './rehearsal.css';
+
+const groups=[
+ {id:'camera',title:'Camera & guest flow',items:[
+  ['camera','Camera permission is allowed and the live preview works'],
+  ['one','1 Photo → Start 1 photo produces the approved event design'],
+  ['four','4 Photos → Start 4 photos captures four separate poses'],
+  ['voice','Countdown voice is audible and the pause between poses feels right'],
+  ['preview','Finished photo has the correct name, date, orientation and artwork'],
+  ['done','Done returns to this event’s welcome screen']
+ ]},
+ {id:'print',title:'Canon paper output',items:[
+  ['printer','Canon SELPHY, 4×6 paper and one copy are selected'],
+  ['paper-one','The 1-photo sample finishes printing on one complete sheet'],
+  ['paper-four','The 4-photo sample finishes printing on one complete sheet'],
+  ['edges','Names, colors and all photo edges look right on the paper']
+ ]},
+ {id:'save',title:'Saving & recovery',items:[
+  ['download','Send → Save photo downloads a photo that opens correctly'],
+  ['recovery','Staff tools → Recover a recent photo reopens the correct test photo'],
+  ['gallery','Automatic event gallery reports every test photo file saved'],
+  ['zip','Download gallery ZIP opens with originals, collages and finished photos']
+ ]},
+ {id:'ipad',title:'Actual event iPad',items:[
+  ['home','Friendly Booth opens from its Home Screen icon'],
+  ['lock','Guided Access is started and guests cannot leave the booth'],
+  ['awake','Keep the screen awake and Guided Access Display Auto-Lock work as intended'],
+  ['offline','A staff test photo captures and can be recovered with venue internet disconnected']
+ ]}
+];
+
+export default function EventRehearsal(){
+ const [context,setContext]=useState(null),[error,setError]=useState(''),[diag,setDiag]=useState(null),[checks,setChecks]=useState({}),[channels,setChannels]=useState(null);
+ useEffect(()=>{
+  let alive=true;
+  try{setContext(readPrintRehearsal(localStorage,window.location.search));}catch(failure){setError(failure.message);}
+  const capabilities=readBoothCapabilities();setDiag(capabilities);
+  let idb;try{idb=window.indexedDB;}catch{}
+  void probeLocalPhotoStorage(idb).then(photoStorage=>{if(alive)setDiag(current=>({...current,photoStorage}));});
+  const connection=()=>setDiag(current=>({...current,online:navigator.onLine===true}));
+  window.addEventListener('online',connection);window.addEventListener('offline',connection);
+  const controller=new AbortController();
+  void fetch('/api/delivery/config',{credentials:'same-origin',cache:'no-store',signal:controller.signal}).then(response=>response.ok?response.json():null).then(result=>{if(alive)setChannels(result?{email:result.email?.configured===true,sms:result.sms?.configured===true}:null);}).catch(()=>{});
+  return()=>{alive=false;controller.abort();window.removeEventListener('online',connection);window.removeEventListener('offline',connection);};
+ },[]);
+ const cfg=context?.cfg,preset=cfg&&presetById(cfg.defaultTemplate);
+ const deliveryItems=[['send','Send opens with the available delivery choices']];
+ if(channels?.email)deliveryItems.push(['email','A test email’s photo attachment and private link open in the staff test inbox']);
+ if(channels?.sms)deliveryItems.push(['sms','A test text arrives on the staff test phone and its private photo link opens']);
+ const sections=[...groups.slice(0,2),{id:'delivery',title:'Real delivery',items:deliveryItems},...groups.slice(2)];
+ const allItems=sections.flatMap(group=>group.items),done=allItems.filter(([id])=>checks[id]).length;
+ const chooseHref=context?.scope?.imported?'/staff/start?event='+encodeURIComponent(context.scope.id):'/staff/start';
+ return <main className="eventRehearsal"><div className="erWrap"><StaffPageNav/>
+  <header><div className="erEyebrow">STAFF · BEFORE GUESTS ARRIVE</div><h1>Rehearse your event.</h1><p>Check the real iPad, finished photos and Canon paper output. Mark each item only after you try it.</p></header>
+  <section className="erCard erEvent" aria-label="Selected event">
+   {cfg?<><span className="erEyebrow">SELECTED EVENT</span><h2>{cfg.title}</h2><p>{cfg.date} · {preset?preset.name+' artwork':cfg.defaultTemplate==='custom'?'Your approved custom artwork':'Your saved event artwork'} · 4×6 keepsake</p></>:<><h2>Choose and save an event first.</h2><p>The printer check uses that event’s approved design.</p><a href={chooseHref}>Choose event &amp; design</a></>}
+   {error&&<p role="alert">{error}</p>}
+  </section>
+  <section className="erCard"><div className="erEyebrow">THIS BROWSER</div><h2>Software checks</h2><div className="erDiagnostics">{diag?boothDiagnosticChecks(diag).map(({key,label,ok})=><div key={key} className={ok===null?'pending':ok?'ok':'attention'}><b>{ok===null?'…':ok?'✓':'!'}</b>{label}</div>):<p role="status">Checking this browser…</p>}</div><p className="erNote">{diagnosticLimits}</p></section>
+  <section className="erCard erTools"><h2>Open the checks</h2><div className="erActions"><BoothContextLink href="/print-test">Test approved print</BoothContextLink><BoothContextLink href="/delivery-check">Test email &amp; text</BoothContextLink><BoothContextLink href="/help">Help guide</BoothContextLink></div><p className="erNote">The printer check uses sample photos and does not use the customer’s print allowance or add photos to their gallery. For camera and delivery tests, choose a staff test event and use your own contact details.</p></section>
+  <section className="erCard"><div className="erProgress"><h2>Your rehearsal checklist</h2><strong>{done}/{allItems.length}</strong></div><progress aria-label="Manually confirmed rehearsal checks" value={done} max={allItems.length}/>
+   {sections.map(group=><fieldset key={group.id}><legend>{group.title}</legend>{group.items.map(([id,label])=><label className="erCheck" key={id}><input type="checkbox" checked={!!checks[id]} onChange={event=>setChecks({...checks,[id]:event.target.checked})}/><span>{label}</span></label>)}{group.id==='delivery'&&<p className="erNote">{channels?(!channels.email&&!channels.sms?'Direct email and text are not configured. Save photo and device sharing remain available.':(!channels.email?'Direct email is not configured. ':!channels.sms?'Direct text is not configured. ':'')+'Provider acceptance alone does not confirm the photo reached the inbox or phone.'):'Delivery setup could not be checked here. Open Test email & text for the current status.'}</p>}</fieldset>)}
+   <button className="erReset" type="button" onClick={()=>setChecks({})}>Reset checklist</button>
+   {done===allItems.length&&<div className="erComplete" role="status"><strong>You marked every rehearsal item checked.</strong><p>These are your confirmations. Keep both sample sheets and confirm the printer is still connected before guests arrive.</p></div>}
+  </section><p className="erNote erFooter">This page does not start an event, send a photo, print a sheet or delete photos automatically.</p>
+ </div></main>;
+}

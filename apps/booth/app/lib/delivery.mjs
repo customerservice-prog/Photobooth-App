@@ -1,6 +1,7 @@
 // Server-only delivery gateway. Never import this module from a client component.
 import {createHash, createHmac, randomBytes, randomUUID, timingSafeEqual} from 'node:crypto';
 import {validStaffSession} from './staff-auth.mjs';
+import {publicBoothOrigin} from './staff-security.mjs';
 
 export const MAX_IMAGE = 2 * 1024 * 1024;
 const COOKIE='__Host-booth-delivery', DAY=86400000;
@@ -13,7 +14,13 @@ const secret=env=>env.BOOTH_SESSION_SECRET||'';
 const hmac=(value,env)=>createHmac('sha256',secret(env)).update(value).digest('hex');
 const uuid=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const limits={email:80,sms:150};
-function origin(env){try{const u=new URL(env.BOOTH_PUBLIC_URL);return u.protocol==='https:'&&u.pathname==='/'&&!u.search&&!u.hash&&!u.username?u.origin:'';}catch{return '';}}
+function origin(env){try{const u=new URL(env.BOOTH_PUBLIC_URL);return u.protocol==='https:'&&u.pathname==='/'&&!u.search&&!u.hash&&!u.username&&!u.password?u.origin:'';}catch{return '';}}
+function smsSender(env){
+  if(/^MG[a-fA-F0-9]{32}$/.test(env.TWILIO_MESSAGING_SERVICE_SID||''))return {field:'MessagingServiceSid',value:env.TWILIO_MESSAGING_SERVICE_SID,mode:'messaging-service'};
+  if(/^\+[1-9]\d{7,14}$/.test(env.TWILIO_FROM_NUMBER||''))return {field:'From',value:env.TWILIO_FROM_NUMBER,mode:'phone-number'};
+  return null;
+}
+const commonSettings=['DELIVERY_DATABASE_URL','BOOTH_SESSION_SECRET','BOOTH_PAIRING_CODE','BOOTH_PUBLIC_URL'];
 export function configuration(env=process.env){
   const common=[];
   if(!env.DELIVERY_DATABASE_URL)common.push('DELIVERY_DATABASE_URL');
@@ -27,8 +34,32 @@ export function configuration(env=process.env){
   if(env.BOOTH_SMS_ENABLED!=='true')sms.push('BOOTH_SMS_ENABLED');
   if(!/^AC[a-fA-F0-9]{32}$/.test(env.TWILIO_ACCOUNT_SID||''))sms.push('TWILIO_ACCOUNT_SID');
   if(!/^[a-fA-F0-9]{32}$/.test(env.TWILIO_AUTH_TOKEN||''))sms.push('TWILIO_AUTH_TOKEN');
-  if(!/^MG[a-fA-F0-9]{32}$/.test(env.TWILIO_MESSAGING_SERVICE_SID||'')&&!/^\+[1-9]\d{7,14}$/.test(env.TWILIO_FROM_NUMBER||''))sms.push('TWILIO_MESSAGING_SERVICE_SID or TWILIO_FROM_NUMBER');
+  if(!smsSender(env))sms.push('TWILIO_MESSAGING_SERVICE_SID or TWILIO_FROM_NUMBER');
   return {email:{configured:email.length===0,missing:email,receiptsEnabled:env.BOOTH_EMAIL_RECEIPTS_ENABLED!=='false'},sms:{configured:sms.length===0,missing:sms},pairingConfigured:common.length===0,limits,linkHours:24};
+}
+// Guests need availability, not infrastructure diagnostics. Detailed setup
+// names are returned only after a valid server-issued staff session is checked.
+export function publicConfiguration(env=process.env){
+  const c=configuration(env);
+  return {email:{configured:c.email.configured,receiptsEnabled:c.email.receiptsEnabled},sms:{configured:c.sms.configured},pairingConfigured:c.pairingConfigured,limits:c.limits,linkHours:c.linkHours};
+}
+export function deliveryReadiness(env=process.env){
+  const c=configuration(env),shared=c.email.missing.filter(name=>commonSettings.includes(name));
+  const channel=(name,provider)=>{
+    const enabled=env[name==='email'?'BOOTH_EMAIL_ENABLED':'BOOTH_SMS_ENABLED']==='true';
+    const providerMissing=c[name].missing.filter(setting=>!commonSettings.includes(setting)&&!['BOOTH_EMAIL_ENABLED','BOOTH_SMS_ENABLED'].includes(setting));
+    return {...c[name],provider,enabled,providerConfigured:providerMissing.length===0,providerMissing,state:!enabled?'disabled':c[name].configured?'configured':'needs-setup'};
+  };
+  return {...c,email:channel('email','Resend'),sms:{...channel('sms','Twilio'),senderMode:smsSender(env)?.mode||null},dependencies:{configured:shared.length===0,missing:shared},verification:'configuration-only'};
+}
+export async function configurationResponse(request,{staffCookie,env=process.env}={}){
+  const staff=new URL(request.url).searchParams.get('staff')==='1';
+  if(staff){
+    if(!await validStaffSession(staffCookie,env.BOOTH_STAFF_SESSION_SECRET))return Response.json({error:'Sign in with the staff PIN to view delivery setup.'},{status:401,headers:{'Cache-Control':'no-store'}});
+    const supplied=request.headers.get('origin'),expected=publicBoothOrigin(env,request.url);
+    if(!expected||(supplied!==null?supplied!==expected:request.headers.get('sec-fetch-site')!=='same-origin'))return Response.json({error:'Open delivery setup from this booth.'},{status:403,headers:{'Cache-Control':'no-store'}});
+  }
+  return json({... (staff?deliveryReadiness(env):publicConfiguration(env)),paired:!!session(request,env)});
 }
 export function session(request,env=process.env){
   if(secret(env).length<32)return null;
@@ -103,7 +134,7 @@ export async function sendProvider(job,env,fetcher=fetch){
     response=await fetcher('https://api.resend.com/emails',{method:'POST',headers:{Authorization:'Bearer '+env.RESEND_API_KEY,'Content-Type':'application/json','Idempotency-Key':job.id,'User-Agent':'FriendlyBooth/1.0'},body:JSON.stringify({from:env.BOOTH_EMAIL_FROM,to:[job.recipient],subject:prefix+'Your Friendly Photo Booth photo',text:`${prefix}Your photo from ${job.title} is attached.\n\nDownload (expires in 24 hours): ${url}\n\nThis is the one photo you requested, not a marketing subscription.`,attachments:[{filename:job.test?'friendly-booth-TEST.jpg':'friendly-booth-photo.jpg',content:job.bytes.toString('base64') }]}),signal:AbortSignal.timeout(15000)});
   }else{
     const body=new URLSearchParams({To:job.recipient,Body:`${prefix}Friendly Photo Booth: your requested photo ${url} (link expires in 24h). Reply STOP to opt out.`});
-    if(env.TWILIO_MESSAGING_SERVICE_SID)body.set('MessagingServiceSid',env.TWILIO_MESSAGING_SERVICE_SID);else body.set('From',env.TWILIO_FROM_NUMBER);
+    const sender=smsSender(env);if(!sender)fail(503,'SMS sender is not configured. No message was sent.');body.set(sender.field,sender.value);
     response=await fetcher(`https://api.twilio.com/2010-04-01/Accounts/${env.TWILIO_ACCOUNT_SID}/Messages.json`,{method:'POST',headers:{Authorization:'Basic '+Buffer.from(env.TWILIO_ACCOUNT_SID+':'+env.TWILIO_AUTH_TOKEN).toString('base64'),'Content-Type':'application/x-www-form-urlencoded'},body,signal:AbortSignal.timeout(15000)});
   }
   const data=await response.json().catch(()=>({}));
