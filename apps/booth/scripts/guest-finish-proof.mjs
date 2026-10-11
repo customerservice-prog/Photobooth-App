@@ -199,9 +199,18 @@ async function runCase(browser,engine,scope,total,fixture){
   const bytes=await assertFinishedGuest(page,total),metadata=await sharp(bytes).metadata();
   assert.equal(metadata.width,1200);assert.equal(metadata.height,1800);
   if(customProof){
-   const pixel=await sharp(bytes).extract({left:40,top:500,width:1,height:1}).raw().toBuffer();
+   // Four-photo strips now begin at x=26; sample the sheet edge rather than a
+   // point inside pose 2, and verify that every configured copy excludes it.
+   const sample={left:5,top:500,width:1,height:1},layout=config.customDesign.layouts[total===1?'one':'four'];
+   const copies=total===4&&layout.copies===2?2:1,description=label+' '+config.customDesign.mode+' '+total+' photos';
+   for(let copy=0;copy<copies;copy++)for(const rect of layout.rects){
+    const x=rect.x*12+copy*600,y=rect.y*18,w=rect.w*12,h=rect.h*18;
+    assert(sample.left+sample.width<x-3||sample.left>x+w+3||sample.top+sample.height<y-3||sample.top>y+h+3,
+     description+' background sample must stay outside all photo apertures and their borders');
+   }
+   const pixel=await sharp(bytes).extract(sample).raw().toBuffer();
    const expected=scope==='managed'&&total===1?[99,49,101]:[22,46,72];
-   expected.forEach((channel,i)=>assert(Math.abs(pixel[i]-channel)<12,'custom approved background survives finished JPEG'));
+   expected.forEach((channel,i)=>assert(Math.abs(pixel[i]-channel)<12,description+' custom approved background survives finished JPEG'));
   }
   assert.equal(await page.getByTestId('approved-guest-preview').getAttribute('data-template'),config.defaultTemplate);
   const theme=await checkTheme(page,config,total,fixture);
