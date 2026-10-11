@@ -57,9 +57,9 @@ test('large keepsake proof uses the production PrintCard renderer and sample pho
   assert.match(source,/data-testid="welcome-large-proof"/);
   assert.match(source,/data-selected-photos=\{String\(chosenShots\)\}/);
   assert.match(source,/onClick=\{startSelected\}/);
-  assert.match(source,/useSamplePoses\(family\)/);
+  assert.match(source,/useSamplePoses\(family,\s*matchingStrips\)/,'sample framing follows the selected print layout');
   assert.match(source,/\/images\/welcome-poses\//);
-  assert.match(source,/<PrintCard photo=\{samples\?poses\[0\]:''\}/);
+  assert.match(source,/<PrintCard\b[^>]*photo=\{[^}]*oneSample[^}]*\}[^>]*poses=\{samples\?poses:\[\]\}/,'portrait one-photo and matching-strip pose samples reach the production renderer separately');
   assert.match(printer,/renderKeepsake\(/);
   assert.doesNotMatch(source,/localStorage\.(setItem|clear|removeItem)/);
   assert.doesNotMatch(source,/getUserMedia|saveCapture|print\(\)/);
