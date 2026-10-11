@@ -3,7 +3,7 @@ import {mkdir,readFile,writeFile} from 'node:fs/promises';
 import {chromium,webkit} from 'playwright';
 import {octoberPreset,EVENT_KEYS,PREP_CHECKS} from '../app/lib/event-workspace.mjs';
 import {assertFinishedGuest} from './assert-finished-guest.mjs';
-import {assertApprovedStripPreview} from './assert-approved-strips.mjs';
+import {assertFourPhotoPreview} from './assert-four-photo-sheet.mjs';
 const base=process.env.WELCOME_BASE_URL||'http://127.0.0.1:3000';
 const out='welcome-proof';await mkdir(out,{recursive:true});
 const archiveSource=await readFile(new URL('../app/lib/event-photo-archive.mjs',import.meta.url),'utf8');
@@ -49,9 +49,8 @@ async function approvedWelcome(browser,engine){
     const button=page.getByTestId(id);assert(await button.isEnabled());
     const svg=button.locator('.bwLayoutPreview svg');assert.equal(await svg.getAttribute('data-design'),type+'-'+template);
     await page.waitForFunction(()=>[...document.querySelectorAll('.bwLayoutPreview')].length===3&&[...document.querySelectorAll('.bwLayoutPreview')].every(e=>e.dataset.examplePoses==='ready'));
-    const copies=template==='grad-gala'&&id==='welcome-four-photo'?2:1;
-    assert.equal(await svg.locator('[data-guest-photo="true"]').count(),id==='welcome-quick-photo'?1:4*copies,'the four originals fill the actual one-photo or matching-strip openings');
-    if(copies===2)await assertApprovedStripPreview(svg,engine+' approved graduation welcome');
+    assert.equal(await svg.locator('[data-guest-photo="true"]').count(),id==='welcome-quick-photo'?1:4,'the four originals each fill one approved opening');
+    if(template==='grad-gala'&&id==='welcome-four-photo')await assertFourPhotoPreview(svg,engine+' approved graduation welcome');
     assert((await button.locator('.bwPreviewCaption').innerText()).includes('4×6 print'));
    }
    if(type==='other')assert.equal(await page.getByTestId('welcome-four-photo').locator('[data-approved-photo-region="true"]').count(),1,'four-photo choice uses coordinated approved layout');

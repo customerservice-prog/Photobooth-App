@@ -15,7 +15,7 @@ export function createCustomDesign(mode='build'){
  return {v:1,mode,background:'#fffaf1',ink:'#263c37',accent:'#c5a46a',heading:'',footer:'',layouts:{
   one:{image:'',rects:[{x:8,y:14,w:84,h:66}]},
   four:mode==='build'
-   ?{image:'',copies:2,rects:Array.from({length:4},(_,i)=>({x:26/12,y:(120+350*i)/18,w:548/12,h:336/18}))}
+   ?{image:'',rects:Array.from({length:4},(_,i)=>({x:(36+(i%2)*576)/12,y:(144+Math.floor(i/2)*674)/18,w:552/12,h:650/18}))}
    :{image:'',rects:Array.from({length:4},(_,i)=>({x:8+(i%2)*43,y:14+Math.floor(i/2)*34,w:41,h:32}))}
  }};
 }
@@ -120,7 +120,7 @@ export function renderCustomDesign(input={}){
  if(spec.mode==='build'){
   art+=Array.from({length:copies},(_,i)=>{
    const options=copies===2?{x:300+i*600,width:520}:{};
-   return label(spec.heading||copy.eyebrow,copies===2?78:160,copies===2?34:42,spec.ink,{...options,bold:true})
+   return label(spec.heading||copy.eyebrow,copies===2?78:four?96:160,copies===2?34:42,spec.ink,{...options,bold:true})
     +`<g data-text-role="name">${label(copy.title,copies===2?1580:1565,copies===2?62:86,spec.ink,{...options,lines:2,italic:true})}</g>`
     +label(copy.date,1705,copies===2?26:30,spec.ink,options)+label(spec.footer,1760,23,spec.ink,options);
   }).join('');

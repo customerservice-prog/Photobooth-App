@@ -5,6 +5,7 @@ import {guestEventConfig} from '../app/lib/guest-design.mjs';
 import {normalizeEventConfig,finalizeEventSetup} from '../app/lib/event-config.mjs';
 import {renderKeepsake} from '../app/lib/keepsake-designs.mjs';
 import {assertApprovedStripWindows} from '../scripts/assert-approved-strips.mjs';
+import {assertFourPhotoSheet} from '../scripts/assert-four-photo-sheet.mjs';
 
 const PNG='data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jwioAAAAASUVORK5CYII=';
 const poses=[1,2,3,4].map(n=>'data:image/jpeg;base64,/9j/AA'+n+'=');
@@ -13,22 +14,30 @@ const config=spec=>({type:'graduation',guestMode:'approved',defaultTemplate:'cus
  title:'Original event title',approvedPrintName:'Taylor & Jordan',date:'June 10, 2027',photoFit:'fit',details:{graduate:'Wrong old name',classYear:'2027'}});
 const guestImages=svg=>Array.from(svg.matchAll(/<image\b(?=[^>]*data-guest-photo="true")[^>]*\/>/g),m=>m[0]);
 const href=tag=>tag.match(/ href="([^"]*)"/)?.[1];
+const slots=svg=>guestImages(svg).map(tag=>{
+ const attr=name=>tag.match(new RegExp(' '+name+'="([^"]*)"'))?.[1];
+ return {...Object.fromEntries(['x','y','width','height'].map(key=>[key,Number(attr(key))])),pose:Number(attr('data-pose')),copy:Number(attr('data-copy')),source:href(tag)};
+});
+const legacyStrips=()=>{
+ const spec=createCustomDesign();spec.layouts.four.copies=2;
+ spec.layouts.four.rects=[0,1,2,3].map(i=>({x:26/12,y:(120+350*i)/18,w:548/12,h:336/18}));
+ return spec;
+};
 
 test('builder starts with paired 4x6 layouts and independent editable rectangles',()=>{
  const original=createCustomDesign(),valid=validateCustomDesign(original);
  assert.equal(valid.layouts.one.rects.length,1);assert.equal(valid.layouts.four.rects.length,4);
  assert.notEqual(valid,original);assert.notEqual(valid.layouts.four.rects,original.layouts.four.rects);
  valid.layouts.four.rects[0].y=1;
- assert.equal(original.layouts.four.rects[0].y,120/18);
+ assert.equal(original.layouts.four.rects[0].y,144/18);
  assert(isValidCustomDesign(createCustomDesign()));
  assert.throws(()=>createCustomDesign('unknown'));
 });
 test('new custom four-photo layouts use the wide sheet while saved customer windows remain unchanged',()=>{
  const fresh=createCustomDesign();
- assert.equal(fresh.layouts.four.copies,2,'new builder produces two matching 2x6 keepsakes');
+ assert.equal(fresh.layouts.four.copies,undefined,'new builder uses four unique poses once on the full sheet');
  const freshSvg=renderCustomDesign({cfg:config(fresh),poses,layout:'photo_strip'});
- const attr=(tag,name)=>tag.match(new RegExp(' '+name+'="([^"]*)"'))?.[1];
- assertApprovedStripWindows(guestImages(freshSvg).map(tag=>({...Object.fromEntries(['x','y','width','height'].map(key=>[key,Number(attr(tag,key))])),pose:Number(attr(tag,'data-pose')),copy:Number(attr(tag,'data-copy')),source:href(tag)})),'new custom builder');
+ assertFourPhotoSheet(slots(freshSvg),'new custom builder');
  const saved=createCustomDesign();delete saved.layouts.four.copies;saved.layouts.four.rects=[14,31,48,65].map(y=>({x:8,y,w:84,h:15}));
  const before=JSON.stringify(saved.layouts.four.rects),cfg=config(saved);
  const valid=validateCustomDesign(saved),svg=renderCustomDesign({cfg,poses,layout:'photo_strip'});
@@ -36,6 +45,13 @@ test('new custom four-photo layouts use the wide sheet while saved customer wind
  const actual=guestImages(svg).map(tag=>Object.fromEntries(['x','y','width','height'].map(key=>[key,Number(tag.match(new RegExp(' '+key+'="([^"]*)"'))?.[1])])));
  assert.deepEqual(actual,saved.layouts.four.rects.map(r=>({x:r.x*12,y:r.y*18,width:r.w*12,height:r.h*18})),
   'each uploaded or built customer window retains its approved position');
+});
+test('saved custom designs explicitly approved as two strips retain their coordinates and copies',()=>{
+ const saved=legacyStrips(),before=JSON.stringify(saved.layouts.four);
+ const valid=validateCustomDesign(saved),svg=renderCustomDesign({cfg:config(saved),poses,layout:'photo_strip'});
+ assert.equal(JSON.stringify(valid.layouts.four),before,'previously approved two-copy artwork is never migrated');
+ assertApprovedStripWindows(slots(svg),'saved custom matching strips');
+ assert.deepEqual(guestImages(svg).map(href),[...poses,...poses]);
 });
 test('new builder copy markers cannot silently duplicate existing uploaded frames',()=>{
  const spec=upload(),valid=validateCustomDesign(spec);
@@ -45,7 +61,7 @@ test('new builder copy markers cannot silently duplicate existing uploaded frame
   const invalid=createCustomDesign();invalid.layouts.four.copies=copies;
   assert.throws(()=>validateCustomDesign(invalid),/copies|copy|strips/i,'only explicit supported copy counts are accepted');
  }
- const outside=createCustomDesign();outside.layouts.four.rects[0].x=30;
+ const outside=legacyStrips();outside.layouts.four.rects[0].x=30;
  assert.throws(()=>validateCustomDesign(outside),/half|strip|copy/i,'a duplicated window cannot spill into the other strip');
 });
 test('only the owner sample preview can render an incomplete paired upload',()=>{
@@ -94,8 +110,8 @@ test('paired layouts reject overlapping windows and wrong pose counts',()=>{
 test('builder uses the actual captured one and four poses, preserves order and contained fitting',()=>{
  const cfg=config(createCustomDesign()),one=renderCustomDesign({cfg,photo:poses[0],layout:'card',id:'one'});
  const four=renderCustomDesign({cfg,photo:poses[0],poses,layout:'photo_strip',id:'four'});
- assert.equal(guestImages(one).length,1);assert.equal(guestImages(four).length,8);
- assert.deepEqual(guestImages(four).map(href),[...poses,...poses]);
+ assert.equal(guestImages(one).length,1);assert.equal(guestImages(four).length,4);
+ assert.deepEqual(guestImages(four).map(href),poses);
  assert(guestImages(four).every(tag=>tag.includes('preserveAspectRatio="xMidYMid meet"')));
  assert.match(one,/viewBox="0 0 1200 1800"/);assert.match(four,/data-pose-count="4"/);
  assert.match(one,/Taylor &amp; Jordan/);assert.match(four,/June 10, 2027/);
@@ -159,7 +175,7 @@ test('shared renderer dispatches custom outputs and preserves explicit builtin p
  const one=renderKeepsake({cfg,photo:poses[0],layout:'card'});
  const four=renderKeepsake({cfg,template:'custom',poses,layout:'photo_strip',filter:'grayscale(1) contrast(1.08) brightness(1.04)',id:'custom-test'});
  assert.match(one,/data-template-key="graduation\/custom"/);
- assert.deepEqual(guestImages(four).map(href),[...poses,...poses]);
+ assert.deepEqual(guestImages(four).map(href),poses);
  assert(guestImages(four).every(image=>image.includes('data-photo-finish="bw"')));
  const builtin=renderKeepsake({cfg,template:'ivory',photo:poses[0],layout:'card'});
  assert.match(builtin,/data-template-key="graduation\/honors-edit"/);

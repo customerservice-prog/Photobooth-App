@@ -4,6 +4,7 @@ import GuestReadyPreview from './components/GuestReadyPreview';
 import WelcomeScreen from './components/WelcomeScreen';
 import StaffDashboard from './components/StaffDashboard';
 import PhotoCapture from './components/PhotoCapture';
+import {approvedCaptureFrame} from './lib/capture-framing.mjs';
 import {runPhotoSequence,takeFreshPhoto,waitForPose} from './lib/photo-sequence.mjs';
 import {playPhotoCue,preparePhotoAudio,speakCue,stopTalking} from './lib/photo-voice.mjs';
 import {normalizeGuestPause,waitForGuestReady} from './lib/guest-pause.mjs';
@@ -234,7 +235,7 @@ export default function Booth(){
   <main className={`booth theme-${cfg.type||'other'}${step==='welcome'?' bwWelcomeMode':''}`} data-build="smile-sequence-v1" data-capture-mode="photo" data-managed-event={showWorkspaceBanner?'true':undefined}>
     {!isPreview&&!isCapturing&&step!=='welcome'&&<a className="floatingHelp" href={withReturnTo("/help",eventHome(scope))} aria-label="Photo booth help">Help</a>}
     {step==='welcome'&&<WelcomeScreen cfg={cfg} eventName={eventMeta.name} online={online} starting={starting||!initialized} installed={installed} printsUsed={printsUsed} onStartQuick={()=>begin(1)} onStartFour={()=>begin(4)} onInstall={()=>setInstallOpen(true)} onOperator={()=>setOperator(true)} voiceStatus={voiceStatus} showGraduationPreview={!scope.managed&&!scope.imported} helpHref={initialized?withReturnTo('/help',eventHome(scope)):null}/>}
-    {isCapturing&&<PhotoCapture videoRef={video} progress={capture} onCancel={()=>cancelCapture()} onReady={readyForNextPhoto} soundStatus={voiceStatus}/>}
+    {isCapturing&&<PhotoCapture videoRef={video} progress={capture} frame={approvedCaptureFrame(cfg,capture.current,capture.total)} onCancel={()=>cancelCapture()} onReady={readyForNextPhoto} soundStatus={voiceStatus}/>}
     {step==='preview'&&photo&&<GuestReadyPreview photo={photo} poses={poses} sessionShots={sessionShots} cfg={cfg} printing={printing} printPackage={normalizePrintPackage(cfg.printPackage)} printsUsed={printsUsed} onSessionActive={setPreviewActive} onPrint={requestPrint} onPrintOutcome={resolveLatestPrint} onFinish={finish} onArchive={archiveArtifact} onOperator={()=>setOperator(true)}/>}
     {step==='thanks'&&<section className="screen"><div className="check">✓</div><h1 className="hero">Enjoy the celebration.</h1><p className="sub">The booth will be ready for the next guest in a moment.</p></section>}
     {error&&<div className="boothAlert" role="alert"><div className="error">{error}{initialized?<button onClick={()=>setError('')} aria-label="Dismiss message">×</button>:<div><button type="button" onClick={()=>window.location.reload()} style={{minHeight:44}}>Retry opening this event</button><a href="/launch" style={{display:'inline-flex',alignItems:'center',minHeight:44,padding:'0 14px'}}>Back to booth start</a></div>}</div></div>}

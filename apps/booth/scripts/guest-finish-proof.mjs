@@ -199,8 +199,8 @@ async function runCase(browser,engine,scope,total,fixture){
   const bytes=await assertFinishedGuest(page,total),metadata=await sharp(bytes).metadata();
   assert.equal(metadata.width,1200);assert.equal(metadata.height,1800);
   if(customProof){
-   // Four-photo strips now begin at x=26; sample the sheet edge rather than a
-   // point inside pose 2, and verify that every configured copy excludes it.
+   // Sample the paper edge outside the approved photo windows, including
+   // any copies explicitly retained by a previously saved custom design.
    const sample={left:5,top:500,width:1,height:1},layout=config.customDesign.layouts[total===1?'one':'four'];
    const copies=total===4&&layout.copies===2?2:1,description=label+' '+config.customDesign.mode+' '+total+' photos';
    for(let copy=0;copy<copies;copy++)for(const rect of layout.rects){

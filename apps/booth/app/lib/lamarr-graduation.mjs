@@ -1,6 +1,7 @@
 // Print-ready navy, orange and gold graduation layouts. No sample or visitor
 // faces are bundled: the actual captured JPEGs are inserted into these SVGs.
 // The SAME SVG is used by preview, export and the physical 4x6 print.
+import {fitText} from './keepsake-model.mjs';
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&apos;'}[c]));
 const bound=(v,n=65)=>String(v??'').replace(/[\u0000-\u001f]/g,' ').trim().slice(0,n);
 const imageAllowed=v=>typeof v==='string'&&/^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+$/.test(v);
@@ -9,7 +10,8 @@ export const isGraduationGala=cfg=>cfg?.type==='graduation'&&cfg?.defaultTemplat
 const rect=(x,y,w,h,fill,other='')=>`<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="${fill}" ${other}/>`;
 const path=(d,fill='none',stroke='none',sw=1)=>`<path d="${d}" fill="${fill}" stroke="${stroke}" stroke-width="${sw}"/>`;
 function labels(cfg={}){
- const name=bound(cfg.details?.graduate||cfg.details?.honoree||cfg.title||'The Graduate',30)||'The Graduate';
+ const approvedName=cfg.guestMode==='approved'?bound(cfg.approvedPrintName):'';
+ const name=approvedName||bound(cfg.details?.graduate||cfg.details?.honoree||cfg.title||'The Graduate')||'The Graduate';
  const year=/^\d{4}$/.test(cfg.details?.classYear||'')?cfg.details.classYear:(bound(cfg.date).match(/\b20\d{2}\b/)||['2026'])[0];
  const raw=bound(cfg.date||'October 10, 2026',45);
  const date=raw.replace(/\b(\d{1,2})(?!ST|ND|RD|TH)\b(?=\s*,?\s*20\d{2})/i,(whole,num)=>{
@@ -89,18 +91,14 @@ export function renderLamarrOne(photoSrc,cfg={}){
 }
 export function renderLamarrFour(poses=[],cfg={}){
  const t=labels(cfg),shots=Array.isArray(poses)?poses:[];
- const strips=Array.from({length:2},(_,strip)=>{
-  const copy=strip+1,cells=Array.from({length:4},(_,i)=>`<g data-approved-photo-region="true" data-copy="${copy}" data-pose="${i+1}">${photo(shots[i],i,26,120+i*350,548,336,cfg.photoFit,copy)}</g>`).join('');
-  const head=cap(61,59,.29)+text('Class of',302,57,32,'url(#lmGold)','font-family="Georgia, serif" font-style="italic"')+
-   text(t.year,458,92,43,'#fff7e9','font-family="Georgia, serif" font-weight="bold"');
-  const nameSize=t.name.length>22?29:t.name.length>14?35:44;
-  const foot=balloon(34,1607,.24,false,-15)+balloon(565,1703,.24,true,17)+
-   text(t.name,300,1585,nameSize,'url(#lmGold)','font-family="Georgia, serif" font-style="italic" font-weight="bold"')+
-   path('M115 1602Q300 1623 485 1602','none','#fa8723',3)+
-   text('Grad Party!',300,1648,32,'#fff7e9','font-family="Georgia, serif" font-style="italic"')+
-   text(t.date,300,1701,20,'#ffd080','font-family="Georgia, serif" font-weight="bold"')+
-   glint(300,1731,9)+text('CONGRATS GRAD!',300,1768,15,'#fff8ef','font-family="Arial,sans-serif" font-weight="bold" letter-spacing="2.5"');
-  return `<g data-fpr-strip-copy="${copy}" transform="translate(${strip*600} 0)" clip-path="url(#lm-strip-clip)">${rect(0,0,600,1800,'url(#lmBg)','data-fpr-sheet-bounds="true"')}${rect(0,0,600,1800,'url(#lmBlueGlow)')}${confetti()}${rect(9,9,582,1782,'none','stroke="url(#lmGold)" stroke-width="2"')}${head}${cells}${foot}</g>`;
- }).join('');
- return svg(strips,'photo_strip',cfg,defs()+`<defs><clipPath id="lm-strip-clip">${rect(0,0,600,1800,'white')}</clipPath></defs>`);
+ const cells=Array.from({length:4},(_,i)=>`<g data-approved-photo-region="true" data-pose="${i+1}">${photo(shots[i],i,36+(i%2)*576,144+Math.floor(i/2)*674,552,650,cfg.photoFit,1)}</g>`).join('');
+ const head=cap(92,71,.40)+text('Class of '+t.year,650,98,60,'url(#lmGold)','font-family="Georgia, serif" font-weight="bold" letter-spacing="2"');
+ const fitted=fitText(t.name,970,96,2),twoLines=fitted.lines.length>1;
+ const graduate=`<g data-text-role="name">${fitted.lines.map((line,i)=>text(line,600,1580+i*fitted.size*1.08,fitted.size,'url(#lmGold)','font-family="Georgia, serif" font-style="italic" font-weight="bold"')).join('')}</g>`;
+ const foot=balloon(76,1612,.35,false,-13)+balloon(1134,1719,.32,true,17)+graduate+
+  (twoLines?'':path('M230 1602Q600 1625 970 1602','none','#fa8723',4)+text('Grad Party!',600,1664,47,'#fff7e9','font-family="Georgia, serif" font-style="italic"'))+
+  text(t.date,600,twoLines?1741:1730,31,'#ffd080','font-family="Georgia, serif" font-weight="bold" letter-spacing="1"');
+ const background=defs()+rect(0,0,1200,1800,'url(#lmBg)','data-fpr-sheet-bounds="true"')+rect(0,0,1200,1800,'url(#lmBlueGlow)')+confetti()+
+  rect(12,12,1176,1776,'none','stroke="url(#lmGold)" stroke-width="3"');
+ return svg(`<g data-fpr-sheet-artwork="true" data-fpr-sheet-count="1" data-fpr-captured-poses="4">${head}${cells}${foot}</g>`,'photo_strip',cfg,background);
 }
