@@ -6,6 +6,7 @@ import StaffEventCloseout from './StaffEventCloseout';
 import AppUpdate from './AppUpdate';
 import StaffPrintPanel from './StaffPrintPanel';
 import StaffDeviceChecklist from './StaffDeviceChecklist';
+import StaffDeliveryStatus from './StaffDeliveryStatus';
 import {eventHome,withReturnTo} from '../lib/staff-navigation.mjs';
 import './staff-dashboard.css';
 
@@ -68,7 +69,7 @@ export default function StaffDashboard({onClose,onReset,onVoiceTest,onRecover,on
     <button type="button" className="operatorClose" aria-label="Close controls" onClick={onClose} autoFocus>Close controls <span aria-hidden="true">×</span></button>
    </header>
    <section className="operatorStats" aria-label="Booth status">
-    <div><small>CONNECTION</small><strong>{online?'Online':'Offline'}</strong><span>{online?'Ready to connect':'Keep this browser open'}</span></div>
+    <div><small>CONNECTION</small><strong>{online?'Browser online':'Offline'}</strong><span>{online?'Service connection not tested':'Keep this browser open'}</span></div>
     <div><small>PRINT REQUESTS LEFT</small><strong>{remaining}</strong><span>{demo?'Demo mode · no paper':'This device only'}</span></div>
     <div><small>PHOTOS</small><strong>{saved}</strong><span>{managed?'Archived sessions':'Recent local photos'}</span></div>
     <div><small>DEVICE</small><strong>{installed?'Installed':'Browser'}</strong><span>{installed?'Home Screen app':'Open on iPad for events'}</span></div>
@@ -78,6 +79,7 @@ export default function StaffDashboard({onClose,onReset,onVoiceTest,onRecover,on
    {eventScope?.archive&&<details className="operatorFold" data-testid="staff-end-event-open"><summary>Finish the event &amp; save all digital photos <span>Export ZIP · safely prepare next rental</span></summary><div className="operatorFoldContent"><StaffEventCloseout scope={eventScope} eventName={cfg.title}/></div></details>}
    <StaffPrintPanel onReviewPrint={onReviewPrint}/>
    <StaffDeviceChecklist/>
+   <StaffDeliveryStatus href={link('/delivery-check')}/>
    <section className="operatorKioskCard" data-testid="operator-kiosk-card" aria-label="iPad guest display">
     <div className="operatorKioskTop">
      <div><span className="operatorOverline">IPAD EVENT MODE</span><h3>Keep guests in the Photo Booth</h3><p>The booth can request an always-on display. iPad Guided Access is required to stop guests switching apps.</p></div>

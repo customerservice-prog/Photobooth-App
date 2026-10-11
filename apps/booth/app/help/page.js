@@ -2,31 +2,34 @@
 import StaffPageNav from '../components/StaffPageNav';
 import BoothContextLink from '../components/BoothContextLink';
 import {useEffect,useMemo,useState} from 'react';
+import {readBoothCapabilities,probeLocalPhotoStorage,boothDiagnosticChecks,diagnosticLimits} from '../lib/booth-readiness.mjs';
 
 const sections=[
   {id:'printer',title:'Printer stuck / not printing',steps:[
-    'Make sure the Canon SELPHY is powered on and has paper and ink installed.',
-    'On iPad, confirm Wi‑Fi is on. The iPad and printer must be reachable for AirPrint.',
-    'Tap Print Keepsake again and check whether Canon SELPHY appears in the Printer field.',
-    'If it does not appear, turn the printer off for 10 seconds, turn it back on, then reopen the print sheet.',
-    'If a job is frozen, cancel the print job from the iPad print queue, then retry one photo.',
-    'If paper is jammed, power the printer off before gently removing the paper. Do not force it.',
-    'If the print is cropped, confirm 4 × 6 paper is selected and print one test before reopening the booth.'
+    'Keep the guest’s finished photo open. Check that the Canon SELPHY is on, has the correct paper and ink, and shows no error.',
+    'Confirm the iPad and Canon have a reachable Wi‑Fi connection for AirPrint. Ask staff before changing the event’s Wi‑Fi.',
+    'Tap Print once. In the iPad print options, select Canon SELPHY, 4 × 6 paper and one copy.',
+    'If printing was canceled or no sheet came out, tap Retry print. Staff must authorize access and check the printer before choosing No sheet printed · restore print. Then tap Print again.',
+    'If a sheet already printed or a job is still running, choose Keep this print request. Opening or closing print options does not prove that paper printed.',
+    'For a stalled job or paper error, read the Canon’s message and have staff check the print queue. Keep the front and rear paper path clear; do not pull moving paper or force a cartridge.',
+    'If the printer is missing or needs restarting, have staff use Canon wireless printing in Staff tools. Print and check one sample sheet before returning the booth to guests.'
   ]},
   {id:'send',title:'Guest cannot text or email the photo',steps:[
-    'Tap Send / Save Photo.',
-    'Choose Messages to text the photo, Mail to email it, AirDrop, or Save Image.',
-    'If Messages or Mail is missing, swipe up in the share sheet and tap Edit Actions / More.',
-    'If the share sheet does not open, tap Retake or Finish, reopen the photo, and try again.',
-    'If the iPad is offline, Save Image can still preserve the photo locally; send it later when service returns.',
-    'Never close the booth before confirming the guest either sent or saved the image.'
+    'Tap Send on the finished photo to open Send your photo.',
+    'When direct delivery is available, choose Email with image attachment or Text with private download link. Enter the guest’s own contact, have them check the consent box, then tap Send my keepsake.',
+    'Direct text and email need internet, owner configuration and authorization on this iPad. If those choices are missing, ask staff to open Digital delivery in Staff tools and check the setup.',
+    'Read the result. Provider acceptance is not proof that the photo reached an inbox or phone. Use Check provider receipt when available, and ask the guest to check their device, including email spam.',
+    'If the connection is interrupted, use Check this request. It reuses the same request; do not start a new message while the first result is uncertain.',
+    'Share to another device opens this iPad’s sharing options. Available apps vary; confirm the photo arrives on the receiving device.',
+    'Save photo downloads the JPEG to this iPad. Open it in Files or Downloads to check the copy, especially when offline. Keep the photo open until the guest or staff has a usable copy.'
   ]},
   {id:'camera',title:'Camera is black, frozen, or will not start',steps:[
-    'Return to the welcome screen and tap Signature Portrait again.',
-    'If asked, choose Allow for Camera access.',
-    'If the preview stays black, close Friendly Booth from the app switcher and reopen it.',
-    'If that still fails, open Safari once, visit the booth, allow camera access, then reopen the Home Screen app.',
-    'Do not start printing or sharing while the camera preview is still loading.'
+    'If a capture is stuck, tap Cancel session and ask the attendant. Photos already saved remain in the event archive.',
+    'On the welcome screen, choose 1 Photo or 4 Photos, then tap Start 1 photo or Start 4 photos.',
+    'Choose Allow when the iPad asks for camera access. If access was denied, have staff check camera permission for this booth in Safari.',
+    'Keep Friendly Booth visible while the camera starts. Switching apps or locking the iPad can stop a photo session.',
+    'If the camera still fails, check saved photos before restarting the app. End Guided Access if needed, reopen the same Friendly Booth app, and try one 1 Photo session.',
+    'Confirm the camera view and finished photo work before starting the next guest. The website cannot change iPad camera permissions for you.'
   ]},
   {id:'guided-access',title:'Keep guests in the booth and prevent screen sleep',steps:[
     'Open Friendly Booth from its Home Screen icon on the event iPad. Set up the event and make a test photo before locking the iPad.',
@@ -40,69 +43,58 @@ const sections=[
     'The booth website cannot start, verify, or override Apple Guided Access. Do not consider the iPad locked until the physical Guided Access test succeeds.'
   ]},
   {id:'offline',title:'No internet / weak service',steps:[
-    'Do not close the booth app if the venue internet drops.',
-    'Portrait capture and local backup can continue in the already-open session.',
-    'Printing may still work if the printer connection is local and available.',
-    'Texting/emailing may need internet or cellular service. Use Save Image and send later.',
-    'When internet returns, confirm the READY indicator returns before assuming sharing is restored.'
+    'Keep the already-open Friendly Booth app running when venue internet drops.',
+    'Capture can continue if the camera and local photo storage are working. If saving fails, keep the finished photo open and ask staff for help.',
+    'AirPrint may still work over the local printer connection. Direct text, email and online gallery uploads need internet.',
+    'Use Send → Save photo for a local JPEG, then open it in Files or Downloads. Share or send it after service returns.',
+    'When internet returns, open Staff tools → Automatic event gallery and tap Retry backup now. Wait until all photo files are saved to the event gallery.',
+    'The connection indicator alone does not confirm delivery or gallery backup. Check the receiving device and this event’s digital gallery before packing up.'
   ]},
   {id:'print-quality',title:'Print looks wrong, dark, cropped, or rotated',steps:[
-    'Confirm the preview itself looks correct before printing.',
-    'Use 4 × 6 portrait paper size in the AirPrint sheet.',
-    'Do one test print after changing paper, ink, Wi‑Fi, or printer settings.',
-    'If the physical print differs from the screen, stop printing multiples until the test print is corrected.',
-    'Do not promise a guest another print until the first corrected test print finishes.'
+    'Check the finished preview first. If the photo or event design looks wrong there, ask staff to fix it before printing.',
+    'In the iPad print options, select Canon SELPHY, 4 × 6 paper and one copy. Available printer settings depend on the iPad and Canon.',
+    'Open Staff tools → Canon wireless printing and choose 1 Photo or 4 Photos for the saved event design. Print one sample sheet after changing paper, ink, Wi‑Fi or printer settings.',
+    'Check the actual sheet: every photo is visible, the event name is correct, and colors and edges look right.',
+    'Resume guest printing only after the corrected sample finishes. The app cannot verify physical print quality or whether a sheet came out.'
   ]},
   {id:'recovery',title:'Guest photo disappeared',steps:[
-    'Open the hidden operator controls from the top-right operator area.',
-    'Use Recent photo recovery to reopen one of the locally saved captures.',
-    'Confirm the correct guest photo before printing or sharing it.',
-    'Local recovery belongs to this iPad/browser only; do not clear website data during an event.'
+    'On the welcome screen, tap Staff tools and authorize staff access when asked.',
+    'Open Recover a recent photo and tap the correct saved capture to return to its preview.',
+    'Confirm the guest and event before printing or sending the photo. The recent list shows up to eight saved captures; the complete event archive is separate.',
+    'For an older photo, check the event archive or the selected event’s digital gallery. Offline uploads may still be waiting on this iPad.',
+    'Local recovery belongs to this iPad and browser or Home Screen app. Do not clear website data, uninstall the app or remove the event while photos still need recovery.'
   ]},
   {id:'frozen',title:'Booth is frozen or buttons stop responding',steps:[
-    'Wait 5 seconds in case the iPad is finishing a photo, GIF, or share action.',
-    'If nothing changes, close Friendly Booth from the iPad app switcher and reopen it.',
-    'If Guided Access is active, end Guided Access first, restart the booth, then start Guided Access again.',
-    'Test one portrait, one share action, and one print before handing the booth back to guests.'
+    'Wait a few seconds while the booth prepares, saves, prints or sends the photo. Keep the current photo open.',
+    'If a button still works, use Send → Save photo and open the JPEG, or check Staff tools → Recover a recent photo before restarting.',
+    'If the app remains frozen, have staff end Guided Access, close Friendly Booth from the app switcher and reopen the same app. Recover the guest’s saved photo first.',
+    'Test one 1 Photo session, a digital copy and a physical sample print. Restart Guided Access and check that guests cannot leave before reopening the booth.'
   ]}
 ];
 
 export default function Help(){
   const[diag,setDiag]=useState(null);
+  const[checkRun,setCheckRun]=useState(0);
   useEffect(()=>{
+    let cancelled=false;
     async function run(){
-      let storage=false;try{localStorage.setItem('__booth_test__','1');localStorage.removeItem('__booth_test__');storage=true}catch{}
-      let fileShare=false;
-      try{const f=new File([new Blob(['test'],{type:'text/plain'})],'test.txt',{type:'text/plain'});fileShare=!!navigator.canShare?.({files:[f]})}catch{}
-      setDiag({
-        secure:window.isSecureContext,
-        camera:!!navigator.mediaDevices?.getUserMedia,
-        share:!!navigator.share,
-        fileShare,
-        print:typeof window.print==='function',
-        storage,
-        online:navigator.onLine,
-        standalone:navigator.standalone===true||window.matchMedia?.('(display-mode: standalone)').matches===true
-      });
+      setDiag(readBoothCapabilities());
+      const photoStorage=await probeLocalPhotoStorage();
+      if(!cancelled)setDiag(current=>({...current,photoStorage}));
     } run();
-  },[]);
-  const checks=useMemo(()=>diag?[
-    ['Secure booth connection',diag.secure],
-    ['Camera API available',diag.camera],
-    ['iPad share sheet available',diag.share],
-    ['Photo-file sharing available',diag.fileShare],
-    ['Browser print dialog available',diag.print],
-    ['Local photo backup writable',diag.storage],
-    ['Internet connection',diag.online],
-    ['Running from Home Screen',diag.standalone]
-  ]:[],[diag]);
+    const updateNetwork=()=>setDiag(current=>current?{...current,online:navigator.onLine===true}:current);
+    window.addEventListener('online',updateNetwork);
+    window.addEventListener('offline',updateNetwork);
+    return ()=>{cancelled=true;window.removeEventListener('online',updateNetwork);window.removeEventListener('offline',updateNetwork);};
+  },[checkRun]);
+  const checks=useMemo(()=>diag?boothDiagnosticChecks(diag):[],[diag]);
   return <main className="helpPage"><div className="helpWrap"><StaffPageNav/>
     <header className="helpHero"><div className="helpSeal">?</div><div><div className="kicker">Friendly Photo Booth Support</div><h1>Quick Fix Guide</h1><p>Use this page during an event. Start with the symptom, follow the steps in order, then run one test before returning the booth to guests.</p></div></header>
-    <section className="diagCard"><div><div className="kicker">This iPad right now</div><h2>Booth readiness</h2></div><div className="diagGrid">{checks.map(([label,ok])=><div className={'diagItem '+(ok?'ok':'bad')} key={label}><b>{ok?'✓':'!'}</b><span>{label}</span></div>)}</div><p className="diagNote">Software diagnostics cannot confirm paper, ink, physical printer connection, or the quality of a real 4 × 6 print. Those need a physical test.</p></section>
-    <section className="panicCard"><strong>During an event:</strong> If a guest is waiting, save the photo first. Then troubleshoot. Do not clear Safari data, uninstall the Home Screen app, or reset the iPad while photos still need recovery.
+    <section className="diagCard"><div><div className="kicker">This iPad right now</div><h2>Booth readiness</h2></div><div className="diagGrid" aria-live="polite">{checks.map(({key,label,ok})=><div className={'diagItem '+(ok===null?'pending':ok?'ok':'bad')} key={key}><b aria-label={ok===null?'Checking':ok?'Check passed':'Check failed'}>{ok===null?'…':ok?'✓':'!'}</b><span>{label}{ok===null?' · checking':''}</span></div>)}</div><p className="diagNote">{diagnosticLimits}</p><button type="button" className="action" disabled={diag?.photoStorage===null} onClick={()=>setCheckRun(value=>value+1)}>Run checks again</button></section>
+    <section className="panicCard"><strong>During an event:</strong> Keep the guest’s photo open. Use Send → Save photo and check the JPEG in Files or Downloads before restarting. Do not clear Safari data, uninstall the Home Screen app, or reset the iPad while photos still need recovery.
     </section>
     <div className="helpGrid">{sections.map(s=><details id={s.id} className="helpSection" key={s.id} open={s.id==='printer'||s.id==='send'}><summary>{s.title}<span>+</span></summary><ol>{s.steps.map(x=><li key={x}>{x}</li>)}</ol></details>)}</div>
-    <section className="ownerCard"><div className="kicker">Owner / attendant end-of-event</div><h2>Before packing up</h2><div className="ownerChecklist"><span>□ End Guided Access</span><span>□ Set preferred screen sleep setting for packing up</span><span>□ Check local photo recovery</span><span>□ Print one final test</span><span>□ Confirm printer, paper, ink, charger</span><span>□ Close booth only after recovery is checked</span></div></section>
+    <section className="ownerCard"><div className="kicker">Owner / attendant end-of-event</div><h2>Before packing up</h2><div className="ownerChecklist"><span>□ 1. Finish the last guest session and check any photos needing recovery.</span><span>□ 2. Open Staff tools → Automatic event gallery. Keep the iPad online, tap Retry backup now, and wait until all photo files are saved.</span><span>□ 3. Open Finish the event &amp; save all digital photos. Check the selected event’s digital gallery and download its online photos.</span><span>□ 4. Tap Download complete event gallery ZIP for an additional copy of this iPad’s originals, capture collages and available finished JPEGs.</span><span>□ 5. Open the ZIP in Files or Downloads. Check the session count and photos, and securely keep a usable copy for the customer. A download request alone is not verification.</span><span>□ 6. Only after online backup and ZIP verification, use Remove this completed event from the iPad if preparing the next rental. Check the verification box, type CLOSE EVENT, then tap Remove this event and return to setup.</span><span>□ 7. Local event removal permanently deletes this event’s photos, settings and print ledger from this iPad. If backup or export is incomplete, keep the event and reconnect; do not delete it.</span><span>□ 8. End Guided Access, set the preferred screen sleep setting, and pack the printer, paper, ink and charger.</span></div></section>
     <div className="helpActions"><BoothContextLink href="/test">Open rehearsal checklist</BoothContextLink><BoothContextLink href="/privacy">Photo privacy</BoothContextLink></div>
   </div></main>
 }
