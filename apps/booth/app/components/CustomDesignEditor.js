@@ -68,7 +68,7 @@ export default function CustomDesignEditor({value,onChange,onBusyChange}){
    {['build','upload'].map(mode=><label key={mode} className={value.mode===mode?'isSelected':''}><input type="radio" checked={value.mode===mode} onChange={()=>chooseMode(mode)}/><span>{mode==='build'?'Build a design':'Upload artwork'}</span></label>)}
   </div>
   {value.mode==='upload'?<>
-   <p className="customDesignHint">Upload PNG or JPEG artwork that already includes the desired name and date, with empty photo spaces. Portrait 4×6 artwork works best. Adjust the openings below so guests’ actual photos cover each space.</p>
+   <p className="customDesignHint">Upload portrait 4×6 PNG or JPEG artwork with the name, date and empty photo spaces. Artwork fills the whole sheet; other shapes are cropped at the edges. Check the preview and adjust the openings so guests’ photos cover each space.</p>
    <div className="customUploadGrid">{[['one','1-photo artwork'],['four','4-photo artwork']].map(([kind,label])=><label className="customUploadCard" key={kind}>
     <strong>{label}</strong>{value.layouts[kind].image&&<img src={value.layouts[kind].image} alt={label+' frame'} className="customUploadThumb"/>}
     <input type="file" accept="image/png,image/jpeg,.png,.jpg,.jpeg" aria-label={label} data-testid={'custom-upload-'+kind} required={!value.layouts[kind].image} onChange={e=>upload(kind,e.currentTarget)}/>
@@ -82,7 +82,7 @@ export default function CustomDesignEditor({value,onChange,onBusyChange}){
   </>}
   {error&&<p className="errorNote" role="alert">{error}</p>}
   <details className="customApertures" data-testid="custom-photo-openings"><summary>Adjust photo openings</summary><p>Position and size use percentages of the sheet. Openings must stay inside the sheet without overlapping.</p>
-   {['one','four'].map(kind=><fieldset key={kind}><legend>{kind==='one'?'1 Photo':'4 Photos · vertical strip'}</legend>{value.layouts[kind].rects.map((position,index)=><div className="customPositionRow" key={index}><strong>{kind==='one'?'Photo':'Photo '+(index+1)}</strong>{[['x','Left'],['y','Top'],['w','Width'],['h','Height']].map(([key,label])=><label key={key}>{label}<input className="input" type="number" min={key==='w'||key==='h'?1:0} max="100" step=".1" value={position[key]} aria-label={(kind==='one'?'1 Photo':'4 Photos photo '+(index+1))+' '+label} onChange={e=>rect(kind,index,key,e.target.value)}/></label>)}</div>)}</fieldset>)}
+   {['one','four'].map(kind=><fieldset key={kind}><legend>{kind==='one'?'1 Photo':'4 Photos'}</legend>{value.layouts[kind].rects.map((position,index)=><div className="customPositionRow" key={index}><strong>{kind==='one'?'Photo':'Photo '+(index+1)}</strong>{[['x','Left'],['y','Top'],['w','Width'],['h','Height']].map(([key,label])=><label key={key}>{label}<input className="input" type="number" min={key==='w'||key==='h'?1:0} max="100" step=".1" value={position[key]} aria-label={(kind==='one'?'1 Photo':'4 Photos photo '+(index+1))+' '+label} onChange={e=>rect(kind,index,key,e.target.value)}/></label>)}</div>)}</fieldset>)}
   </details>
   <input ref={guard} type="text" className="customValidationGuard" aria-label="Custom artwork validation" value="" onChange={()=>{}} tabIndex={-1} onInvalid={()=>{guard.current?.closest('.customDesignEditor')?.scrollIntoView({block:'center',behavior:'smooth'});}}/>
   {validation&&!busyNow&&<p className="customDesignIncomplete" role="status">{validation}</p>}

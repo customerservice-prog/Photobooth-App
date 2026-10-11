@@ -88,7 +88,7 @@ export function renderLamarrOne(photoSrc,cfg={}){
 }
 export function renderLamarrFour(poses=[],cfg={}){
  const t=labels(cfg),shots=Array.isArray(poses)?poses:[],
- cells=Array.from({length:4},(_,i)=>photo(shots[i],i,87,222+i*309,1026,284,cfg.photoFit)).join('');
+ cells=Array.from({length:4},(_,i)=>photo(shots[i],i,87+(i%2)*526,222+Math.floor(i/2)*617,500,591,cfg.photoFit)).join('');
  const head=cap(163,112,.62)+text('Class of',786,98,70,'url(#lmGold)','font-family="Georgia, serif" font-style="italic"')+
  text(t.year,1034,165,100,'#fff7e9','font-family="Georgia, serif" font-weight="bold"');
  const foot=balloon(94,1545,.52,false,-15)+balloon(1100,1580,.52,true,17)+name(t.name,1588)+

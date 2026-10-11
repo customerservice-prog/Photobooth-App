@@ -33,12 +33,29 @@ for(const preset of FPR_PRINT_PRESETS){
   assert.deepEqual(images(four).map(tag=>attr(tag,'href')),poses,'each captured pose appears once in capture order');
   assert.deepEqual(images(four).map(tag=>attr(tag,'data-pose')),['1','2','3','4']);
   const large=regions(one)[0],small=regions(four);
+  const artwork=one.match(/<rect\b(?=[^>]*data-fpr-sheet-bounds="true")[^>]*\/>/)?.[0];
+  assert(artwork,'the complete approved decorative sheet has explicit bounded geometry');
+  assert.deepEqual(box(artwork),{x:0,y:0,width:1200,height:1800},
+   'approved decorative artwork fills the entire 4x6 sheet instead of a narrow centered strip');
+  assert.match(one,/<g data-fpr-sheet-artwork="true">/);
+  assert(large.width>=900,'the one-photo opening uses at least three quarters of the full sheet width');
   for(let n=0;n<small.length;n++){
-   close(small[n].x,large.x);close(small[n].width,large.width);close(small[n].height,small[0].height);
-   assert(small[n].height<large.height/3,'the full-size photograph is clearly larger than each strip frame');
-   if(n)assert(small[n].y>small[n-1].y+small[n-1].height,'rows have visible empty gutters');
+   close(small[n].width,small[0].width);close(small[n].height,small[0].height);
+   assert(small[n].width*small[n].height<large.width*large.height/3,
+    'the full-size photograph is clearly larger than each four-photo frame');
+   for(let j=n+1;j<small.length;j++){
+    const a=small[n],b=small[j];
+    assert(a.x+a.width<b.x||b.x+b.width<a.x||a.y+a.height<b.y||b.y+b.height<a.y,
+     'all four photos are separated by visible gutters');
+   }
   }
-  close(small[0].y,large.y);close(small[3].y+small[3].height,large.y+large.height);
+  close(small[0].x,large.x);close(small[0].y,large.y);
+  close(small[1].y,small[0].y);close(small[2].x,small[0].x);
+  close(small[3].x,small[1].x);close(small[3].y,small[2].y);
+  close(small[3].x+small[3].width,large.x+large.width);
+  close(small[3].y+small[3].height,large.y+large.height);
+  assert(small[1].x>small[0].x+small[0].width&&small[2].y>small[0].y+small[0].height,
+   'four photos form two columns and two rows on one full-width sheet');
   const oneArea=photoArea(one),fourArea=photoArea(four);
   assert.equal(oneArea.outside.replace('data-layout="card"','data-layout="photo_strip"'),fourArea.outside,
    'event text, date, decorative artwork and paper size do not change between layouts');

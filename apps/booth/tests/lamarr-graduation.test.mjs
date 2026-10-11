@@ -28,6 +28,19 @@ test('four-photo graduation print uses four different original guest poses in or
  assert.match(svg,/2026/);
  assert.doesNotMatch(svg,/Page 1 of 1|photobooth\.com/);
 });
+test('four-photo graduation gala fills the photo zone with two columns and two rows',()=>{
+ const svg=renderKeepsake({layout:'photo_strip',stripMode:'single',cfg,template:'grad-gala',poses,photo:poses[0]});
+ const slots=[...svg.matchAll(/<image\b(?=[^>]*data-guest-photo="true")[^>]*\/>/g)].map(match=>{
+  const tag=match[0];return Object.fromEntries(['x','y','width','height'].map(key=>[key,Number(tag.match(new RegExp(' '+key+'="([^"]*)"'))?.[1])]));
+ });
+ assert.equal(slots.length,4);
+ const [a,b,c,d]=slots;
+ assert.equal(a.y,b.y);assert.equal(c.y,d.y);assert.equal(a.x,c.x);assert.equal(b.x,d.x);
+ assert(a.x+a.width<b.x&&a.y+a.height<c.y,'columns and rows have visible gutters');
+ assert(a.width+b.width>=950,'the four-photo arrangement uses the full wide card');
+ assert(a.height>500,'each pose has a substantial photo area instead of a shallow strip row');
+ for(const slot of slots){assert.equal(slot.width,a.width);assert.equal(slot.height,a.height);}
+});
 test('one-photo 4×6 graduation print contains only the chosen original JPEG',()=>{
  const svg=renderKeepsake({layout:'card',cfg,template:'grad-gala',photo:poses[0]});
  assert.equal((svg.match(/data-guest-photo="true"/g)||[]).length,1);

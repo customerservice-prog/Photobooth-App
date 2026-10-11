@@ -7,6 +7,7 @@ import {FPR_PRINT_PRESETS} from '../app/lib/fpr-print-presets.mjs';
 import {LEGACY_KEYS,octoberPreset} from '../app/lib/event-workspace.mjs';
 import {renderKeepsake} from '../app/lib/keepsake-designs.mjs';
 import {assertFinishedGuest} from './assert-finished-guest.mjs';
+import {assertFullSheetPresetArtwork} from './assert-full-sheet-artwork.mjs';
 
 // Fresh, isolated fixture storage. Public production mode checks welcome only;
 // it never starts a session or changes a real event, allowance, or backend file.
@@ -30,10 +31,13 @@ const configFor=preset=>({...octoberPreset(),type:presetType[preset.key],title:'
 async function openingGeometry(svg,count,label){
  const info=await svg.evaluate(element=>({
   preset:element.getAttribute('data-fpr-preset'),viewBox:element.getAttribute('viewBox'),
+  artwork:[...element.querySelectorAll('[data-fpr-sheet-artwork="true"] rect[data-fpr-sheet-bounds="true"]')].map(image=>({x:Number(image.getAttribute('x')),y:Number(image.getAttribute('y')),width:Number(image.getAttribute('width')),height:Number(image.getAttribute('height'))})),
   groups:element.querySelectorAll('[data-approved-photo-region="true"]').length,
   images:[...element.querySelectorAll('image[data-guest-photo="true"]')].map(image=>({pose:Number(image.getAttribute('data-pose')),source:image.getAttribute('href'),x:Number(image.getAttribute('x')),y:Number(image.getAttribute('y')),width:Number(image.getAttribute('width')),height:Number(image.getAttribute('height'))}))
  }));
  assert.equal(info.viewBox,'0 0 1200 1800',label+' is a real 4x6 print');
+ assert.equal(info.artwork.length,1,label+' has one approved artwork background');
+ assert.deepEqual(info.artwork[0],{x:0,y:0,width:1200,height:1800},label+' decorative artwork fills the whole sheet');
  assert.equal(info.groups,count,label+' has exactly '+count+' actual photo openings');
  assert.equal(info.images.length,count,label+' has exactly '+count+' guest photos');
  assert.deepEqual(info.images.map(image=>image.pose),Array.from({length:count},(_,index)=>index+1),label+' uses each pose exactly once, in order');
@@ -102,11 +106,12 @@ async function welcomeCase(browser,engine,preset){
    await page.screenshot({path:`${out}/${label}-${count}-welcome.png`});
    const svg=await large.evaluate(element=>element.outerHTML),bytes=Buffer.from(await exportSvg(page,svg,exportSource,count===1?'card':'photo_strip'));
    const metadata=await sharp(bytes).metadata();assert.equal(metadata.width,1200);assert.equal(metadata.height,1800);
+   layouts[count].fullSheetArtwork=await assertFullSheetPresetArtwork(bytes,label+' '+count+' finished JPEG');
    // Make the full-resolution, actual approved layouts available for visual QA.
    await writeFile(`${out}/${label}-${count}-artwork.jpg`,bytes);
   }
   const one=layouts[1].images[0],four=layouts[4].images[0];
-  assert(one.width>=four.width-.02&&one.height>four.height*3,label+' one photo is clearly larger than each of four photos');
+  assert(one.width>=900&&one.width*one.height>four.width*four.height*3,label+' one full-width photo is clearly larger than each of four photos');
   assert.equal(await page.locator('.pcStage,[data-testid="approved-guest-preview"]').count(),0,'choosing a preview never starts capture');
   assert.equal(await page.evaluate(key=>localStorage.getItem(key),LEGACY_KEYS.usage),'19');
   assert.equal(await page.evaluate(key=>JSON.parse(localStorage.getItem(key)).defaultTemplate,LEGACY_KEYS.config),config.defaultTemplate);
@@ -140,6 +145,7 @@ async function captureCase(browser,engine,count){
   }
   const finished=await assertFinishedGuest(page,count),metadata=await sharp(finished).metadata();
   assert.equal(metadata.width,1200);assert.equal(metadata.height,1800);
+  const fullSheetArtwork=await assertFullSheetPresetArtwork(finished,label+' captured JPEG');
   await writeFile(`${out}/${label}-finished.jpg`,finished);await page.screenshot({path:`${out}/${label}-finished-screen.png`});
   const stored=await page.evaluate(async source=>{
    const api=new Function(source.replace(/\bexport /g,'')+'\nreturn {listCaptures};')(),rows=await api.listCaptures('legacy');
@@ -154,7 +160,7 @@ async function captureCase(browser,engine,count){
   assert.equal(await page.evaluate(key=>localStorage.getItem(key),LEGACY_KEYS.usage),'19');
   assert.deepEqual(await page.evaluate(()=>({prints:window.__layoutPrints,shares:window.__layoutShares,cameraStarts:window.__layoutCameraStarts})),{prints:0,shares:0,cameraStarts:1});
   assert.deepEqual(writes,[]);assert.deepEqual(errors,[]);assert.deepEqual(protectedVisits,[]);
-  results.push({test:label,passed:true,actualPoses:count,uniquePoses:new Set(stored.poses).size,exactSharedRendererJPEG:true,exactArchivedJPEG:true,writeRequests:writes});
+  results.push({test:label,passed:true,actualPoses:count,uniquePoses:new Set(stored.poses).size,fullSheetArtwork,exactSharedRendererJPEG:true,exactArchivedJPEG:true,writeRequests:writes});
  }catch(error){await page.screenshot({path:`${out}/${label}-failure.png`,fullPage:true}).catch(()=>{});throw error;}
  finally{await context.close();}
 }
