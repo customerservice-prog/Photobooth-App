@@ -28,8 +28,8 @@ export default async function EventBackups({params}){
 
   {(awaiting||empty)&&<section className="card cardPad eventGalleryIntro" data-testid="owner-gallery-empty">
    <div className="eyebrow">ONLINE COPIES</div>
-   <h2 className="sectionTitle">{awaiting?'Load this event on the iPad':'No uploaded photos for this event yet'}</h2>
-   <p className="sectionLead">Open this event’s setup link on the iPad. Its original photos and finished keepsakes then save here automatically while online. Photos taken offline wait on the iPad and upload when it reconnects.</p>
+   <h2 className="sectionTitle">{awaiting?'Start this event on the booth':'No uploaded photos for this event yet'}</h2>
+   <p className="sectionLead">On the booth iPad, open <strong>Staff tools → Choose layout &amp; start event</strong>. Choose this event and its layout, then tap <strong>Open guest welcome</strong>. Its original photos and finished keepsakes save here automatically while online. Photos taken offline wait on the iPad and upload when it reconnects.</p>
    <p className="eventGalleryHelp">Keep the event iPad online until its uploads have finished. Photos already taken under an older event entry can still be in that entry’s local iPad gallery.</p>
   </section>}
 
