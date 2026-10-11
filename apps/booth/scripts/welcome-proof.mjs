@@ -72,7 +72,7 @@ try{
   for(const [label,w,h] of [['desktop',1440,900],['laptop',1366,650],['ipad-landscape',1024,768],['ipad-portrait',768,1024],['phone',390,844],['small-phone',320,640],['short-screen',1024,600],['zoom-reflow',640,720]])await layout(page,`${engine}-${label}`,w,h);
   await approvedWelcome(browser,engine);
   await page.setViewportSize({width:1366,height:768});await open(page);
-  await page.evaluate(()=>{Object.defineProperty(navigator,'onLine',{configurable:true,get:()=>false});window.dispatchEvent(new Event('offline'));});assert((await page.locator('.bwConnection').textContent()).includes('Offline'));results.push({test:engine+'-offline-indicator',passed:true});
+  await page.evaluate(()=>{Object.defineProperty(navigator,'onLine',{configurable:true,get:()=>false});window.dispatchEvent(new Event('offline'));});assert.equal((await page.locator('.bwConnection').textContent()).trim(),'Browser offline');results.push({test:engine+'-offline-indicator',passed:true});
   await open(page);await page.getByRole('button',{name:'Add to iPad',exact:true}).click();await page.getByRole('dialog',{name:'Install on iPad'}).waitFor();await page.getByRole('button',{name:'Close instructions'}).click();results.push({test:engine+'-install-dialog',passed:true});
   const staff=page.getByTestId('welcome-staff-tools');
   await staff.click();await page.getByRole('dialog',{name:'Staff access',exact:true}).waitFor();
