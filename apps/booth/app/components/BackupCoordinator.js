@@ -6,8 +6,8 @@ import {syncEventPhotos,eventBackupProof,PHOTO_SAVED_EVENT} from '../lib/backup-
 export default function BackupCoordinator(){
  const pathname=usePathname();
  useEffect(()=>{
-  // Choosing a booking is not a guest session in the legacy URL scope.
-  if(pathname?.startsWith('/staff/')||pathname==='/print-test')return;
+  // Staff rehearsals do not upload samples or update customer backup status.
+  if(pathname?.startsWith('/staff/')||pathname==='/print-test'||pathname==='/delivery-check')return;
   let stopped=false;
   const run=event=>{
    if(stopped)return;

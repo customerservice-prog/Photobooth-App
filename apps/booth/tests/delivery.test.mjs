@@ -21,6 +21,19 @@ test('cross-origin POST cannot send',async()=>{await assert.rejects(()=>send(req
 test('missing pairing config cannot authorize',async()=>{await assert.rejects(()=>pair(request({code:'x'}),{BOOTH_PUBLIC_URL:env.BOOTH_PUBLIC_URL}),e=>e.status===503);});
 test('unauthenticated receipt cannot be fetched',async()=>{await assert.rejects(()=>check(new Request('https://booth.example.com/api/delivery/status?id='+randomUUID()),env),e=>e.status===401);});
 test('email adapter attaches JPEG and sets idempotency key; queued is not delivered',async()=>{const j=job();const result=await sendProvider(j,env,async(url,opts)=>{assert.equal(url,'https://api.resend.com/emails');assert.equal(opts.headers['Idempotency-Key'],j.id);const body=JSON.parse(opts.body);assert.equal(body.attachments[0].content,jpeg.toString('base64'));assert.deepEqual(body.to,['test@example.com']);return Response.json({id:randomUUID()});});assert.equal(result.status,'queued');});
+for(const version of [4,7,8])test('email adapter retains a canonical Resend UUIDv'+version+' receipt',async()=>{
+ const id='0199ca34-9d42-'+version+'abc-89ab-0123456789ab';
+ const result=await sendProvider(job(),env,async()=>Response.json({id}));
+ assert.deepEqual(result,{providerId:id,status:'queued'});
+});
+test('email adapter rejects unusable Resend receipt IDs',async()=>{
+ for(const id of [undefined,null,false,42,{},[], '', 'not-a-uuid', '0199ca34-9d42-7abc-09ab-0123456789ab', '0199ca34-9d42-0abc-89ab-0123456789ab', '0199ca34-9d42-9abc-89ab-0123456789ab', '0199ca34-9d42-7abc-89ab-0123456789ab/extra']){
+  await assert.rejects(()=>sendProvider(job(),env,async()=>Response.json({id})),/No usable provider receipt/);
+ }
+});
+test('newer Resend receipt support does not broaden internal request identifiers',()=>{
+ assert.throws(()=>validate({...input(),requestId:'0199ca34-9d42-7abc-89ab-0123456789ab'}),/Invalid request identifier/);
+});
 test('SMS adapter sends only server photo link to requested recipient',async()=>{const j={...job(),channel:'sms',recipient:'+13155550123',test:true};const r=await sendProvider(j,env,async(url,opts)=>{assert(url.startsWith('https://api.twilio.com/'));assert.equal(opts.body.get('To'),'+13155550123');assert.equal(opts.body.get('MessagingServiceSid'),env.TWILIO_MESSAGING_SERVICE_SID);assert(opts.body.get('Body').includes('[BOOTH TEST]'));assert(opts.body.get('Body').includes('https://booth.example.com/api/keepsake/'));return Response.json({sid:'SM'+'d'.repeat(32),status:'queued'});});assert.equal(r.status,'queued');});
 test('provider rejection is not a delivery success',async()=>{await assert.rejects(()=>sendProvider(job(),env,async()=>Response.json({message:'bad key'},{status:401})),e=>e.providerRejected===true);});
 test('missing provider receipt is an error',async()=>{await assert.rejects(()=>sendProvider(job(),env,async()=>Response.json({})));});
