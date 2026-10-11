@@ -90,7 +90,7 @@ async function proof(browser,engine){
   },{event,other,activeKey:ACTIVE_EVENT_KEY,source:archiveSource,jpeg:fixturePhoto});
   const before=await snapshot(page);
   const enableGET=await context.request.get(base+'/api/delivery/session/staff');assert.equal(enableGET.status(),405);assert.equal((await deliveryCookies(context)).length,0,'GET cannot authorize a device');
-  const setup=page.locator('.deliverySetupDetails');await setup.locator('summary').click();
+  const setup=page.locator('.deliverySetupDetails');await setup.locator(':scope > summary').click();
   const readsBefore=configReads;await page.getByRole('button',{name:'Refresh configuration',exact:true}).click();await page.waitForLoadState('networkidle');assert(configReads>readsBefore);
   assert.equal((await deliveryCookies(context)).length,0,'refresh remains read-only');assert.equal(writes.filter(write=>write.path==='/api/delivery/session/staff').length,0);
   assert.match(await page.getByTestId('delivery-readiness-sms').innerText(),/Optional.*off/);
