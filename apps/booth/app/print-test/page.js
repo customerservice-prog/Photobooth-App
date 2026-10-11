@@ -6,7 +6,7 @@ import {readPrintRehearsal,rehearsalInputs,rehearsalSampleFamily} from '../lib/p
 import {presetById} from '../lib/fpr-print-presets.mjs';
 import './print-test.css';
 
-function loadSamplePoses(family){
+function loadSamplePoses(family,matchingStrips){
  return new Promise((resolve,reject)=>{
   const picture=new Image(),timer=setTimeout(()=>{picture.onload=null;picture.onerror=null;reject(new Error('Sample photos took too long to load. Reconnect and try again.'));},15000);
   picture.onload=()=>{
@@ -15,9 +15,13 @@ function loadSamplePoses(family){
    try{
     if(picture.naturalWidth<4||picture.naturalHeight<1)throw new Error('Sample photos could not be read.');
     const context=canvas.getContext('2d');if(!context)throw new Error('This device could not prepare a test photo.');
-    const cellWidth=picture.naturalWidth/4,poses=[];
-    for(let i=0;i<4;i++){context.clearRect(0,0,420,495);context.drawImage(picture,i*cellWidth,0,cellWidth,picture.naturalHeight,0,0,420,495);poses.push(canvas.toDataURL('image/jpeg',.80));}
-    resolve(poses);
+    const cellWidth=picture.naturalWidth/4,cellHeight=picture.naturalHeight,poses=[];
+    context.drawImage(picture,0,0,cellWidth,cellHeight,0,0,420,495);
+    const one=canvas.toDataURL('image/jpeg',.80);
+    const height=matchingStrips?260:495,cropHeight=matchingStrips?Math.min(cellHeight,cellWidth*260/420):cellHeight;
+    canvas.height=height;
+    for(let i=0;i<4;i++){context.clearRect(0,0,420,height);context.drawImage(picture,i*cellWidth,0,cellWidth,cropHeight,0,0,420,height);poses.push(canvas.toDataURL('image/jpeg',.80));}
+    resolve({one,poses});
    }catch(error){reject(error);}
    finally{canvas.width=0;canvas.height=0;picture.onload=null;picture.onerror=null;}
   };
@@ -38,7 +42,9 @@ export default function PrintTest(){
     const current=readPrintRehearsal(localStorage,window.location.search);
     if(!alive)return;setContext(current);
     if(!current.cfg)return;
-    const inputs=rehearsalInputs(current.cfg,await loadSamplePoses(rehearsalSampleFamily(current.cfg)));
+    const matchingStrips=Boolean(presetById(current.cfg.defaultTemplate)||current.cfg.defaultTemplate==='grad-gala'||current.cfg.defaultTemplate==='custom'&&current.cfg.customDesign?.layouts?.four?.copies===2);
+    const samples=await loadSamplePoses(rehearsalSampleFamily(current.cfg),matchingStrips);
+    const inputs=rehearsalInputs(current.cfg,samples.poses);inputs.one.photo=samples.one;
     const one=await makeKeepsakeExport(inputs.one),four=await makeKeepsakeExport(inputs.four);
     if(alive)setArtifacts({one,four});
    }catch(failure){if(alive)setError(failure.message||'The test print could not be prepared.');}
@@ -49,7 +55,7 @@ export default function PrintTest(){
   return()=>{alive=false;window.removeEventListener('afterprint',after);};
  },[retry]);
  const cfg=context?.cfg,selected=artifacts?.[choice],preset=cfg&&presetById(cfg.defaultTemplate),ready=selected&&imageReady===selected.key&&sheetReady===selected.key;
- const legacyTwoStrips=cfg?.defaultTemplate==='custom'&&cfg.customDesign?.layouts?.four?.copies===2;
+ const matchingStrips=Boolean(preset||cfg?.defaultTemplate==='grad-gala'||cfg?.defaultTemplate==='custom'&&cfg.customDesign?.layouts?.four?.copies===2);
  function select(next){setChoice(next);setChecks({});setMessage('');}
  function print(){
   if(!ready)return;setChecks({});setMessage('Select Canon SELPHY, 4×6 paper and one copy. Use borderless printing to fill the paper.');
@@ -64,10 +70,10 @@ export default function PrintTest(){
     {cfg&&<div className="ptEvent" data-testid="print-test-event"><strong>{cfg.title}</strong><span>{cfg.date}</span><small>{preset?preset.name+' artwork':cfg.defaultTemplate==='custom'?'Your approved custom artwork':'Your saved event artwork'}</small></div>}
     {cfg&&<>
      <div className="ptChoices" role="group" aria-label="Choose the test photo layout">
-      {[['one','1 Photo','One large picture'],['four','4 Photos',legacyTwoStrips?'Your saved two-strip layout':'Four different photos']].map(([value,label,note])=><button type="button" key={value} data-testid={'print-test-'+value} aria-pressed={choice===value} onClick={()=>select(value)}><span className={'ptChoiceIcon ptChoiceIcon-'+value+(value==='four'&&legacyTwoStrips?' ptChoiceIcon-four-saved-strips':'')} aria-hidden="true">{Array.from({length:value==='one'?1:legacyTwoStrips?8:4},(_,i)=><i key={i}/>)}</span><strong>{label}</strong><small>{note}</small></button>)}
+      {[['one','1 Photo','One large picture'],['four','4 Photos',matchingStrips?'4 poses · two matching strips':'Four different photos']].map(([value,label,note])=><button type="button" key={value} data-testid={'print-test-'+value} aria-pressed={choice===value} onClick={()=>select(value)}><span className={'ptChoiceIcon ptChoiceIcon-'+value+(value==='four'&&!matchingStrips?' ptChoiceIcon-four-grid':'')} aria-hidden="true">{Array.from({length:value==='one'?1:matchingStrips?8:4},(_,i)=><i key={i}/>)}</span><strong>{label}</strong><small>{note}</small></button>)}
      </div>
      <button className="ptPrintButton" type="button" data-testid="print-test-print" disabled={!ready} onClick={print}>Print one {choice==='one'?'1-photo':'4-photo'} test sheet</button>
-     <p className="ptAssurance">Sample photos only. This does not use the customer’s print allowance or save test photos to their gallery.</p>
+     <p className="ptAssurance">{choice==='four'&&matchingStrips?'Four different poses repeat on two matching 2×6 strips, together on one 4×6 sheet. ':''}Sample photos only. This does not use the customer’s print allowance or save test photos to their gallery.</p>
     </>}
     {!context&&!error&&<p role="status">Opening your event…</p>}
     {context&&!cfg&&!error&&<div className="ptEmpty"><h2>Choose your event first.</h2><p>The printer check uses the design saved for that event.</p><a className="ptChooseEvent" href={chooseHref}>Choose event &amp; design</a></div>}

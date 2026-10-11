@@ -15,7 +15,7 @@ export function createCustomDesign(mode='build'){
  return {v:1,mode,background:'#fffaf1',ink:'#263c37',accent:'#c5a46a',heading:'',footer:'',layouts:{
   one:{image:'',rects:[{x:8,y:14,w:84,h:66}]},
   four:mode==='build'
-   ?{image:'',rects:Array.from({length:4},(_,i)=>({x:(36+(i%2)*576)/12,y:(144+Math.floor(i/2)*674)/18,w:552/12,h:650/18}))}
+   ?{image:'',copies:2,rects:Array.from({length:4},(_,i)=>({x:26/12,y:(120+350*i)/18,w:548/12,h:336/18}))}
    :{image:'',rects:Array.from({length:4},(_,i)=>({x:8+(i%2)*43,y:14+Math.floor(i/2)*34,w:41,h:32}))}
  }};
 }

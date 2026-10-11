@@ -281,7 +281,7 @@ try{
     fourValues:[...editor.querySelectorAll('.customApertures fieldset')[1].querySelectorAll('input[type="number"]')].slice(0,4).map(input=>input.valueAsNumber),
     invalid:[...editor.querySelectorAll('input[type="number"]')].filter(input=>!input.validity.valid).map(input=>({label:input.getAttribute('aria-label'),value:input.value,stepMismatch:input.validity.stepMismatch,message:input.validationMessage}))
    }));
-   assert.deepEqual(customNativeValidity.fourValues.map(coordinate),[36/12,144/18,552/12,650/18].map(coordinate),'the custom builder keeps the precise default four-photo grid coordinates');
+   assert.deepEqual(customNativeValidity.fourValues.map(coordinate),[26/12,120/18,548/12,336/18].map(coordinate),'the custom builder keeps the precise default strip coordinates');
    assert.deepEqual(customNativeValidity.invalid,[],'native number-input validation must accept the precise default coordinates before starting the event');
    await page.getByTestId('staff-custom-done').click();await readyProofs(page);
    assert.equal(await page.locator('form.staffStartForm').evaluate(form=>form.checkValidity()),true,'the finished custom builder form is valid before Start event');

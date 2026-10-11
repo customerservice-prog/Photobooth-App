@@ -37,8 +37,8 @@ function sampleFamily(cfg){
  if(String(cfg.title||'').toLowerCase().includes('quince'))return 'quince';
  return 'birthday';
 }
-function useSamplePoses(family){
- const [state,setState]=useState({family:'',poses:[]});
+function useSamplePoses(family,matchingStrips){
+ const [state,setState]=useState({family:'',matchingStrips:false,poses:[],one:''});
  useEffect(()=>{
   let alive=true;
   const picture=new Image();
@@ -51,42 +51,46 @@ function useSamplePoses(family){
     canvas.width=420;canvas.height=495;
     const context=canvas.getContext('2d');
     if(!context)throw new Error('Preview canvas unavailable');
+    context.drawImage(picture,0,0,cellWidth,cellHeight,0,0,420,495);
+    const one=canvas.toDataURL('image/jpeg',.80);
+    const height=matchingStrips?260:495,cropHeight=matchingStrips?Math.min(cellHeight,cellWidth*260/420):cellHeight;
+    canvas.height=height;
     const poses=[];
     for(let i=0;i<4;i++){
-     context.clearRect(0,0,420,495);
-     context.drawImage(picture,i*cellWidth,0,cellWidth,cellHeight,0,0,420,495);
+     context.clearRect(0,0,420,height);
+     context.drawImage(picture,i*cellWidth,0,cellWidth,cropHeight,0,0,420,height);
      poses.push(canvas.toDataURL('image/jpeg',.80));
     }
-    if(alive)setState({family,poses});
+    if(alive)setState({family,matchingStrips,poses,one});
     canvas.width=0;canvas.height=0;
-   }catch{if(alive)setState({family,poses:[]});}
+   }catch{if(alive)setState({family,matchingStrips,poses:[],one:''});}
   };
-  picture.onerror=()=>{if(alive)setState({family,poses:[]});};
+  picture.onerror=()=>{if(alive)setState({family,matchingStrips,poses:[],one:''});};
   picture.src='/images/welcome-poses/'+family+'-sprite.jpg';
   return()=>{alive=false;picture.onload=null;picture.onerror=null;};
- },[family]);
- return state.family===family?state.poses:[];
+ },[family,matchingStrips]);
+ return state.family===family&&state.matchingStrips===matchingStrips?state:{poses:[],one:''};
 }
 
 // The one full-size preview, both small layout selectors and the final JPEG
 // all pass through the exact same renderKeepsake/PrintCard artwork pipeline.
-const WelcomeProof=memo(function WelcomeProof({cfg,shots,poses}){
+const WelcomeProof=memo(function WelcomeProof({cfg,shots,poses,oneSample=''}){
  const design=guestEventConfig(cfg),samples=Array.isArray(poses)&&poses.length===4;
  return <span className="bwLayoutPreview" data-preview-photos={shots} data-example-poses={samples?'ready':'loading'} aria-hidden="true">
-  <PrintCard photo={samples?poses[0]:''} poses={samples?poses:[]} layout={shots===1?'card':'photo_strip'} stripMode="single" sample={!samples} cfg={design} monogram={eventMonogram(design)} template={design.defaultTemplate}/>
+  <PrintCard photo={samples?(oneSample||poses[0]):''} poses={samples?poses:[]} layout={shots===1?'card':'photo_strip'} stripMode="single" sample={!samples} cfg={design} monogram={eventMonogram(design)} template={design.defaultTemplate}/>
  </span>;
 });
 
 export default function WelcomeScreen({cfg,eventName,online,starting,installed,printsUsed=0,onStartQuick,onStartFour,onInstall,onOperator,voiceStatus='idle',showGraduationPreview=false,helpHref='/help'}){
  const [staffPrompt,setStaffPrompt]=useState(false);
  const preferred=normalizePhotoPreference(cfg.defaultPhotoExperience),[choice,setChoice]=useState(preferred);
- const family=sampleFamily(cfg),poses=useSamplePoses(family);
+ const preset=presetById(cfg.defaultTemplate);
+ const matchingStrips=Boolean(preset||cfg.defaultTemplate==='grad-gala'||cfg.defaultTemplate==='custom'&&cfg.customDesign?.layouts?.four?.copies===2);
+ const family=sampleFamily(cfg),{poses,one}=useSamplePoses(family,matchingStrips);
  const rules=normalizePrintPackage(cfg.printPackage),available=rules.printingEnabled&&printsRemaining(rules,printsUsed)>0;
  const title=String(cfg.title||'Our Celebration');
  const time=cfg.schedule?scheduleLabel(cfg):(cfg.details?.subtitle!==cfg.subtitle?cfg.details?.subtitle:'');
  const pause=normalizeGuestPause(cfg.photoPauseSeconds),approved=cfg.guestMode==='approved';
- const preset=presetById(cfg.defaultTemplate);
- const legacyTwoStrips=cfg.defaultTemplate==='custom'&&cfg.customDesign?.layouts?.four?.copies===2;
  const proofCfg=useMemo(()=>guestEventConfig(cfg),[cfg]);
  useEffect(()=>setChoice(normalizePhotoPreference(cfg.defaultPhotoExperience)),[cfg.eventId,cfg.defaultTemplate,cfg.title,cfg.defaultPhotoExperience]);
  const chosenShots=choice==='one'?1:4;
@@ -109,14 +113,14 @@ export default function WelcomeScreen({cfg,eventName,online,starting,installed,p
       <div className="bwSessionChoices" role="group" aria-label="Choose your photo layout">
        <button type="button" className={'bwSessionCard bwQuickSession'+(choice==='one'?' isSelected':'')} data-testid="welcome-quick-photo" aria-pressed={choice==='one'} aria-label="Preview 1-photo layout" disabled={starting} onClick={()=>setChoice('one')}>
         <span className="bwSessionHeading"><span><small>ONE PERFECT POSE</small><strong>1 Photo</strong></span><span className="bwSessionCheck"><Mark name="check" size={17}/></span></span>
-        <WelcomeProof cfg={proofCfg} shots={1} poses={poses}/>
+        <WelcomeProof cfg={proofCfg} shots={1} poses={poses} oneSample={one}/>
         <span className="bwPreviewCaption">One picture, one 4×6 print</span>
         <span className="bwCardCTA">{choice==='one'?'Selected':'See this layout'} <Mark name={choice==='one'?'check':'arrow'} size={16}/></span>
        </button>
        <button type="button" className={'bwSessionCard bwFourSession'+(choice==='four'?' isSelected':'')} data-testid="welcome-four-photo" aria-pressed={choice==='four'} aria-label="Preview 4-photo layout" disabled={starting} onClick={()=>setChoice('four')}>
         <span className="bwSessionHeading"><span><small>FOUR FUN POSES</small><strong>4 Photos</strong></span><span className="bwSessionCheck"><Mark name="check" size={17}/></span></span>
-        <WelcomeProof cfg={proofCfg} shots={4} poses={poses}/>
-        <span className="bwPreviewCaption">{legacyTwoStrips?'Your saved two-strip layout · one 4×6 print':'Four different photos · one 4×6 print'}</span>
+        <WelcomeProof cfg={proofCfg} shots={4} poses={poses} oneSample={one}/>
+        <span className="bwPreviewCaption">{matchingStrips?'Two matching strips · one 4×6 print':'Four different photos · one 4×6 print'}</span>
         <span className="bwCardCTA">{choice==='four'?'Selected':'See this layout'} <Mark name={choice==='four'?'check':'arrow'} size={16}/></span>
        </button>
       </div>
@@ -125,12 +129,12 @@ export default function WelcomeScreen({cfg,eventName,online,starting,installed,p
      <div className="bwProofPanel" data-testid="welcome-proof-panel" aria-live="polite">
       <div className="bwProofHeading"><div className="bwStep"><span>02</span> YOUR REAL PRINT PREVIEW</div><span className="bwPaperSize"><Mark name="print" size={15}/> 4 × 6 KEEPSAKE</span></div>
       <h2>Your finished keepsake</h2>
-      <p className="bwProofSub">{preset?preset.name+' artwork':'Your saved event artwork'} · {chosenShots===1?'1 photo':legacyTwoStrips?'4 poses · saved two-strip layout':'4 different photos'} · {cfg.date||'Event date'}</p>
+      <p className="bwProofSub">{preset?preset.name+' artwork':'Your saved event artwork'} · {chosenShots===1?'1 photo':matchingStrips?'4 poses · two matching strips':'4 different photos'} · {cfg.date||'Event date'}</p>
       <div className="bwLargeProofStage" data-testid="welcome-large-proof" data-selected-photos={String(chosenShots)}>
-       <WelcomeProof cfg={proofCfg} shots={chosenShots} poses={poses}/>
+       <WelcomeProof cfg={proofCfg} shots={chosenShots} poses={poses} oneSample={one}/>
        <span className="bwProofExampleTag">{poses.length===4?'SAMPLE PHOTOS':'PHOTO AREAS'} <span>· YOUR PHOTOS REPLACE THESE</span></span>
       </div>
-      <p className="bwProofAssurance"><Mark name="check" size={16}/> Your chosen design. Your photos. One beautiful keepsake.</p>
+      <p className="bwProofAssurance"><Mark name="check" size={16}/> {chosenShots===4&&matchingStrips?'Four different poses, printed twice on one 4×6 sheet.':'Your chosen design. Your photos. One beautiful keepsake.'}</p>
       <button type="button" className="bwStartButton" data-testid="welcome-start-session" disabled={starting} onClick={startSelected} aria-label={'Start '+chosenShots+'-photo session'}>
        <span>{starting?'Getting camera ready…':'Start '+chosenShots+' '+(chosenShots===1?'photo':'photos')}</span><Mark name="arrow" size={22}/>
       </button>

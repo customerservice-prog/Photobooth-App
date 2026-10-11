@@ -5,7 +5,7 @@ export function approvedCaptureFrame(cfg={},current=1,total=4){
  if(cfg.guestMode!=='approved'||total!==4)return null;
  let width,height;
  if(isFprPrintPreset(cfg.defaultTemplate)||cfg.defaultTemplate==='grad-gala'){
-  width=552;height=650;
+  width=548;height=336;
  }else if(cfg.defaultTemplate==='custom'){
   const index=Math.max(0,Math.min(3,Math.trunc(Number(current)||1)-1));
   const rect=cfg.customDesign?.layouts?.four?.rects?.[index];

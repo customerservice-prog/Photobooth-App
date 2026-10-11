@@ -17,9 +17,8 @@ import {normalizeEventConfig,eventMonogram} from '../app/lib/event-config.mjs';
 import {createCustomDesign,validateCustomDesign} from '../app/lib/custom-design.mjs';
 import {renderKeepsake} from '../app/lib/keepsake-designs.mjs';
 import {BOOTH_RELEASE} from '../app/lib/booth-launch.mjs';
-import {assertFullSheetPresetArtwork,assertUploadedArtworkEdges} from './assert-full-sheet-artwork.mjs';
+import {assertFullSheetPresetArtwork,assertMatchingStripJPEG,assertUploadedArtworkEdges} from './assert-full-sheet-artwork.mjs';
 import {assertApprovedStripWindows} from './assert-approved-strips.mjs';
-import {assertFourPhotoSheet} from './assert-four-photo-sheet.mjs';
 
 // This exercises the real, PIN-protected page and actual browser JPEG exporter.
 // Every event, archive and staff cookie is an isolated local fixture. The print
@@ -98,16 +97,21 @@ async function seededPage(browser,test){
 // Independently reconstruct the four locally bundled examples. They are never
 // archived. Comparing complete JPEG bytes proves the page uses exactly these
 // four ordered originals in the chosen guest renderer, not an old sample card.
-async function examplePoses(page,family){
- return page.evaluate(async family=>{
+async function examplePoses(page,family,matchingStrips){
+ return page.evaluate(async({family,matchingStrips})=>{
   const image=new Image();await new Promise((resolve,reject)=>{image.onload=resolve;image.onerror=reject;image.src='/images/welcome-poses/'+family+'-sprite.jpg';});
-  const width=image.naturalWidth/4,poses=[];
+  const width=image.naturalWidth/4,canvas=document.createElement('canvas'),poses=[];
+  canvas.width=420;canvas.height=495;const ctx=canvas.getContext('2d');
+  ctx.drawImage(image,0,0,width,image.naturalHeight,0,0,420,495);
+  const one=canvas.toDataURL('image/jpeg',.80),height=matchingStrips?260:495;
+  const cropHeight=matchingStrips?Math.min(image.naturalHeight,width*260/420):image.naturalHeight;
+  canvas.height=height;
   for(let pose=0;pose<4;pose++){
-   const canvas=document.createElement('canvas');canvas.width=420;canvas.height=495;const ctx=canvas.getContext('2d');
-   ctx.drawImage(image,pose*width,0,width,image.naturalHeight,0,0,420,495);poses.push(canvas.toDataURL('image/jpeg',.80));canvas.width=0;canvas.height=0;
+   ctx.clearRect(0,0,420,height);ctx.drawImage(image,pose*width,0,width,cropHeight,0,0,420,height);poses.push(canvas.toDataURL('image/jpeg',.80));
   }
-  return poses;
- },family);
+  canvas.width=0;canvas.height=0;
+  return {one,poses};
+ },{family,matchingStrips});
 }
 async function actualExport(page,svg,count){
  return Buffer.from(await page.evaluate(async({svg,source,count})=>{
@@ -122,13 +126,10 @@ async function orderedOpenings(page,svg,count,test){
   return {viewBox:root.getAttribute('viewBox'),preset:root.getAttribute('data-fpr-preset'),customMode:root.getAttribute('data-custom-mode'),images:[...root.querySelectorAll('image[data-guest-photo="true"]')].map(image=>({pose:Number(image.getAttribute('data-pose')),copy:Number(image.getAttribute('data-copy')),src:image.getAttribute('href'),x:Number(image.getAttribute('x')),y:Number(image.getAttribute('y')),width:Number(image.getAttribute('width')),height:Number(image.getAttribute('height'))}))};
  },svg);
  assert.equal(info.viewBox,'0 0 1200 1800');
- const copies=count===4&&test.config.customDesign?.layouts?.four?.copies===2?2:1;
+ const copies=count===4&&(test.preset||test.config.customDesign?.layouts?.four?.copies===2)?2:1;
  assert.equal(info.images.length,count*copies);
  if(copies===2)info.strips=assertApprovedStripWindows(info.images,test.name,{sourceKey:'src'});
- else{
-  assert.deepEqual(info.images.map(image=>image.pose),Array.from({length:count},(_,i)=>i+1),'all original poses are ordered exactly once in the approved geometry');
-  if(count===4&&(test.preset||test.name==='custom-build'))info.sheet=assertFourPhotoSheet(info.images,test.name,{sourceKey:'src'});
- }
+ else assert.deepEqual(info.images.map(image=>image.pose),Array.from({length:count},(_,i)=>i+1),'all original poses are ordered exactly once in the approved custom geometry');
  assert.equal(new Set(info.images.map(image=>image.src)).size,count,'all four sample photos are distinct');
  if(test.preset)assert.equal(info.preset,test.preset,'chosen approved artwork remains selected');
  else assert.equal(info.customMode,test.config.customDesign.mode,'the selected custom artwork is used');
@@ -162,8 +163,9 @@ async function rehearsalCase(browser,engine,test){
   await page.getByTestId('print-test-preview').waitFor();
   assert((await page.getByTestId('print-test-event').textContent()).includes(test.config.title));
   assert.equal(await page.locator('select').count(),0,'there is no legacy artwork chooser');assert.equal(await page.getByRole('link',{name:'Compare sample designs',exact:true}).count(),0,'printer rehearsal cannot lead guests to another design gallery');
-  const poses=await examplePoses(page,test.family);
+  const examples=await examplePoses(page,test.family,Boolean(test.preset||test.config.customDesign?.layouts?.four?.copies===2));
   for(const count of [1,4]){
+   const poses=count===1?[examples.one]:examples.poses;
    const choice=page.getByTestId(count===1?'print-test-one':'print-test-four');await choice.click();
    await page.waitForFunction(()=>document.querySelector('[data-testid="print-test-preview"]')?.complete&&document.querySelector('[data-testid="print-test-preview"]')?.naturalWidth===1200&&!document.querySelector('[data-testid="print-test-print"]')?.disabled);
    assert.equal(await choice.getAttribute('aria-pressed'),'true');assert((await choice.boundingBox()).height>=44,'layout choice is large enough for an iPad tap');
@@ -174,6 +176,7 @@ async function rehearsalCase(browser,engine,test){
    const fullSheetArtwork=test.preset?await assertFullSheetPresetArtwork(bytes,label+' '+count+' rehearsal JPEG'):
     test.name==='custom-upload'?await assertUploadedArtworkEdges(bytes,count===1?'#234d62':'#653053',label+' '+count+' rehearsal JPEG'):null;
    const cfg=guestEventConfig(normalizeEventConfig(test.config)),svg=renderKeepsake({cfg,template:cfg.defaultTemplate,monogram:eventMonogram(cfg),photo:poses[0],poses,layout:count===1?'card':'photo_strip',stripMode:'single',filter:'none',id:'export-card'});
+   const matchingStrips=test.preset&&count===4?await assertMatchingStripJPEG(bytes,label+' four-photo rehearsal JPEG'):null;
    const openings=await orderedOpenings(page,svg,count,test),expected=await actualExport(page,svg,count);assert.deepEqual(bytes,expected,'actual rehearsal JPEG is byte-identical to the guest exporter with the selected event and each sample pose');
    await writeFile(`${out}/${label}-${count}-actual.jpg`,bytes);await page.screenshot({path:`${out}/${label}-${count}-screen.png`});
    const geometry=await printGeometry(page,source);await page.getByTestId('print-test-print').click();
@@ -184,7 +187,7 @@ async function rehearsalCase(browser,engine,test){
    for(let index=0;index<3;index++)await checks.nth(index).check();
    assert((await checkPanel.textContent()).includes('You marked this sample sheet checked.'),'the checklist attributes confirmation to the staff member');
    assert.deepEqual(await snapshot(page),before,'rehearsal printing leaves customer counters, settings, original photos and finished images byte-identical');
-   layouts[count]={openings,fullSheetArtwork,printGeometry:geometry};
+   layouts[count]={openings,fullSheetArtwork,matchingStrips,printGeometry:geometry};
   }
   assert.notDeepEqual(layouts[1].openings.images,layouts[4].openings.images,'one-photo and four-photo layouts are visibly different');
   // Portrait uses the same complete image and accessible controls.
