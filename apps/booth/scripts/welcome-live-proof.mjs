@@ -4,7 +4,7 @@ import {chromium,webkit} from 'playwright';
 import {BOOTH_RELEASE} from '../app/lib/booth-launch.mjs';
 import {octoberPreset,EVENT_KEYS,PREP_CHECKS} from '../app/lib/event-workspace.mjs';
 import {getDesign} from '../app/lib/template-registry.mjs';
-import {assertApprovedStripPreview} from './assert-approved-strips.mjs';
+import {assertFourPhotoPreview} from './assert-four-photo-sheet.mjs';
 
 // Public, isolated welcome checks only. Never enter a PIN or begin a session.
 const production='https://photobooth-booth-production.up.railway.app';
@@ -100,9 +100,8 @@ async function approvedWelcome(engine,type,template){
    assert.equal(await svg.getAttribute('data-layout'),expectedLayout);
    if(type==='other')assert.equal(await svg.locator('[data-approved-photo-region="true"]').count(),shots===4?1:0);
    await page.waitForFunction(()=>[...document.querySelectorAll('.bwLayoutPreview')].length===3&&[...document.querySelectorAll('.bwLayoutPreview')].every(e=>e.dataset.examplePoses==='ready'));
-   const copies=template==='grad-gala'&&shots===4?2:1;
-   assert.equal(await svg.locator('[data-guest-photo="true"]').count(),shots*copies,'four originals appear in both matching strips without using saved customer photos');
-   if(copies===2)await assertApprovedStripPreview(svg,engine+' live graduation welcome');
+   assert.equal(await svg.locator('[data-guest-photo="true"]').count(),shots,'each captured original appears once without using saved customer photos');
+   if(template==='grad-gala'&&shots===4)await assertFourPhotoPreview(svg,engine+' live graduation welcome');
    assert((await button.locator('.bwPreviewCaption').innerText()).includes('4×6 print'));
    assert.equal(await page.getByTestId('welcome-large-proof').locator('svg').count(),1);
   }

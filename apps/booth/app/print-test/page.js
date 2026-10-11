@@ -11,12 +11,12 @@ function loadSamplePoses(family){
   const picture=new Image(),timer=setTimeout(()=>{picture.onload=null;picture.onerror=null;reject(new Error('Sample photos took too long to load. Reconnect and try again.'));},15000);
   picture.onload=()=>{
    clearTimeout(timer);
-   const canvas=document.createElement('canvas');canvas.width=420;canvas.height=260;
+   const canvas=document.createElement('canvas');canvas.width=420;canvas.height=495;
    try{
     if(picture.naturalWidth<4||picture.naturalHeight<1)throw new Error('Sample photos could not be read.');
     const context=canvas.getContext('2d');if(!context)throw new Error('This device could not prepare a test photo.');
     const cellWidth=picture.naturalWidth/4,poses=[];
-    for(let i=0;i<4;i++){context.clearRect(0,0,420,260);context.drawImage(picture,i*cellWidth,0,cellWidth,picture.naturalHeight,0,0,420,260);poses.push(canvas.toDataURL('image/jpeg',.80));}
+    for(let i=0;i<4;i++){context.clearRect(0,0,420,495);context.drawImage(picture,i*cellWidth,0,cellWidth,picture.naturalHeight,0,0,420,495);poses.push(canvas.toDataURL('image/jpeg',.80));}
     resolve(poses);
    }catch(error){reject(error);}
    finally{canvas.width=0;canvas.height=0;picture.onload=null;picture.onerror=null;}
@@ -49,7 +49,7 @@ export default function PrintTest(){
   return()=>{alive=false;window.removeEventListener('afterprint',after);};
  },[retry]);
  const cfg=context?.cfg,selected=artifacts?.[choice],preset=cfg&&presetById(cfg.defaultTemplate),ready=selected&&imageReady===selected.key&&sheetReady===selected.key;
- const matchingStrips=Boolean(preset||cfg?.defaultTemplate==='grad-gala'||cfg?.defaultTemplate==='custom'&&cfg.customDesign?.layouts?.four?.copies===2);
+ const legacyTwoStrips=cfg?.defaultTemplate==='custom'&&cfg.customDesign?.layouts?.four?.copies===2;
  function select(next){setChoice(next);setChecks({});setMessage('');}
  function print(){
   if(!ready)return;setChecks({});setMessage('Select Canon SELPHY, 4×6 paper and one copy. Use borderless printing to fill the paper.');
@@ -64,7 +64,7 @@ export default function PrintTest(){
     {cfg&&<div className="ptEvent" data-testid="print-test-event"><strong>{cfg.title}</strong><span>{cfg.date}</span><small>{preset?preset.name+' artwork':cfg.defaultTemplate==='custom'?'Your approved custom artwork':'Your saved event artwork'}</small></div>}
     {cfg&&<>
      <div className="ptChoices" role="group" aria-label="Choose the test photo layout">
-      {[['one','1 Photo','One large picture'],['four','4 Photos',matchingStrips?'4 poses · two matching strips':'Four separate poses']].map(([value,label,note])=><button type="button" key={value} data-testid={'print-test-'+value} aria-pressed={choice===value} onClick={()=>select(value)}><span className={'ptChoiceIcon ptChoiceIcon-'+value+(value==='four'&&!matchingStrips?' ptChoiceIcon-four-grid':'')} aria-hidden="true">{Array.from({length:value==='one'?1:matchingStrips?8:4},(_,i)=><i key={i}/>)}</span><strong>{label}</strong><small>{note}</small></button>)}
+      {[['one','1 Photo','One large picture'],['four','4 Photos',legacyTwoStrips?'Your saved two-strip layout':'Four different photos']].map(([value,label,note])=><button type="button" key={value} data-testid={'print-test-'+value} aria-pressed={choice===value} onClick={()=>select(value)}><span className={'ptChoiceIcon ptChoiceIcon-'+value+(value==='four'&&legacyTwoStrips?' ptChoiceIcon-four-saved-strips':'')} aria-hidden="true">{Array.from({length:value==='one'?1:legacyTwoStrips?8:4},(_,i)=><i key={i}/>)}</span><strong>{label}</strong><small>{note}</small></button>)}
      </div>
      <button className="ptPrintButton" type="button" data-testid="print-test-print" disabled={!ready} onClick={print}>Print one {choice==='one'?'1-photo':'4-photo'} test sheet</button>
      <p className="ptAssurance">Sample photos only. This does not use the customer’s print allowance or save test photos to their gallery.</p>

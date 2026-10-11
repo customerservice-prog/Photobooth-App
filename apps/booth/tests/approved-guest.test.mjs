@@ -30,7 +30,7 @@ test('one photo and four original photos use the identical customer-approved sty
  const four=renderKeepsake({photo:shots[0],poses:shots,cfg,template:cfg.defaultTemplate,layout:'photo_strip',stripMode:'single'});
  assert.match(one,/data-design="graduation-grad-gala"/);assert.match(four,/data-design="graduation-grad-gala"/);
  assert.equal((one.match(/data-guest-photo="true"/g)||[]).length,1);
- assert.equal((four.match(/data-guest-photo="true"/g)||[]).length,8,'four originals are printed once in each matching strip');
+ assert.equal((four.match(/data-guest-photo="true"/g)||[]).length,4,'four originals are printed once each');
  for(const shot of shots)assert(four.includes(shot));
  assert.match(one,/Taylor/);assert.match(four,/Taylor/);
  assert.match(four,/2027/);

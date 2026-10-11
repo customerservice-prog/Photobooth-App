@@ -24,12 +24,12 @@ export function ProgressCard({event,compact=false}){
 }
 export function ExperienceSummary({event}){
  const e=experienceFrom(event);
- const matchingStrips=isFprPrintPreset(e.approvedDesign)||e.approvedDesign==='grad-gala'||e.approvedDesign==='custom'&&e.customDesign?.layouts?.four?.copies===2;
+ const approvedSheet=isFprPrintPreset(e.approvedDesign)||e.approvedDesign==='grad-gala';
  return <div className="keyValue">
   <div><small>Featured guest choice</small><strong>{e.featured==='one'?'1 Photo':'4 Photos'} (both available)</strong></div>
   <div><small>Pose break</small><strong>{e.pauseSeconds} seconds between photos</strong></div>
-  <div><small>Print sheet</small><strong>4×6{matchingStrips?' · 1-photo card or 4-photo strips':e.format==='strip'?' · photo strip':' · card'}</strong></div>
-  <div><small>Four-photo keepsake</small><strong>{matchingStrips?'Two matching 2×6 strips':e.strips+' '+(e.strips===1?'strip':'matching strips')}</strong></div>
+  <div><small>Print sheet</small><strong>One 4×6 print</strong></div>
+  <div><small>Four-photo keepsake</small><strong>{approvedSheet?'Four different photos':'Your saved customer layout'}</strong></div>
   <div><small>Photo framing</small><strong>{e.photoFit==='fill'?'Fill each frame':'Show whole photo'}</strong></div>
   <div><small>Event colors</small><strong><span style={{display:'inline-flex',width:32,height:12,borderRadius:4,overflow:'hidden',verticalAlign:'middle',marginRight:7}}><i style={{flex:1,background:e.primary}}/><i style={{flex:1,background:e.accent}}/></span>{e.paletteId.replaceAll('-',' ')}</strong></div>
  </div>;

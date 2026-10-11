@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {FPR_PRINT_PRESETS} from '../app/lib/fpr-print-presets.mjs';
 import {renderFprPrint} from '../app/lib/fpr-print-renderer.mjs';
-import {assertApprovedStripWindows} from '../scripts/assert-approved-strips.mjs';
+import {assertFourPhotoSheet} from '../scripts/assert-four-photo-sheet.mjs';
 
 const poses=[1,2,3,4].map(n=>'data:image/jpeg;base64,/9j/AA'+n+'=');
 const attr=(tag,name)=>tag.match(new RegExp(' '+name+'="([^"]*)"'))?.[1];
@@ -21,17 +21,17 @@ const referencePhotoPanels={
 
 
 for(const preset of FPR_PRINT_PRESETS){
- test(preset.name+' has one large photograph or two matching landscape four-photo strips filling one sheet',()=>{
+ test(preset.name+' has one large photograph or four unique photographs filling one 4x6 sheet',()=>{
   const cfg={approvedPrintName:'Jordan & Avery',date:'June 10, 2027',details:{classYear:'2027'}};
   const input={template:preset.id,cfg,photo:poses[0],poses,id:'proof'};
   const one=renderFprPrint({...input,layout:'card'}),four=renderFprPrint({...input,layout:'photo_strip'});
   assert.equal(regions(one).length,1,'one-photo layout must never repeat the image in old reference openings');
-  assert.equal(regions(four).length,8,'four poses are printed in both matching strips');
+  assert.equal(regions(four).length,4,'four poses appear once each on the sheet');
   assert.equal(images(one).length,1);assert.equal(attr(images(one)[0],'href'),poses[0]);
-  assertApprovedStripWindows(slots(four),preset.name);
-  assert.deepEqual(images(four).map(tag=>attr(tag,'href')),[...poses,...poses],'each captured pose appears once per strip in capture order');
-  assert.equal((four.match(/data-fpr-strip-copy="[12]"/g)||[]).length,2);
-  assert.match(four,/data-fpr-sheet-photo-windows="8"/);
+  assertFourPhotoSheet(slots(four),preset.name);
+  assert.deepEqual(images(four).map(tag=>attr(tag,'href')),poses,'each captured pose appears exactly once in capture order');
+  assert.doesNotMatch(four,/data-fpr-strip-copy|data-fpr-strip-count="2"/,'the print is one full sheet, not two duplicated strips');
+  assert.match(four,/data-fpr-sheet-photo-windows="4"/);
   const large=regions(one)[0];
   const artwork=one.match(/<rect\b(?=[^>]*data-fpr-sheet-bounds="true")[^>]*\/>/)?.[0];
   assert(artwork,'the complete approved decorative sheet has explicit bounded geometry');
@@ -39,7 +39,7 @@ for(const preset of FPR_PRINT_PRESETS){
    'approved decorative artwork fills the entire 4x6 sheet instead of a narrow centered strip');
   assert.match(one,/<g data-fpr-sheet-artwork="true">/);
   assert(large.width>=900,'the one-photo opening uses at least three quarters of the full sheet width');
-  assert(large.width*large.height>slots(four)[0].width*slots(four)[0].height*3,'one-photo print is substantially larger than each strip window');
+  assert(large.width*large.height>slots(four)[0].width*slots(four)[0].height*2.8,'one-photo print is substantially larger than each four-photo window');
   const sourceCrops=[...four.matchAll(/<g\b(?=[^>]*data-fpr-decoration-source="true")[^>]*>/g)].map(match=>match[0]);
   assert(sourceCrops.length>0,'approved decorative details are retained');
   for(const tag of sourceCrops){
@@ -50,15 +50,15 @@ for(const preset of FPR_PRINT_PRESETS){
    for(const [px,py,pw,ph]of referencePhotoPanels[preset.key])assert(x+w<=px||px+pw<=x||y+h<=py||py+ph<=y,
     'decorative source crops never include any original sample photograph');
   }
-  assert.match(four,/data-fpr-safe-decorations="true"/,'the strip uses safe decoration crops rather than the complete reference card with example names and faces');
-  assert(four.includes('Jordan &amp; Avery'),'the strip uses the approved customer name');
+  assert.match(four,/data-fpr-safe-decorations="true"/,'the sheet uses safe decoration crops rather than the complete reference card with example names and faces');
+  assert(four.includes('Jordan &amp; Avery'),'the sheet uses the approved customer name');
   assert.match(one,/<svg[^>]*width="1200" height="1800" viewBox="0 0 1200 1800"/);
   assert(images(four).every(tag=>attr(tag,'preserveAspectRatio')==='xMidYMid slice'));
   const fit=renderFprPrint({...input,cfg:{...cfg,photoFit:'fit'},layout:'photo_strip'});
   assert(images(fit).every(tag=>attr(tag,'preserveAspectRatio')==='xMidYMid meet'));
  });
- test(preset.name+' samples use one or eight blank openings and incomplete four-photo sessions cannot print',()=>{
-  for(const [layout,count] of [['card',1],['photo_strip',8]]){
+ test(preset.name+' samples use one or four blank openings and incomplete four-photo sessions cannot print',()=>{
+  for(const [layout,count] of [['card',1],['photo_strip',4]]){
    const svg=renderFprPrint({template:preset.id,layout,sample:true});
    assert.equal(regions(svg).length,count);assert.equal(images(svg).length,0);
    assert.match(svg,layout==='card'?/data-fpr-reference-mask="true"/:/data-fpr-safe-decorations="true"/);

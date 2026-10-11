@@ -48,13 +48,13 @@ function useSamplePoses(family){
     if(picture.naturalWidth<4||picture.naturalHeight<1)throw new Error('Invalid sample artwork');
     const cellWidth=picture.naturalWidth/4,cellHeight=picture.naturalHeight;
     const canvas=document.createElement('canvas');
-    canvas.width=420;canvas.height=260;
+    canvas.width=420;canvas.height=495;
     const context=canvas.getContext('2d');
     if(!context)throw new Error('Preview canvas unavailable');
     const poses=[];
     for(let i=0;i<4;i++){
-     context.clearRect(0,0,420,260);
-     context.drawImage(picture,i*cellWidth,0,cellWidth,cellHeight,0,0,420,260);
+     context.clearRect(0,0,420,495);
+     context.drawImage(picture,i*cellWidth,0,cellWidth,cellHeight,0,0,420,495);
      poses.push(canvas.toDataURL('image/jpeg',.80));
     }
     if(alive)setState({family,poses});
@@ -86,7 +86,7 @@ export default function WelcomeScreen({cfg,eventName,online,starting,installed,p
  const time=cfg.schedule?scheduleLabel(cfg):(cfg.details?.subtitle!==cfg.subtitle?cfg.details?.subtitle:'');
  const pause=normalizeGuestPause(cfg.photoPauseSeconds),approved=cfg.guestMode==='approved';
  const preset=presetById(cfg.defaultTemplate);
- const matchingStrips=Boolean(preset||cfg.defaultTemplate==='grad-gala'||cfg.defaultTemplate==='custom'&&cfg.customDesign?.layouts?.four?.copies===2);
+ const legacyTwoStrips=cfg.defaultTemplate==='custom'&&cfg.customDesign?.layouts?.four?.copies===2;
  const proofCfg=useMemo(()=>guestEventConfig(cfg),[cfg]);
  useEffect(()=>setChoice(normalizePhotoPreference(cfg.defaultPhotoExperience)),[cfg.eventId,cfg.defaultTemplate,cfg.title,cfg.defaultPhotoExperience]);
  const chosenShots=choice==='one'?1:4;
@@ -116,7 +116,7 @@ export default function WelcomeScreen({cfg,eventName,online,starting,installed,p
        <button type="button" className={'bwSessionCard bwFourSession'+(choice==='four'?' isSelected':'')} data-testid="welcome-four-photo" aria-pressed={choice==='four'} aria-label="Preview 4-photo layout" disabled={starting} onClick={()=>setChoice('four')}>
         <span className="bwSessionHeading"><span><small>FOUR FUN POSES</small><strong>4 Photos</strong></span><span className="bwSessionCheck"><Mark name="check" size={17}/></span></span>
         <WelcomeProof cfg={proofCfg} shots={4} poses={poses}/>
-        <span className="bwPreviewCaption">{matchingStrips?'Two matching strips · one 4×6 print':'4 poses, one 4×6 print'}</span>
+        <span className="bwPreviewCaption">{legacyTwoStrips?'Your saved two-strip layout · one 4×6 print':'Four different photos · one 4×6 print'}</span>
         <span className="bwCardCTA">{choice==='four'?'Selected':'See this layout'} <Mark name={choice==='four'?'check':'arrow'} size={16}/></span>
        </button>
       </div>
@@ -125,7 +125,7 @@ export default function WelcomeScreen({cfg,eventName,online,starting,installed,p
      <div className="bwProofPanel" data-testid="welcome-proof-panel" aria-live="polite">
       <div className="bwProofHeading"><div className="bwStep"><span>02</span> YOUR REAL PRINT PREVIEW</div><span className="bwPaperSize"><Mark name="print" size={15}/> 4 × 6 KEEPSAKE</span></div>
       <h2>Your finished keepsake</h2>
-      <p className="bwProofSub">{preset?preset.name+' artwork':'Your saved event artwork'} · {chosenShots===1?'1 photo':matchingStrips?'4 poses · two matching strips':'4 photos'} · {cfg.date||'Event date'}</p>
+      <p className="bwProofSub">{preset?preset.name+' artwork':'Your saved event artwork'} · {chosenShots===1?'1 photo':legacyTwoStrips?'4 poses · saved two-strip layout':'4 different photos'} · {cfg.date||'Event date'}</p>
       <div className="bwLargeProofStage" data-testid="welcome-large-proof" data-selected-photos={String(chosenShots)}>
        <WelcomeProof cfg={proofCfg} shots={chosenShots} poses={poses}/>
        <span className="bwProofExampleTag">{poses.length===4?'SAMPLE PHOTOS':'PHOTO AREAS'} <span>· YOUR PHOTOS REPLACE THESE</span></span>
