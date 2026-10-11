@@ -22,3 +22,13 @@ export function assertApprovedStripWindows(images,label,{sourceKey='source'}={})
  if(images.every(image=>image[sourceKey]!==undefined))assert.equal(new Set(images.map(image=>image[sourceKey])).size,4,label+' contains exactly four unique originals, each reused once');
  return {copies:2,posesPerCopy:4,landscapeRatio:Number((first.width/first.height).toFixed(3)),photoCoverage:Number((images.reduce((area,image)=>area+image.width*image.height,0)/(1200*1800)).toFixed(3))};
 }
+
+export async function assertApprovedStripPreview(svg,label){
+ const images=await svg.evaluate(element=>[...element.querySelectorAll('image[data-guest-photo="true"]')].map(image=>{
+  // Graduation's self-contained strip groups use local coordinates; presets
+  // and custom builder windows already carry absolute sheet coordinates.
+  const transform=image.closest('[data-fpr-strip-copy]')?.getAttribute('transform'),offset=Number(transform?.match(/^translate\((\d+)\s+0\)$/)?.[1]||0);
+  return {pose:Number(image.getAttribute('data-pose')),copy:Number(image.getAttribute('data-copy')),source:image.getAttribute('href'),x:Number(image.getAttribute('x'))+offset,y:Number(image.getAttribute('y')),width:Number(image.getAttribute('width')),height:Number(image.getAttribute('height'))};
+ }));
+ return assertApprovedStripWindows(images,label);
+}
