@@ -16,6 +16,8 @@ const base=(process.env.STAFF_START_PROOF_URL||'http://127.0.0.1:3000').replace(
 assert(new URL(base).protocol==='http:'&&['127.0.0.1','localhost','[::1]'].includes(new URL(base).hostname),'Staff start write fixtures require a local HTTP server');
 const engines=process.env.STAFF_START_CHROMIUM_ONLY==='1'?[['chromium',chromium]]:[['chromium',chromium],['webkit',webkit]];
 const out='staff-start-proof',results=[];
+// Ignore only immaterial last-digit differences in percentage coordinates.
+const coordinate=value=>Number(value.toFixed(9));
 await mkdir(out,{recursive:true});
 const archiveSource=await readFile(new URL('../app/lib/event-photo-archive.mjs',import.meta.url),'utf8');
 const eventId='staff-start-proof-event',otherId='staff-start-untouched-event';
@@ -279,7 +281,7 @@ try{
     fourValues:[...editor.querySelectorAll('.customApertures fieldset')[1].querySelectorAll('input[type="number"]')].slice(0,4).map(input=>input.valueAsNumber),
     invalid:[...editor.querySelectorAll('input[type="number"]')].filter(input=>!input.validity.valid).map(input=>({label:input.getAttribute('aria-label'),value:input.value,stepMismatch:input.validity.stepMismatch,message:input.validationMessage}))
    }));
-   assert.deepEqual(customNativeValidity.fourValues,[26/12,120/18,548/12,336/18],'the custom builder keeps the precise default strip coordinates');
+   assert.deepEqual(customNativeValidity.fourValues.map(coordinate),[26/12,120/18,548/12,336/18].map(coordinate),'the custom builder keeps the precise default strip coordinates');
    assert.deepEqual(customNativeValidity.invalid,[],'native number-input validation must accept the precise default coordinates before starting the event');
    await page.getByTestId('staff-custom-done').click();await readyProofs(page);
    assert.equal(await page.locator('form.staffStartForm').evaluate(form=>form.checkValidity()),true,'the finished custom builder form is valid before Start event');
