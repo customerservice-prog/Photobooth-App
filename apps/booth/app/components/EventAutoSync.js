@@ -8,9 +8,9 @@ import {tokenKey} from '../lib/backup-sync.mjs';
 export default function EventAutoSync(){
  const pathname=usePathname();
  useEffect(()=>{
-  // A printer rehearsal reads the currently saved approved design. Returning
-  // to the guest screen resumes normal event updates and pending photo backup.
-  if(pathname==='/print-test')return;
+  // Staff rehearsals preserve the saved event. Returning to the guest screen
+  // resumes normal event updates and pending photo backup.
+  if(pathname==='/print-test'||pathname==='/delivery-check')return;
   let stopped=false,busy=false;
   const controller=new AbortController();
   async function check(){

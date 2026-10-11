@@ -1,0 +1,46 @@
+name: Staff email delivery rehearsal
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'apps/booth/**'
+      - '.github/workflows/email-delivery-proof.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'apps/booth/**'
+      - '.github/workflows/email-delivery-proof.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: email-delivery-proof-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+jobs:
+  proof:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    defaults:
+      run:
+        working-directory: apps/booth
+        shell: bash
+    env:
+      NEXT_TELEMETRY_DISABLED: '1'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm install --no-audit --no-fund
+      - run: npm install --no-save playwright@1.55.0
+      - run: npx playwright install --with-deps chromium webkit
+      - name: Build the actual booth
+        run: mkdir -p email-delivery-proof && npm run build 2>&1 | tee email-delivery-proof/build.log
+      - name: Chromium and WebKit staff authorization, exact image and honest email status
+        run: node scripts/email-delivery-proof.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: staff-email-delivery-proof-${{ github.run_id }}
+          path: apps/booth/email-delivery-proof/
+          retention-days: 3

@@ -1,7 +1,7 @@
 // Server-only delivery gateway. Never import this module from a client component.
 import {createHash, createHmac, randomBytes, randomUUID, timingSafeEqual} from 'node:crypto';
 import {validStaffSession} from './staff-auth.mjs';
-import {publicBoothOrigin} from './staff-security.mjs';
+import {publicBoothOrigin,staffSecurityStatus} from './staff-security.mjs';
 
 export const MAX_IMAGE = 2 * 1024 * 1024;
 const COOKIE='__Host-booth-delivery', DAY=86400000;
@@ -13,6 +13,9 @@ const opaque=()=>randomBytes(32).toString('hex');
 const secret=env=>env.BOOTH_SESSION_SECRET||'';
 const hmac=(value,env)=>createHmac('sha256',secret(env)).update(value).digest('hex');
 const uuid=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+// Resend may issue newer UUID versions (including v7); keep its opaque
+// receipt IDs separate from the booth's internally generated identifiers.
+const resendReceiptUuid=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const limits={email:80,sms:150};
 function origin(env){try{const u=new URL(env.BOOTH_PUBLIC_URL);return u.protocol==='https:'&&u.pathname==='/'&&!u.search&&!u.hash&&!u.username&&!u.password?u.origin:'';}catch{return '';}}
 function smsSender(env){
@@ -85,6 +88,18 @@ export async function authorizeStaffEventDelivery(request,response,{staffCookie,
   if(cookie)response.headers.append('Set-Cookie',cookie);
   return response;
 }
+// Explicit staff rehearsal authorization avoids saving a customer booking.
+// Readiness GETs never enable sending; all normal send safeguards still apply.
+export async function authorizeStaffDiagnosticDelivery(request,{staffCookie,env=process.env}={}){
+  if(request.method!=='POST')fail(405,'Use the staff enable-sending button.');
+  const security=staffSecurityStatus(env,request.url);
+  if(!security.required||!security.configured||!origin(env))fail(503,'Staff sign-in is not configured for this booth.');
+  sameOrigin(request,env);
+  if(!await validStaffSession(staffCookie,env.BOOTH_STAFF_SESSION_SECRET))fail(401,'Sign in with the staff PIN to enable sending.');
+  const cookie=deliverySessionCookie(request,env);
+  if(!cookie)fail(503,'Owner setup is incomplete. Sending is disabled.');
+  return new Response(JSON.stringify({paired:true,hours:12}),{headers:{'Content-Type':'application/json','Cache-Control':'no-store','Set-Cookie':cookie}});
+}
 function requireSession(request,env){const s=session(request,env);if(!s)fail(401,'The owner must authorize this iPad for photo delivery first.');return s;}
 function sameOrigin(request,env){if(request.headers.get('origin')!==origin(env))fail(403,'This request must come from the authorized booth.');}
 export async function readBody(request,max=3*1024*1024){
@@ -140,7 +155,7 @@ export async function sendProvider(job,env,fetcher=fetch){
   const data=await response.json().catch(()=>({}));
   if(!response.ok){const err=new DeliveryError(502,'The sending service rejected this request. Ask the owner to check provider configuration.');err.providerRejected=response.status>=400&&response.status<500;throw err;}
   const id=job.channel==='email'?data.id:data.sid;
-  if(typeof id!=='string'||!(job.channel==='email'?uuid.test(id):/^(SM|MM)[0-9a-f]{32}$/i.test(id)))throw new Error('No usable provider receipt');
+  if(typeof id!=='string'||!(job.channel==='email'?resendReceiptUuid.test(id):/^(SM|MM)[0-9a-f]{32}$/i.test(id)))throw new Error('No usable provider receipt');
   return {providerId:id,status:job.channel==='email'?'queued':(data.status||'queued')};
 }
 export async function providerStatus(job,env,fetcher=fetch){
