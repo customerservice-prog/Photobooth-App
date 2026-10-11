@@ -22,6 +22,19 @@ test('builder starts with paired 4x6 layouts and independent editable rectangles
  assert(isValidCustomDesign(createCustomDesign()));
  assert.throws(()=>createCustomDesign('unknown'));
 });
+test('new custom four-photo layouts use the wide sheet while saved customer windows remain unchanged',()=>{
+ const fresh=createCustomDesign(),[a,b,c,d]=fresh.layouts.four.rects;
+ assert.equal(a.y,b.y);assert.equal(c.y,d.y);assert.equal(a.x,c.x);assert.equal(b.x,d.x);
+ assert(a.x+a.w<b.x&&a.y+a.h<c.y,'new defaults have two columns and two rows with gutters');
+ assert(a.w+b.w>=80,'default photo windows use the sheet width');
+ const saved=createCustomDesign();saved.layouts.four.rects=[14,31,48,65].map(y=>({x:8,y,w:84,h:15}));
+ const before=JSON.stringify(saved.layouts.four.rects),cfg=config(saved);
+ const valid=validateCustomDesign(saved),svg=renderCustomDesign({cfg,poses,layout:'photo_strip'});
+ assert.equal(JSON.stringify(valid.layouts.four.rects),before,'existing customer artwork coordinates are never migrated');
+ const actual=guestImages(svg).map(tag=>Object.fromEntries(['x','y','width','height'].map(key=>[key,Number(tag.match(new RegExp(' '+key+'="([^"]*)"'))?.[1])])));
+ assert.deepEqual(actual,saved.layouts.four.rects.map(r=>({x:r.x*12,y:r.y*18,width:r.w*12,height:r.h*18})),
+  'each uploaded or built customer window retains its approved position');
+});
 test('only the owner sample preview can render an incomplete paired upload',()=>{
  const draft=createCustomDesign('upload');draft.layouts.one.image=PNG;
  assert.throws(()=>validateCustomDesign(draft),/both/);
@@ -87,6 +100,20 @@ test('uploaded completed frames retain their own text and place live photos abov
   assert.match(svg,/<rect[^>]*fill="#e5e6df"/);
  }
  assert.deepEqual(guestImages(four).map(href),poses);
+});
+test('uploaded artwork covers the whole 4x6 sheet even when its aspect ratio differs from paper',()=>{
+ // This valid one-pixel square is deliberately not a 2:3 print image. The
+ // artwork must cover the paper while photoFit still controls the guest photo.
+ const cfg=config(upload());
+ for(const layout of ['card','photo_strip']){
+  const svg=renderCustomDesign({cfg,photo:poses[0],poses,layout});
+  const art=svg.match(/<image\b(?=[^>]*data-custom-artwork="true")[^>]*\/>/)[0];
+  assert.match(art,/x="0" y="0" width="1200" height="1800"/);
+  assert.match(art,/preserveAspectRatio="xMidYMid slice"/,
+   'uploaded artwork fills the paper rather than leaving contain margins');
+  assert(guestImages(svg).every(image=>image.includes('preserveAspectRatio="xMidYMid meet"')),
+   'the selected fit for actual guest photos is preserved separately');
+ }
 });
 test('switching to builder retains uploaded assets without hiding the builder colors and text',()=>{
  const spec=upload();spec.mode='build';spec.background='#123456';

@@ -26,7 +26,7 @@ function loadSamplePoses(family){
  });
 }
 
-const physicalChecks=['Canon SELPHY selected, 4×6 paper and one copy','One complete sheet printed with all photos visible','Name, colors and edges look correct'];
+const physicalChecks=['Canon SELPHY selected, 4×6 paper, borderless and one copy','The design fills the sheet with all photos visible','Name, colors and edges look correct'];
 
 export default function PrintTest(){
  const [context,setContext]=useState(null),[artifacts,setArtifacts]=useState(null),[choice,setChoice]=useState('one');
@@ -51,7 +51,7 @@ export default function PrintTest(){
  const cfg=context?.cfg,selected=artifacts?.[choice],preset=cfg&&presetById(cfg.defaultTemplate),ready=selected&&imageReady===selected.key&&sheetReady===selected.key;
  function select(next){setChoice(next);setChecks({});setMessage('');}
  function print(){
-  if(!ready)return;setChecks({});setMessage('Select Canon SELPHY, 4×6 paper and one copy in print options.');
+  if(!ready)return;setChecks({});setMessage('Select Canon SELPHY, 4×6 paper and one copy. Use borderless printing to fill the paper.');
   try{window.print();}catch{setMessage('Print options could not open. Ask the attendant to check this iPad.');}
  }
  const chooseHref=context?.scope?.imported?'/staff/start?event='+encodeURIComponent(context.scope.id):'/staff/start';

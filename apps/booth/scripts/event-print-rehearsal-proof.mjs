@@ -17,6 +17,7 @@ import {normalizeEventConfig,eventMonogram} from '../app/lib/event-config.mjs';
 import {createCustomDesign,validateCustomDesign} from '../app/lib/custom-design.mjs';
 import {renderKeepsake} from '../app/lib/keepsake-designs.mjs';
 import {BOOTH_RELEASE} from '../app/lib/booth-launch.mjs';
+import {assertFullSheetPresetArtwork,assertUploadedArtworkEdges} from './assert-full-sheet-artwork.mjs';
 
 // This exercises the real, PIN-protected page and actual browser JPEG exporter.
 // Every event, archive and staff cookie is an isolated local fixture. The print
@@ -50,7 +51,7 @@ const cases=FPR_PRINT_PRESETS.map(preset=>({name:preset.key,family:preset.key,pr
 const build=createCustomDesign('build');build.heading='Approved Custom Heading';build.footer='Customer approved footer';
 cases.push({name:'custom-build',family:'corporate',config:{...fixtureConfig('custom'),customDesign:validateCustomDesign(build)}});
 const upload=createCustomDesign('upload');
-for(const [kind,color]of [['one','#234d62'],['four','#653053']])upload.layouts[kind].image='data:image/png;base64,'+(await sharp({create:{width:1200,height:1800,channels:3,background:color}}).png().toBuffer()).toString('base64');
+for(const [kind,color,width,height]of [['one','#234d62',720,1800],['four','#653053',1800,720]])upload.layouts[kind].image='data:image/png;base64,'+(await sharp({create:{width,height,channels:3,background:color}}).png().toBuffer()).toString('base64');
 cases.push({name:'custom-upload',family:'corporate',config:{...fixtureConfig('custom'),customDesign:validateCustomDesign(upload)}});
 
 async function snapshot(page){
@@ -162,6 +163,8 @@ async function rehearsalCase(browser,engine,test){
    const source=await page.getByTestId('print-test-preview').getAttribute('src');assert(source.startsWith('data:image/jpeg;base64,'),'the preview is an actual finished JPEG');
    assert.equal(await page.getByTestId('print-test-sheet').getAttribute('src'),source,'screen and print always use the same image');
    const bytes=Buffer.from(source.split(',')[1],'base64'),meta=await sharp(bytes).metadata();assert.equal(meta.width,1200);assert.equal(meta.height,1800);
+   const fullSheetArtwork=test.preset?await assertFullSheetPresetArtwork(bytes,label+' '+count+' rehearsal JPEG'):
+    test.name==='custom-upload'?await assertUploadedArtworkEdges(bytes,count===1?'#234d62':'#653053',label+' '+count+' rehearsal JPEG'):null;
    const cfg=guestEventConfig(normalizeEventConfig(test.config)),svg=renderKeepsake({cfg,template:cfg.defaultTemplate,monogram:eventMonogram(cfg),photo:poses[0],poses,layout:count===1?'card':'photo_strip',stripMode:'single',filter:'none',id:'export-card'});
    const openings=await orderedOpenings(page,svg,count,test),expected=await actualExport(page,svg,count);assert.deepEqual(bytes,expected,'actual rehearsal JPEG is byte-identical to the guest exporter with the selected event and each sample pose');
    await writeFile(`${out}/${label}-${count}-actual.jpg`,bytes);await page.screenshot({path:`${out}/${label}-${count}-screen.png`});
@@ -173,7 +176,7 @@ async function rehearsalCase(browser,engine,test){
    for(let index=0;index<3;index++)await checks.nth(index).check();
    assert((await checkPanel.textContent()).includes('You marked this sample sheet checked.'),'the checklist attributes confirmation to the staff member');
    assert.deepEqual(await snapshot(page),before,'rehearsal printing leaves customer counters, settings, original photos and finished images byte-identical');
-   layouts[count]={openings,printGeometry:geometry};
+   layouts[count]={openings,fullSheetArtwork,printGeometry:geometry};
   }
   assert.notDeepEqual(layouts[1].openings.images,layouts[4].openings.images,'one-photo and four-photo layouts are visibly different');
   // Portrait uses the same complete image and accessible controls.

@@ -13,8 +13,8 @@ const copyRect=rect=>({x:rect.x,y:rect.y,w:rect.w,h:rect.h});
 export function createCustomDesign(mode='build'){
  if(!['build','upload'].includes(mode))throw new Error('Choose a custom design upload or builder.');
  return {v:1,mode,background:'#fffaf1',ink:'#263c37',accent:'#c5a46a',heading:'',footer:'',layouts:{
-  one:{image:'',rects:[{x:8,y:14,w:84,h:60}]},
-  four:{image:'',rects:[14,31,48,65].map(y=>({x:8,y,w:84,h:15}))}
+  one:{image:'',rects:[{x:8,y:14,w:84,h:66}]},
+  four:{image:'',rects:Array.from({length:4},(_,i)=>({x:8+(i%2)*43,y:14+Math.floor(i/2)*34,w:41,h:32}))}
  }};
 }
 function color(value,fallback){
@@ -95,7 +95,7 @@ export function renderCustomDesign(input={}){
   else throw new Error('A captured photo is missing or invalid. Please retake the session.');
  }
  let art=rect(0,0,1200,1800,spec.background);
- if(spec.mode==='upload'&&layout.image)art+=`<image data-custom-artwork="true" href="${esc(layout.image)}" x="0" y="0" width="1200" height="1800" preserveAspectRatio="xMidYMid meet"/>`;
+ if(spec.mode==='upload'&&layout.image)art+=`<image data-custom-artwork="true" href="${esc(layout.image)}" x="0" y="0" width="1200" height="1800" preserveAspectRatio="xMidYMid slice"/>`;
  if(spec.mode==='build')art+=rect(30,30,1140,1740,'none',spec.accent,3)+rect(44,44,1112,1712,'none',spec.accent,1);
  const clips=layout.rects.map((r,i)=>`<clipPath id="${id}-custom-pose-${i+1}">${rect(r.x*12,r.y*18,r.w*12,r.h*18,'white')}</clipPath>`).join('');
  art+=`<g data-custom-photo-region="true" data-pose-count="${layout.rects.length}"><defs>${clips}</defs>`;
