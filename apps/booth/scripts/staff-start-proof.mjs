@@ -274,7 +274,15 @@ try{
    // The server-rendered welcome appears before the local archive thumbnails
    // finish loading. Wait for the booth's initialized state before leaving it.
    await page.waitForFunction(()=>document.querySelector('[data-testid="welcome-start-session"]')?.disabled===false);
-   phase='custom-build-start';await openStaff(page,origin);await page.getByTestId('staff-layout-custom').click();await page.getByTestId('staff-custom-dialog').waitFor();await page.getByTestId('custom-heading').fill('Custom Staff Celebration');await page.getByTestId('custom-footer').fill('Prepared before guests arrive');await page.getByTestId('staff-custom-done').click();await readyProofs(page);
+   phase='custom-build-start';await openStaff(page,origin);await page.getByTestId('staff-layout-custom').click();await page.getByTestId('staff-custom-dialog').waitFor();await page.getByTestId('custom-heading').fill('Custom Staff Celebration');await page.getByTestId('custom-footer').fill('Prepared before guests arrive');
+   const customNativeValidity=await page.getByTestId('custom-design-editor').evaluate(editor=>({
+    fourValues:[...editor.querySelectorAll('.customApertures fieldset')[1].querySelectorAll('input[type="number"]')].slice(0,4).map(input=>input.valueAsNumber),
+    invalid:[...editor.querySelectorAll('input[type="number"]')].filter(input=>!input.validity.valid).map(input=>({label:input.getAttribute('aria-label'),value:input.value,stepMismatch:input.validity.stepMismatch,message:input.validationMessage}))
+   }));
+   assert.deepEqual(customNativeValidity.fourValues,[26/12,120/18,548/12,336/18],'the custom builder keeps the precise default strip coordinates');
+   assert.deepEqual(customNativeValidity.invalid,[],'native number-input validation must accept the precise default coordinates before starting the event');
+   await page.getByTestId('staff-custom-done').click();await readyProofs(page);
+   assert.equal(await page.locator('form.staffStartForm').evaluate(form=>form.checkValidity()),true,'the finished custom builder form is valid before Start event');
    await page.getByTestId('staff-start-event').click();await page.waitForURL(origin+scope.home);await page.getByTestId('welcome-quick-photo').waitFor();assert.equal(payload.customDesign.mode,'build');assert.equal(payload.customDesign.heading,'Custom Staff Celebration');
    phase='custom-build-one-photo';await capture(page,1,'custom');await waitSaved(page,12);await done(page);
    phase='custom-upload-start';await openStaff(page,origin);await page.getByTestId('staff-layout-custom').click();await page.getByTestId('staff-custom-dialog').waitFor();await page.getByRole('radio',{name:'Upload artwork',exact:true}).check();

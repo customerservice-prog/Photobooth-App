@@ -130,6 +130,13 @@ try{
  assert.equal(await page.locator('.ownerDesignChoice').count(),6);
  const built=JSON.parse(await page.locator('input[name="customDesign"]').inputValue());
  assert.equal(built.mode,'build');assert.equal(built.layouts.one.rects.length,1);assert.equal(built.layouts.four.rects.length,4);
+ const customNativeValidity=await page.getByTestId('custom-design-editor').evaluate(editor=>({
+  fourValues:[...editor.querySelectorAll('.customApertures fieldset')[1].querySelectorAll('input[type="number"]')].slice(0,4).map(input=>input.valueAsNumber),
+  invalid:[...editor.querySelectorAll('input[type="number"]')].filter(input=>!input.validity.valid).map(input=>({label:input.getAttribute('aria-label'),value:input.value,stepMismatch:input.validity.stepMismatch,message:input.validationMessage}))
+ }));
+ assert.deepEqual(customNativeValidity.fourValues,[26/12,120/18,548/12,336/18],'the owner builder keeps the precise default strip coordinates');
+ assert.deepEqual(customNativeValidity.invalid,[],'native number-input validation must accept the precise default coordinates before saving');
+ assert.equal(await page.locator('form.ownerEventForm').evaluate(form=>form.checkValidity()),true,'the complete custom builder form is valid before Save event changes');
  await page.screenshot({animations:'disabled',path:'admin-proof/custom-built-desktop.png',fullPage:true});
  if(!readonly){
   await page.getByRole('button',{name:/Save event changes/}).click();await page.waitForURL('**/events/event-smoke-20261010');

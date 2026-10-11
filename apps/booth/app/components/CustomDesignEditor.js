@@ -1,6 +1,6 @@
 'use client';
 import {useEffect,useRef,useState} from 'react';
-import {validateCustomDesign} from '../lib/custom-design.mjs';
+import {createCustomDesign,validateCustomDesign} from '../lib/custom-design.mjs';
 
 const MAX_FILE_BYTES=12*1024*1024,MAX_DATA_LENGTH=350000;
 async function artworkFromFile(file){
@@ -41,12 +41,17 @@ export default function CustomDesignEditor({value,onChange,onBusyChange}){
   for(const kind of ['one','four'])pending.current[kind]=(pending.current[kind]||0)+1;
   setBusy({});setError('');
   if(mode==='build')uploads.current={one:value.layouts.one.image,four:value.layouts.four.image};
-  onChange({...value,mode,layouts:Object.fromEntries(['one','four'].map(kind=>[kind,{...value.layouts[kind],image:mode==='upload'?uploads.current[kind]:''}]))});
+  onChange({...value,mode,layouts:Object.fromEntries(['one','four'].map(kind=>{
+   const next={...value.layouts[kind],image:mode==='upload'?uploads.current[kind]:''};
+   if(mode==='upload'&&kind==='four'&&next.copies===2){delete next.copies;next.rects=createCustomDesign('upload').layouts.four.rects;}
+   return [kind,next];
+  }))});
  }
  function layout(kind,next){onChange({...value,layouts:{...value.layouts,[kind]:{...value.layouts[kind],...next}}});}
  function rect(kind,index,key,next){
   const rects=value.layouts[kind].rects.map((rect,i)=>i===index?{...rect,[key]:number(next)}:rect);
-  const rect=rects[index];rect.x=Math.min(rect.x,100-rect.w);rect.y=Math.min(rect.y,100-rect.h);rect.w=Math.min(rect.w,100-rect.x);rect.h=Math.min(rect.h,100-rect.y);
+  const rect=rects[index],width=kind==='four'&&value.layouts.four.copies===2?50:100;
+  rect.w=Math.min(rect.w,width);rect.x=Math.min(rect.x,width-rect.w);rect.y=Math.min(rect.y,100-rect.h);rect.w=Math.min(rect.w,width-rect.x);rect.h=Math.min(rect.h,100-rect.y);
   layout(kind,{rects});
  }
  async function upload(kind,input){
@@ -78,11 +83,11 @@ export default function CustomDesignEditor({value,onChange,onBusyChange}){
    <div className="customColorGrid">{[['background','Background'],['accent','Border'],['ink','Text']].map(([key,label])=><label className="formField" key={key}>{label}<input className="input colorInput" type="color" value={value[key]} onChange={e=>field(key,e.target.value)} data-testid={'custom-color-'+key}/></label>)}</div>
    <label className="formField">Heading (optional)<input className="input" value={value.heading} maxLength={80} placeholder="Your celebration" onChange={e=>field('heading',e.target.value)} data-testid="custom-heading"/></label>
    <label className="formField">Footer message (optional)<input className="input" value={value.footer} maxLength={100} placeholder="Thank you for celebrating with us" onChange={e=>field('footer',e.target.value)} data-testid="custom-footer"/></label>
-   <p className="customDesignHint">The name and date come from this event. Edit the event details or “Name on the photos” to change them.</p>
+   <p className="customDesignHint">The name and date come from this event. Edit the event details or “Name on the photos” to change them.{value.layouts.four.copies===2?' Four poses repeat on two matching 2×6 strips, printed together on one 4×6 sheet.':''}</p>
   </>}
   {error&&<p className="errorNote" role="alert">{error}</p>}
   <details className="customApertures" data-testid="custom-photo-openings"><summary>Adjust photo openings</summary><p>Position and size use percentages of the sheet. Openings must stay inside the sheet without overlapping.</p>
-   {['one','four'].map(kind=><fieldset key={kind}><legend>{kind==='one'?'1 Photo':'4 Photos'}</legend>{value.layouts[kind].rects.map((position,index)=><div className="customPositionRow" key={index}><strong>{kind==='one'?'Photo':'Photo '+(index+1)}</strong>{[['x','Left'],['y','Top'],['w','Width'],['h','Height']].map(([key,label])=><label key={key}>{label}<input className="input" type="number" min={key==='w'||key==='h'?1:0} max="100" step=".1" value={position[key]} aria-label={(kind==='one'?'1 Photo':'4 Photos photo '+(index+1))+' '+label} onChange={e=>rect(kind,index,key,e.target.value)}/></label>)}</div>)}</fieldset>)}
+   {['one','four'].map(kind=><fieldset key={kind}><legend>{kind==='one'?'1 Photo':value.layouts.four.copies===2?'4 Photos · two matching strips':'4 Photos · your saved layout'}</legend>{kind==='four'&&value.layouts.four.copies===2&&<p>Adjust the left strip. The right strip matches automatically. Keep each opening inside the left 50% of the sheet.</p>}{value.layouts[kind].rects.map((position,index)=><div className="customPositionRow" key={index}><strong>{kind==='one'?'Photo':'Photo '+(index+1)}</strong>{[['x','Left'],['y','Top'],['w','Width'],['h','Height']].map(([key,label])=><label key={key}>{label}<input className="input" type="number" min={key==='w'||key==='h'?1:0} max="100" step="any" value={position[key]} aria-label={(kind==='one'?'1 Photo':'4 Photos photo '+(index+1))+' '+label} onChange={e=>rect(kind,index,key,e.target.value)}/></label>)}</div>)}</fieldset>)}
   </details>
   <input ref={guard} type="text" className="customValidationGuard" aria-label="Custom artwork validation" value="" onChange={()=>{}} tabIndex={-1} onInvalid={()=>{guard.current?.closest('.customDesignEditor')?.scrollIntoView({block:'center',behavior:'smooth'});}}/>
   {validation&&!busyNow&&<p className="customDesignIncomplete" role="status">{validation}</p>}
