@@ -4,6 +4,7 @@ import {renderKeepsake,getDesigns} from '../app/lib/keepsake-designs.mjs';
 import {graduationShowcaseConfig,startGraduationShowcase,GRADUATION_SHOWCASE_KEY} from '../app/lib/graduation-showcase.mjs';
 import {workspace} from '../app/lib/event-workspace.mjs';
 import {finalizeEventSetup} from '../app/lib/event-config.mjs';
+import {assertApprovedStripWindows} from '../scripts/assert-approved-strips.mjs';
 
 const cfg={type:'graduation',title:'LaMarr',date:'October 10, 2026',
  details:{graduate:'LaMarr',classYear:'2026'},defaultTemplate:'grad-gala',
@@ -17,29 +18,25 @@ test('navy and gold graduation style is an explicit selectable design',()=>{
  assert.equal(getDesigns('wedding').length,3);
  assert.equal(getDesigns('birthday').length,3);
 });
-test('four-photo graduation print uses four different original guest poses in order',()=>{
+test('four-photo graduation print uses the four originals in order in each matching strip',()=>{
  const svg=renderKeepsake({layout:'photo_strip',stripMode:'single',cfg,template:'grad-gala',poses,photo:poses[0]});
  assert.match(svg,/data-design="graduation-grad-gala"/);
  assert.match(svg,/viewBox="0 0 1200 1800"/);
- assert.equal((svg.match(/data-guest-photo="true"/g)||[]).length,4);
- assert.deepEqual([...svg.matchAll(/data-pose="(\d)" href="([^"]+)"/g)].map(m=>m[2]),poses);
+ assert.equal((svg.match(/data-guest-photo="true"/g)||[]).length,8);
+ assert.deepEqual([...svg.matchAll(/<image\b(?=[^>]*data-guest-photo="true")[^>]*\/>/g)].map(m=>m[0].match(/ href="([^"]+)"/)[1]),[...poses,...poses]);
  assert.match(svg,/OCTOBER 10TH 2026/);
  assert.match(svg,/LaMarr/);
  assert.match(svg,/2026/);
  assert.doesNotMatch(svg,/Page 1 of 1|photobooth\.com/);
 });
-test('four-photo graduation gala fills the photo zone with two columns and two rows',()=>{
+test('four-photo graduation gala produces two matching landscape strips using most of the 4x6 sheet',()=>{
  const svg=renderKeepsake({layout:'photo_strip',stripMode:'single',cfg,template:'grad-gala',poses,photo:poses[0]});
  const slots=[...svg.matchAll(/<image\b(?=[^>]*data-guest-photo="true")[^>]*\/>/g)].map(match=>{
-  const tag=match[0];return Object.fromEntries(['x','y','width','height'].map(key=>[key,Number(tag.match(new RegExp(' '+key+'="([^"]*)"'))?.[1])]));
+  const tag=match[0],attr=name=>tag.match(new RegExp(' '+name+'="([^"]*)"'))?.[1];
+  const copy=Number(attr('data-copy'));
+  return {...Object.fromEntries(['x','y','width','height'].map(key=>[key,Number(attr(key))])),x:Number(attr('x'))+(copy-1)*600,pose:Number(attr('data-pose')),copy,source:attr('href')};
  });
- assert.equal(slots.length,4);
- const [a,b,c,d]=slots;
- assert.equal(a.y,b.y);assert.equal(c.y,d.y);assert.equal(a.x,c.x);assert.equal(b.x,d.x);
- assert(a.x+a.width<b.x&&a.y+a.height<c.y,'columns and rows have visible gutters');
- assert(a.width+b.width>=950,'the four-photo arrangement uses the full wide card');
- assert(a.height>500,'each pose has a substantial photo area instead of a shallow strip row');
- for(const slot of slots){assert.equal(slot.width,a.width);assert.equal(slot.height,a.height);}
+ assertApprovedStripWindows(slots,'graduation gala');
 });
 test('one-photo 4×6 graduation print contains only the chosen original JPEG',()=>{
  const svg=renderKeepsake({layout:'card',cfg,template:'grad-gala',photo:poses[0]});

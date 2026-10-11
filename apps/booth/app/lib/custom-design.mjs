@@ -14,7 +14,9 @@ export function createCustomDesign(mode='build'){
  if(!['build','upload'].includes(mode))throw new Error('Choose a custom design upload or builder.');
  return {v:1,mode,background:'#fffaf1',ink:'#263c37',accent:'#c5a46a',heading:'',footer:'',layouts:{
   one:{image:'',rects:[{x:8,y:14,w:84,h:66}]},
-  four:{image:'',rects:Array.from({length:4},(_,i)=>({x:8+(i%2)*43,y:14+Math.floor(i/2)*34,w:41,h:32}))}
+  four:mode==='build'
+   ?{image:'',copies:2,rects:Array.from({length:4},(_,i)=>({x:26/12,y:(120+350*i)/18,w:548/12,h:336/18}))}
+   :{image:'',rects:Array.from({length:4},(_,i)=>({x:8+(i%2)*43,y:14+Math.floor(i/2)*34,w:41,h:32}))}
  }};
 }
 function color(value,fallback){
@@ -64,7 +66,12 @@ export function validateCustomDesign(raw,{allowIncompleteUpload=false}={}){
   if(!object(layout))throw new Error('Prepare both the 1-photo and 4-photo custom layouts.');
   const image=artwork(layout.image);
   if(raw.mode==='upload'&&!allowIncompleteUpload&&!image)throw new Error('Upload artwork for both the 1-photo and 4-photo layouts.');
-  layouts[name]={image,rects:rectangles(layout.rects,count)};
+  const rects=rectangles(layout.rects,count);
+  if(layout.copies!==undefined&&!(name==='four'&&[1,2].includes(layout.copies)))
+   throw new Error('Choose one layout or two matching four-photo strips.');
+  if(layout.copies===2&&rects.some(r=>r.x+r.w>50))
+   throw new Error('Keep matching-strip photo windows inside the left half of the sheet.');
+  layouts[name]={image,rects,...(layout.copies!==undefined?{copies:layout.copies}:{})};
  }
  const result={v:1,mode:raw.mode,background:color(raw.background,defaults.background),
   ink:color(raw.ink,defaults.ink),accent:color(raw.accent,defaults.accent),
@@ -76,14 +83,15 @@ export function validateCustomDesign(raw,{allowIncompleteUpload=false}={}){
 export function isValidCustomDesign(raw,options){try{validateCustomDesign(raw,options);return true;}catch{return false;}}
 
 const rect=(x,y,w,h,fill,stroke='none',width=0)=>`<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="${fill}" stroke="${stroke}" stroke-width="${width}"/>`;
-function label(value,y,size,fill,{lines=1,bold=false,italic=false}={}){
- const fitted=fitText(value,1050,size,lines);
- return fitted.lines.map((line,i)=>`<text data-copy="${esc(line)}" x="600" y="${y+i*fitted.size*1.12}" text-anchor="middle" font-family="${italic?'Georgia, serif':'Arial, sans-serif'}" font-size="${fitted.size}" font-weight="${bold?'700':'400'}" font-style="${italic?'italic':'normal'}" fill="${fill}"${line.length*fitted.size*.62>1050?' textLength="1050" lengthAdjust="spacingAndGlyphs"':''}>${esc(line)}</text>`).join('');
+function label(value,y,size,fill,{lines=1,bold=false,italic=false,x=600,width=1050}={}){
+ const fitted=fitText(value,width,size,lines);
+ return fitted.lines.map((line,i)=>`<text data-copy="${esc(line)}" x="${x}" y="${y+i*fitted.size*1.12}" text-anchor="middle" font-family="${italic?'Georgia, serif':'Arial, sans-serif'}" font-size="${fitted.size}" font-weight="${bold?'700':'400'}" font-style="${italic?'italic':'normal'}" fill="${fill}"${line.length*fitted.size*.62>width?` textLength="${width}" lengthAdjust="spacingAndGlyphs"`:''}>${esc(line)}</text>`).join('');
 }
 export function renderCustomDesign(input={}){
  const cfg=object(input.cfg)?input.cfg:{},sample=input.sample===true;
  const spec=validateCustomDesign(cfg.customDesign,{allowIncompleteUpload:sample});
  const four=input.layout==='photo_strip',layout=spec.layouts[four?'four':'one'];
+ const copies=four&&layout.copies===2?2:1;
  const id=String(input.id||'custom-design').replace(/[^A-Za-z0-9_-]/g,'')||'custom-design';
  const copy=eventCopy(cfg),fit=cfg.photoFit==='fit'?'xMidYMid meet':'xMidYMid slice';
  let photos;
@@ -96,21 +104,26 @@ export function renderCustomDesign(input={}){
  }
  let art=rect(0,0,1200,1800,spec.background);
  if(spec.mode==='upload'&&layout.image)art+=`<image data-custom-artwork="true" href="${esc(layout.image)}" x="0" y="0" width="1200" height="1800" preserveAspectRatio="xMidYMid slice"/>`;
- if(spec.mode==='build')art+=rect(30,30,1140,1740,'none',spec.accent,3)+rect(44,44,1112,1712,'none',spec.accent,1);
- const clips=layout.rects.map((r,i)=>`<clipPath id="${id}-custom-pose-${i+1}">${rect(r.x*12,r.y*18,r.w*12,r.h*18,'white')}</clipPath>`).join('');
- art+=`<g data-custom-photo-region="true" data-pose-count="${layout.rects.length}"><defs>${clips}</defs>`;
- art+=layout.rects.map((r,i)=>{
-  const x=r.x*12,y=r.y*18,w=r.w*12,h=r.h*18;
+ if(spec.mode==='build')art+=copies===2
+  ?[0,600].map(x=>rect(x+12,12,576,1776,'none',spec.accent,3)+rect(x+18,18,564,1764,'none',spec.accent,1)).join('')
+  :rect(30,30,1140,1740,'none',spec.accent,3)+rect(44,44,1112,1712,'none',spec.accent,1);
+ const frames=Array.from({length:copies},(_,copy)=>layout.rects.map((r,i)=>({r,i,copy:copy+1,x:r.x*12+copy*600,y:r.y*18,w:r.w*12,h:r.h*18}))).flat();
+ const clips=frames.map(({i,copy,x,y,w,h})=>`<clipPath id="${id}-custom-copy-${copy}-pose-${i+1}">${rect(x,y,w,h,'white')}</clipPath>`).join('');
+ art+=`<g data-custom-photo-region="true" data-pose-count="${layout.rects.length}" data-strip-copies="${copies}"><defs>${clips}</defs>`;
+ art+=frames.map(({i,copy,x,y,w,h})=>{
   // Opaque windows cover old sample faces even when the live photo is contained.
   const background=rect(x,y,w,h,'#e5e6df');
-  const media=photos?`<g clip-path="url(#${id}-custom-pose-${i+1})"><image data-guest-photo="true" data-pose="${i+1}" href="${esc(photos[i])}" x="${x}" y="${y}" width="${w}" height="${h}" preserveAspectRatio="${fit}"/></g>`
+  const media=photos?`<g clip-path="url(#${id}-custom-copy-${copy}-pose-${i+1})"><image data-guest-photo="true" data-pose="${i+1}" data-copy="${copy}" href="${esc(photos[i])}" x="${x}" y="${y}" width="${w}" height="${h}" preserveAspectRatio="${fit}"/></g>`
    :`<text x="${x+w/2}" y="${y+h/2}" dominant-baseline="middle" text-anchor="middle" font-family="Arial,sans-serif" font-size="28" fill="#62716b">YOUR PHOTO${four?' '+(i+1):''}</text>`;
   return background+media+(spec.mode==='build'?rect(x,y,w,h,'none',spec.accent,3):'');
  }).join('')+'</g>';
  if(spec.mode==='build'){
-  art+=label(spec.heading||copy.eyebrow,160,42,spec.ink,{bold:true});
-  art+=`<g data-text-role="name">${label(copy.title,1565,86,spec.ink,{lines:2,italic:true})}</g>`;
-  art+=label(copy.date,1705,30,spec.ink)+label(spec.footer,1760,23,spec.ink);
+  art+=Array.from({length:copies},(_,i)=>{
+   const options=copies===2?{x:300+i*600,width:520}:{};
+   return label(spec.heading||copy.eyebrow,copies===2?78:160,copies===2?34:42,spec.ink,{...options,bold:true})
+    +`<g data-text-role="name">${label(copy.title,copies===2?1580:1565,copies===2?62:86,spec.ink,{...options,lines:2,italic:true})}</g>`
+    +label(copy.date,1705,copies===2?26:30,spec.ink,options)+label(spec.footer,1760,23,spec.ink,options);
+  }).join('');
  }
  return `<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="1800" viewBox="0 0 1200 1800" role="img" aria-label="${esc('Custom artwork — '+copy.title)}" data-design="${esc(copy.type)}-custom" data-template-key="${esc(copy.type)}/custom" data-layout="${four?'photo_strip':'card'}" data-custom-mode="${spec.mode}"><title>${esc(copy.title)}</title>${art}</svg>`;
 }

@@ -7,7 +7,8 @@ import {FPR_PRINT_PRESETS} from '../app/lib/fpr-print-presets.mjs';
 import {LEGACY_KEYS,octoberPreset} from '../app/lib/event-workspace.mjs';
 import {renderKeepsake} from '../app/lib/keepsake-designs.mjs';
 import {assertFinishedGuest} from './assert-finished-guest.mjs';
-import {assertFullSheetPresetArtwork} from './assert-full-sheet-artwork.mjs';
+import {assertFullSheetPresetArtwork,assertMatchingStripJPEG} from './assert-full-sheet-artwork.mjs';
+import {assertApprovedStripWindows} from './assert-approved-strips.mjs';
 
 // Fresh, isolated fixture storage. Public production mode checks welcome only;
 // it never starts a session or changes a real event, allowance, or backend file.
@@ -31,30 +32,29 @@ const configFor=preset=>({...octoberPreset(),type:presetType[preset.key],title:'
 async function openingGeometry(svg,count,label){
  const info=await svg.evaluate(element=>({
   preset:element.getAttribute('data-fpr-preset'),viewBox:element.getAttribute('viewBox'),
-  artwork:[...element.querySelectorAll('[data-fpr-sheet-artwork="true"] rect[data-fpr-sheet-bounds="true"]')].map(image=>({x:Number(image.getAttribute('x')),y:Number(image.getAttribute('y')),width:Number(image.getAttribute('width')),height:Number(image.getAttribute('height'))})),
+  artwork:[...element.querySelectorAll('rect[data-fpr-sheet-bounds="true"]')].map(image=>({x:Number(image.getAttribute('x')),y:Number(image.getAttribute('y')),width:Number(image.getAttribute('width')),height:Number(image.getAttribute('height'))})),
+  stripBounds:[...element.querySelectorAll('rect[data-fpr-strip-bounds="true"]')].map(rect=>({x:Number(rect.getAttribute('x')),y:Number(rect.getAttribute('y')),width:Number(rect.getAttribute('width')),height:Number(rect.getAttribute('height'))})),
   groups:element.querySelectorAll('[data-approved-photo-region="true"]').length,
-  images:[...element.querySelectorAll('image[data-guest-photo="true"]')].map(image=>({pose:Number(image.getAttribute('data-pose')),source:image.getAttribute('href'),x:Number(image.getAttribute('x')),y:Number(image.getAttribute('y')),width:Number(image.getAttribute('width')),height:Number(image.getAttribute('height'))}))
+  images:[...element.querySelectorAll('image[data-guest-photo="true"]')].map(image=>({pose:Number(image.getAttribute('data-pose')),copy:Number(image.getAttribute('data-copy')),source:image.getAttribute('href'),x:Number(image.getAttribute('x')),y:Number(image.getAttribute('y')),width:Number(image.getAttribute('width')),height:Number(image.getAttribute('height'))}))
  }));
  assert.equal(info.viewBox,'0 0 1200 1800',label+' is a real 4x6 print');
- assert.equal(info.artwork.length,1,label+' has one approved artwork background');
- assert.deepEqual(info.artwork[0],{x:0,y:0,width:1200,height:1800},label+' decorative artwork fills the whole sheet');
- assert.equal(info.groups,count,label+' has exactly '+count+' actual photo openings');
- assert.equal(info.images.length,count,label+' has exactly '+count+' guest photos');
- assert.deepEqual(info.images.map(image=>image.pose),Array.from({length:count},(_,index)=>index+1),label+' uses each pose exactly once, in order');
- assert.equal(new Set(info.images.map(image=>image.source)).size,count,label+' shows distinct sample poses');
- for(const image of info.images){
-  assert(image.width>100&&image.height>100,label+' has large visible photo openings');
-  assert(image.x>=0&&image.y>=0&&image.x+image.width<=1200.02&&image.y+image.height<=1800.02,label+' photos stay on the sheet');
- }
+ assert.deepEqual(info.artwork,[{x:0,y:0,width:1200,height:1800}],label+' approved artwork fills the whole 4x6 sheet with no surrounding mat');
+ const expectedWindows=count===4?8:1;
+ assert.equal(info.groups,expectedWindows,label+' has the required actual photo openings');
+ assert.equal(info.images.length,expectedWindows,label+' has one photo or two four-photo strip copies');
+ let strips;
  if(count===4){
-  const first=info.images[0];
-  for(const image of info.images){assert(Math.abs(image.width-first.width)<.02&&Math.abs(image.height-first.height)<.02,label+' four poses get equal photo areas');}
-  for(let i=0;i<4;i++)for(let j=i+1;j<4;j++){
-   const a=info.images[i],b=info.images[j];
-   assert(a.x+a.width<=b.x+.02||b.x+b.width<=a.x+.02||a.y+a.height<=b.y+.02||b.y+b.height<=a.y+.02,label+' four photo areas are separate');
-  }
+  strips=assertApprovedStripWindows(info.images,label);
+  assert.deepEqual(info.stripBounds,[{x:0,y:0,width:600,height:1800},{x:600,y:0,width:600,height:1800}],label+' prints two complete adjacent 2x6 strips without an unused border');
  }
- return {...info,images:info.images.map(({source,...image})=>image)};
+ else{
+  assert.deepEqual(info.images.map(image=>image.pose),[1],label+' uses the chosen single original');
+  const image=info.images[0];
+  assert(image.width>=900&&image.height>100,label+' has a large visible one-photo opening');
+  assert(image.x>=0&&image.y>=0&&image.x+image.width<=1200.02&&image.y+image.height<=1800.02,label+' photo stays on the sheet');
+ }
+ assert.equal(new Set(info.images.map(image=>image.source)).size,count,label+' shows four distinct captured sample poses rather than eight different captures');
+ return {...info,...(strips?{strips}:{}),images:info.images.map(({source,...image})=>image)};
 }
 
 // Run the actual production SVG-to-JPEG exporter in the browser using the SVG
@@ -107,6 +107,7 @@ async function welcomeCase(browser,engine,preset){
    const svg=await large.evaluate(element=>element.outerHTML),bytes=Buffer.from(await exportSvg(page,svg,exportSource,count===1?'card':'photo_strip'));
    const metadata=await sharp(bytes).metadata();assert.equal(metadata.width,1200);assert.equal(metadata.height,1800);
    layouts[count].fullSheetArtwork=await assertFullSheetPresetArtwork(bytes,label+' '+count+' finished JPEG');
+   if(count===4)layouts[count].matchingStrips=await assertMatchingStripJPEG(bytes,label+' finished four-photo JPEG');
    // Make the full-resolution, actual approved layouts available for visual QA.
    await writeFile(`${out}/${label}-${count}-artwork.jpg`,bytes);
   }
@@ -146,6 +147,7 @@ async function captureCase(browser,engine,count){
   const finished=await assertFinishedGuest(page,count),metadata=await sharp(finished).metadata();
   assert.equal(metadata.width,1200);assert.equal(metadata.height,1800);
   const fullSheetArtwork=await assertFullSheetPresetArtwork(finished,label+' captured JPEG');
+  const matchingStrips=count===4?await assertMatchingStripJPEG(finished,label+' captured JPEG'):null;
   await writeFile(`${out}/${label}-finished.jpg`,finished);await page.screenshot({path:`${out}/${label}-finished-screen.png`});
   const stored=await page.evaluate(async source=>{
    const api=new Function(source.replace(/\bexport /g,'')+'\nreturn {listCaptures};')(),rows=await api.listCaptures('legacy');
@@ -156,18 +158,18 @@ async function captureCase(browser,engine,count){
   assert.deepEqual(Buffer.from(stored.keepsake),finished,'archive preserves the exact finished JPEG');
   const svg=renderKeepsake({cfg:config,template:config.defaultTemplate,photo:stored.poses[0],poses:stored.poses,layout:count===1?'card':'photo_strip',stripMode:'single',filter:'none',id:'export-card'});
   const expected=Buffer.from(await exportSvg(page,svg,exportSource,count===1?'card':'photo_strip'));
-  assert.deepEqual(finished,expected,'actual finished JPEG uses the same corrected artwork and each archived pose exactly once');
+  assert.deepEqual(finished,expected,'actual finished JPEG uses the same corrected artwork and the four archived originals reused once in each matching strip');
   assert.equal(await page.evaluate(key=>localStorage.getItem(key),LEGACY_KEYS.usage),'19');
   assert.deepEqual(await page.evaluate(()=>({prints:window.__layoutPrints,shares:window.__layoutShares,cameraStarts:window.__layoutCameraStarts})),{prints:0,shares:0,cameraStarts:1});
   assert.deepEqual(writes,[]);assert.deepEqual(errors,[]);assert.deepEqual(protectedVisits,[]);
-  results.push({test:label,passed:true,actualPoses:count,uniquePoses:new Set(stored.poses).size,fullSheetArtwork,exactSharedRendererJPEG:true,exactArchivedJPEG:true,writeRequests:writes});
+  results.push({test:label,passed:true,actualPoses:count,uniquePoses:new Set(stored.poses).size,fullSheetArtwork,matchingStrips,exactSharedRendererJPEG:true,exactArchivedJPEG:true,writeRequests:writes});
  }catch(error){await page.screenshot({path:`${out}/${label}-failure.png`,fullPage:true}).catch(()=>{});throw error;}
  finally{await context.close();}
 }
 
 try{
  for(const [engine,api]of engines){
-  const browser=await api.launch({headless:true,...(proxy?{proxy}:{}),...(engine==='chromium'?{args:['--no-sandbox']}: {})});
+  const browser=await api.launch({headless:true,...(proxy?{proxy}:{}),...(engine==='chromium'?{args:['--no-sandbox'],...(process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH?{executablePath:process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH}:{})}: {})});
   try{for(const preset of FPR_PRINT_PRESETS)await welcomeCase(browser,engine,preset);if(local)for(const count of [1,4])await captureCase(browser,engine,count);}
   finally{await browser.close();}
  }

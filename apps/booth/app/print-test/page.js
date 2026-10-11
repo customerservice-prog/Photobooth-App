@@ -49,6 +49,7 @@ export default function PrintTest(){
   return()=>{alive=false;window.removeEventListener('afterprint',after);};
  },[retry]);
  const cfg=context?.cfg,selected=artifacts?.[choice],preset=cfg&&presetById(cfg.defaultTemplate),ready=selected&&imageReady===selected.key&&sheetReady===selected.key;
+ const matchingStrips=Boolean(preset||cfg?.defaultTemplate==='grad-gala'||cfg?.defaultTemplate==='custom'&&cfg.customDesign?.layouts?.four?.copies===2);
  function select(next){setChoice(next);setChecks({});setMessage('');}
  function print(){
   if(!ready)return;setChecks({});setMessage('Select Canon SELPHY, 4×6 paper and one copy. Use borderless printing to fill the paper.');
@@ -63,7 +64,7 @@ export default function PrintTest(){
     {cfg&&<div className="ptEvent" data-testid="print-test-event"><strong>{cfg.title}</strong><span>{cfg.date}</span><small>{preset?preset.name+' artwork':cfg.defaultTemplate==='custom'?'Your approved custom artwork':'Your saved event artwork'}</small></div>}
     {cfg&&<>
      <div className="ptChoices" role="group" aria-label="Choose the test photo layout">
-      {[['one','1 Photo','One large picture'],['four','4 Photos','Four separate poses']].map(([value,label,note])=><button type="button" key={value} data-testid={'print-test-'+value} aria-pressed={choice===value} onClick={()=>select(value)}><span className={'ptChoiceIcon ptChoiceIcon-'+value} aria-hidden="true">{Array.from({length:value==='one'?1:4},(_,i)=><i key={i}/>)}</span><strong>{label}</strong><small>{note}</small></button>)}
+      {[['one','1 Photo','One large picture'],['four','4 Photos',matchingStrips?'4 poses · two matching strips':'Four separate poses']].map(([value,label,note])=><button type="button" key={value} data-testid={'print-test-'+value} aria-pressed={choice===value} onClick={()=>select(value)}><span className={'ptChoiceIcon ptChoiceIcon-'+value+(value==='four'&&!matchingStrips?' ptChoiceIcon-four-grid':'')} aria-hidden="true">{Array.from({length:value==='one'?1:matchingStrips?8:4},(_,i)=><i key={i}/>)}</span><strong>{label}</strong><small>{note}</small></button>)}
      </div>
      <button className="ptPrintButton" type="button" data-testid="print-test-print" disabled={!ready} onClick={print}>Print one {choice==='one'?'1-photo':'4-photo'} test sheet</button>
      <p className="ptAssurance">Sample photos only. This does not use the customer’s print allowance or save test photos to their gallery.</p>

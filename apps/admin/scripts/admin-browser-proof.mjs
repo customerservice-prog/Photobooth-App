@@ -15,6 +15,13 @@ await mkdir('admin-proof',{recursive:true});
 const browser=await chromium.launch({headless:true,args:['--no-sandbox']});
 const prisma=readonly?null:new PrismaClient(),results=[];
 const pass=test=>results.push({test,passed:true});
+// JSONB may change the last floating-point digit. Nine percentage decimals
+// preserve subpixel geometry while every other artwork field remains exact.
+const coordinate=value=>Number(value.toFixed(9));
+function normalizedCoordinates(spec){
+ return {...spec,layouts:Object.fromEntries(Object.entries(spec.layouts).map(([kind,layout])=>[kind,{...layout,rects:layout.rects.map(rect=>({...rect,...Object.fromEntries(['x','y','w','h'].map(key=>[key,coordinate(rect[key])]))}))}]))};
+}
+const assertCustomDesign=(actual,expected)=>assert.deepEqual(normalizedCoordinates(actual),normalizedCoordinates(expected));
 let page;
 async function ownerHome(){
  await page.goto(base+'/dashboard',{waitUntil:'networkidle'});
@@ -130,11 +137,18 @@ try{
  assert.equal(await page.locator('.ownerDesignChoice').count(),6);
  const built=JSON.parse(await page.locator('input[name="customDesign"]').inputValue());
  assert.equal(built.mode,'build');assert.equal(built.layouts.one.rects.length,1);assert.equal(built.layouts.four.rects.length,4);
+ const customNativeValidity=await page.getByTestId('custom-design-editor').evaluate(editor=>({
+  fourValues:[...editor.querySelectorAll('.customApertures fieldset')[1].querySelectorAll('input[type="number"]')].slice(0,4).map(input=>input.valueAsNumber),
+  invalid:[...editor.querySelectorAll('input[type="number"]')].filter(input=>!input.validity.valid).map(input=>({label:input.getAttribute('aria-label'),value:input.value,stepMismatch:input.validity.stepMismatch,message:input.validationMessage}))
+ }));
+ assert.deepEqual(customNativeValidity.fourValues.map(coordinate),[26/12,120/18,548/12,336/18].map(coordinate),'the owner builder keeps the precise default strip coordinates');
+ assert.deepEqual(customNativeValidity.invalid,[],'native number-input validation must accept the precise default coordinates before saving');
+ assert.equal(await page.locator('form.ownerEventForm').evaluate(form=>form.checkValidity()),true,'the complete custom builder form is valid before Save event changes');
  await page.screenshot({animations:'disabled',path:'admin-proof/custom-built-desktop.png',fullPage:true});
  if(!readonly){
   await page.getByRole('button',{name:/Save event changes/}).click();await page.waitForURL('**/events/event-smoke-20261010');
-  const row=await prisma.event.findUnique({where:{id:'event-smoke-20261010'}});assert.deepEqual(row.theme.boothExperience.customDesign,built);assert.equal(row.theme.boothExperience.approvedDesign,'custom');
-  await page.goto(base+'/events/event-smoke-20261010/edit',{waitUntil:'networkidle'});assert.equal(await page.locator('input[name="customDesign"]').inputValue(),JSON.stringify(built));
+  const row=await prisma.event.findUnique({where:{id:'event-smoke-20261010'}});assertCustomDesign(row.theme.boothExperience.customDesign,built);assert.equal(row.theme.boothExperience.approvedDesign,'custom');
+  await page.goto(base+'/events/event-smoke-20261010/edit',{waitUntil:'networkidle'});assertCustomDesign(JSON.parse(await page.locator('input[name="customDesign"]').inputValue()),built);
  }
  await page.getByRole('radio',{name:'Upload artwork',exact:true}).check();
  const images={};
@@ -155,17 +169,17 @@ try{
  await page.setViewportSize({width:1440,height:900});
  if(!readonly){
   await page.getByRole('button',{name:/Save event changes/}).click();await page.waitForURL('**/events/event-smoke-20261010');
-  const row=await prisma.event.findUnique({where:{id:'event-smoke-20261010'}});assert.deepEqual(row.theme.boothExperience.customDesign,uploaded);assert.equal(row.theme.legacySetting,'must survive');
+  const row=await prisma.event.findUnique({where:{id:'event-smoke-20261010'}});assertCustomDesign(row.theme.boothExperience.customDesign,uploaded);assert.equal(row.theme.legacySetting,'must survive');
   // Existing protected sync consumers still receive both saved custom layouts.
   // The primary owner event page now links directly to staff start.
   const descriptor=buildBoothHandoffPayload(row);assert(descriptor.sync);
   const endpoint=base+'/api/booth/sync/'+encodeURIComponent(row.id);
   const headers={Origin:'https://photobooth-booth-production.up.railway.app',Authorization:'Bearer '+descriptor.sync};
   const response=await context.request.get(endpoint,{headers});assert.equal(response.status(),200);
-  const payload=validateBoothHandoff(await response.json());assert.deepEqual(payload.customDesign,uploaded);
+  const payload=validateBoothHandoff(await response.json());assertCustomDesign(payload.customDesign,uploaded);
   assert.equal(payload.id,row.id);assert.equal(payload.guest,'approved');
   const invalid=await context.request.get(endpoint,{headers:{...headers,Authorization:'Bearer invalid'}});assert.equal(invalid.status(),401);
-  await page.goto(base+'/events/event-smoke-20261010/edit',{waitUntil:'networkidle'});assert.equal(await page.locator('input[name="customDesign"]').inputValue(),JSON.stringify(uploaded));
+  await page.goto(base+'/events/event-smoke-20261010/edit',{waitUntil:'networkidle'});assertCustomDesign(JSON.parse(await page.locator('input[name="customDesign"]').inputValue()),uploaded);
  }
  pass('custom-builder-and-paired-upload-preview-save-reopen-protected-event-sync');
  await page.goto(base+'/galleries',{waitUntil:'networkidle'});await page.getByRole('heading',{name:'Your digital galleries',exact:true}).waitFor();assert.equal(await page.getByRole('link',{name:'Open private gallery →',exact:true}).first().getAttribute('href'),'/events/event-smoke-20261010/backups');pass('digital-galleries-open-actual-private-event-backups');
