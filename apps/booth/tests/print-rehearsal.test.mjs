@@ -48,6 +48,7 @@ test('single and four sample prints use the guest renderer and keep all original
  const source=cfg('event-jamie'),before=JSON.stringify(source),inputs=rehearsalInputs(source,poses);
  assert.equal(inputs.one.layout,'card');assert.equal(inputs.four.layout,'photo_strip');assert.equal(inputs.four.stripMode,'single');assert.equal(inputs.one.photo,poses[0]);assert.deepEqual(inputs.four.poses,poses);assert.equal(JSON.stringify(source),before);
  const one=renderKeepsake(inputs.one),four=renderKeepsake(inputs.four);
- assert.equal((one.match(/data-approved-photo-region="true"/g)||[]).length,1);assert.equal((four.match(/data-approved-photo-region="true"/g)||[]).length,4);for(const pose of poses)assert.ok(four.includes(pose));assert.ok(one.includes('Jamie'));assert.ok(four.includes('2027'));
+ assert.equal((one.match(/data-approved-photo-region="true"/g)||[]).length,1);assert.equal((four.match(/data-approved-photo-region="true"/g)||[]).length,8,'two matching four-photo strips share one paper sheet');
+ assert.deepEqual([...four.matchAll(/<image\b(?=[^>]*data-guest-photo="true")[^>]*\/>/g)].map(match=>match[0].match(/ href="([^"]+)"/)[1]),[...poses,...poses],'the same four sample originals appear in both strips');assert.ok(one.includes('Jamie'));assert.ok(four.includes('2027'));
  for(const bad of [poses.slice(0,3),[poses[0],poses[0],poses[2],poses[3]],['/print-test.svg',...poses.slice(1)]])assert.throws(()=>rehearsalInputs(source,bad));
 });

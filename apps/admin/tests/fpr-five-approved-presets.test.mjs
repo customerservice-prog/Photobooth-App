@@ -48,7 +48,12 @@ test('admin choice persists into protected iPad handoff and renders the exact sa
      layout,stripMode:'single',filter:'none',id:'proof'});
    assert.equal(adminProof,guestProof,preset.id+' '+shots);
    assert.match(adminProof,/data-fpr-preset=/);
-   assert.equal((adminProof.match(/data-approved-photo-region=/g)||[]).length,shots);
+   assert.equal((adminProof.match(/data-approved-photo-region=/g)||[]).length,shots===4?8:1,'the four-pose preview prints matching strips on one 4x6 sheet');
+   if(shots===4){
+    const panes=[...adminProof.matchAll(/<g\b(?=[^>]*data-approved-photo-region="true")[^>]*>/g)].map(match=>match[0]);
+    assert.deepEqual(panes.map(tag=>Number(tag.match(/data-pose="(\d)"/)[1])),[1,2,3,4,1,2,3,4]);
+    assert.deepEqual(panes.map(tag=>Number(tag.match(/data-copy="(\d)"/)[1])),[1,1,1,1,2,2,2,2]);
+   }
   }
  }
 });
@@ -57,7 +62,7 @@ test('sample portraits are hidden behind captured-photo openings, never treated 
  const svg=renderKeepsake({cfg:{guestMode:'approved',defaultTemplate:'fpr-wedding',title:'Rivera Wedding',
   date:'June 10, 2027'},layout:'photo_strip',sample:true,poses:[],id:'proof'});
  assert.equal((svg.match(/data-guest-photo="true"/g)||[]).length,0);
- assert.equal((svg.match(/data-approved-photo-region=/g)||[]).length,4);
+ assert.equal((svg.match(/data-approved-photo-region=/g)||[]).length,8,'both strips have four empty windows until the camera supplies the four originals');
  assert.throws(()=>renderKeepsake({cfg:{guestMode:'approved',defaultTemplate:'fpr-wedding'},layout:'photo_strip',
   poses:['bogus','bogus','bogus','bogus'],id:'test'}),/captured photo/i);
 });

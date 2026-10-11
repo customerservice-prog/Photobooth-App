@@ -69,16 +69,17 @@ function sampleGradPhoto(i,x,y,w,h){
  `<rect x="${x+10}" y="${y+h-45}" width="${w-20}" height="36" fill="#061d3b" opacity=".8"/>`+
  text('YOUR PHOTO '+(i+1),x+w/2,y+h-19,20,'#fff8e6','font-family="Arial,sans-serif" font-weight="bold" letter-spacing="3"');
 }
-function photo(src,i,x,y,w,h,fit='fill'){
+function photo(src,i,x,y,w,h,fit='fill',copy=0){
  const safe=imageAllowed(src)?src:null;
- const frame=rect(x-16,y-16,w+32,h+32,'url(#lmGlitter)')+rect(x-5,y-5,w+10,h+10,'#fb9b30');
- const inside=safe?`<image data-guest-photo="true" data-pose="${i+1}" href="${esc(safe)}" x="${x}" y="${y}" width="${w}" height="${h}" preserveAspectRatio="${fit==='fit'?'xMidYMid meet':'xMidYMid slice'}"/>`:sampleGradPhoto(i,x,y,w,h);
+ const rim=copy?3:16,inner=copy?1:5;
+ const frame=rect(x-rim,y-rim,w+rim*2,h+rim*2,'url(#lmGlitter)')+rect(x-inner,y-inner,w+inner*2,h+inner*2,'#fb9b30');
+ const inside=safe?`<image data-guest-photo="true" data-pose="${i+1}" ${copy?`data-copy="${copy}" `:''}href="${esc(safe)}" x="${x}" y="${y}" width="${w}" height="${h}" preserveAspectRatio="${fit==='fit'?'xMidYMid meet':'xMidYMid slice'}"/>`:sampleGradPhoto(i,x,y,w,h);
  return frame+inside;
 }
 function base(){return defs()+rect(0,0,1200,1800,'url(#lmBg)')+rect(0,0,1200,1800,'url(#lmBlueGlow)')+confetti()+
  rect(15,15,1170,1770,'none','stroke="url(#lmGold)" stroke-width="5"')+
  rect(25,25,1150,1750,'none','stroke="#fc8c23" stroke-width="2"');}
-function svg(body,layout,cfg){const t=labels(cfg);return `<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="1800" viewBox="0 0 1200 1800" role="img" data-design="graduation-grad-gala" data-template-key="graduation/grad-gala" data-layout="${layout}" aria-label="${esc(t.name+' graduation print')}"><title>${esc(t.name+' graduation keepsake')}</title>${base()}${body}</svg>`;}
+function svg(body,layout,cfg,background=base()){const t=labels(cfg);return `<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="1800" viewBox="0 0 1200 1800" role="img" data-design="graduation-grad-gala" data-template-key="graduation/grad-gala" data-layout="${layout}" aria-label="${esc(t.name+' graduation print')}"><title>${esc(t.name+' graduation keepsake')}</title>${background}${body}</svg>`;}
 export function renderLamarrOne(photoSrc,cfg={}){
  const t=labels(cfg),image=photo(photoSrc,0,67,240,1066,1012,cfg.photoFit);
  const hero=balloons()+text('Congrats Grad!',774,147,104,'url(#lmGold)','font-family="Georgia, serif" font-style="italic" font-weight="bold" paint-order="stroke" stroke="#783709" stroke-width="2"');
@@ -87,12 +88,19 @@ export function renderLamarrOne(photoSrc,cfg={}){
  return svg(hero+image+lower,'card',cfg);
 }
 export function renderLamarrFour(poses=[],cfg={}){
- const t=labels(cfg),shots=Array.isArray(poses)?poses:[],
- cells=Array.from({length:4},(_,i)=>photo(shots[i],i,87+(i%2)*526,222+Math.floor(i/2)*617,500,591,cfg.photoFit)).join('');
- const head=cap(163,112,.62)+text('Class of',786,98,70,'url(#lmGold)','font-family="Georgia, serif" font-style="italic"')+
- text(t.year,1034,165,100,'#fff7e9','font-family="Georgia, serif" font-weight="bold"');
- const foot=balloon(94,1545,.52,false,-15)+balloon(1100,1580,.52,true,17)+name(t.name,1588)+
- text(t.date,600,1687,51,'#ffd080','font-family="Georgia, serif" font-weight="bold" letter-spacing="2"')+
- glint(600,1734,17)+text('CONGRATS GRAD!',600,1771,25,'#fff8ef','font-family="Arial,sans-serif" font-weight="bold" letter-spacing="7"');
- return svg(head+cells+foot,'photo_strip',cfg);
+ const t=labels(cfg),shots=Array.isArray(poses)?poses:[];
+ const strips=Array.from({length:2},(_,strip)=>{
+  const copy=strip+1,cells=Array.from({length:4},(_,i)=>`<g data-approved-photo-region="true" data-copy="${copy}" data-pose="${i+1}">${photo(shots[i],i,26,120+i*350,548,336,cfg.photoFit,copy)}</g>`).join('');
+  const head=cap(61,59,.29)+text('Class of',302,57,32,'url(#lmGold)','font-family="Georgia, serif" font-style="italic"')+
+   text(t.year,458,92,43,'#fff7e9','font-family="Georgia, serif" font-weight="bold"');
+  const nameSize=t.name.length>22?29:t.name.length>14?35:44;
+  const foot=balloon(34,1607,.24,false,-15)+balloon(565,1703,.24,true,17)+
+   text(t.name,300,1585,nameSize,'url(#lmGold)','font-family="Georgia, serif" font-style="italic" font-weight="bold"')+
+   path('M115 1602Q300 1623 485 1602','none','#fa8723',3)+
+   text('Grad Party!',300,1648,32,'#fff7e9','font-family="Georgia, serif" font-style="italic"')+
+   text(t.date,300,1701,20,'#ffd080','font-family="Georgia, serif" font-weight="bold"')+
+   glint(300,1731,9)+text('CONGRATS GRAD!',300,1768,15,'#fff8ef','font-family="Arial,sans-serif" font-weight="bold" letter-spacing="2.5"');
+  return `<g data-fpr-strip-copy="${copy}" transform="translate(${strip*600} 0)" clip-path="url(#lm-strip-clip)">${rect(0,0,600,1800,'url(#lmBg)','data-fpr-sheet-bounds="true"')}${rect(0,0,600,1800,'url(#lmBlueGlow)')}${confetti()}${rect(9,9,582,1782,'none','stroke="url(#lmGold)" stroke-width="2"')}${head}${cells}${foot}</g>`;
+ }).join('');
+ return svg(strips,'photo_strip',cfg,defs()+`<defs><clipPath id="lm-strip-clip">${rect(0,0,600,1800,'white')}</clipPath></defs>`);
 }

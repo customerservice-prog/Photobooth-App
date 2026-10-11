@@ -25,9 +25,7 @@ export function renderKeepsake(input={}){
  // customer's name. The captured images stay distinct and in their order.
  if(input.cfg?.type==='graduation'&&input.template==='grad-gala'){
   const art=input.layout==='photo_strip'
-   ? input.stripMode==='double'
-     ? renderClassicPhotoStrip({...input,template:'champagne'})
-     : renderLamarrFour(input.poses,input.cfg)
+   ? renderLamarrFour(input.poses,input.cfg)
    :renderLamarrOne(input.photo,input.cfg);
   return applySvgPhotoFinish(art,input.filter,input.id);
  }

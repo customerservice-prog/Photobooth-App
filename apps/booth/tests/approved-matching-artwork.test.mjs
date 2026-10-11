@@ -53,7 +53,7 @@ test('missing or invalid original poses cannot produce an approved four-photo ke
 test('existing grad-gala layouts and unapproved classic strips retain their dedicated renderers',()=>{
  const graduation={type:'graduation',guestMode:'approved',details:{graduate:'Taylor',classYear:'2027'},printPackage:{shotsPerSession:4}};
  const gala=renderKeepsake({cfg:graduation,template:'grad-gala',photo:poses[0],poses,layout:'photo_strip',stripMode:'single'});
- assert(gala.includes('data-design="graduation-grad-gala"'));assert(!gala.includes('data-approved-photo-region'));
+ assert(gala.includes('data-design="graduation-grad-gala"'));assert.equal(guestImages(gala).length,8,'the dedicated graduation gala prints two matching strips');
  const legacy=renderKeepsake({cfg:{type:'other',printPackage:{shotsPerSession:4}},photo:poses[0],poses,layout:'photo_strip',stripMode:'single'});
  assert(legacy.includes('data-design="arcade-four"'));assert(!legacy.includes('data-approved-photo-region'));
 });

@@ -19,6 +19,21 @@ export async function assertFullSheetPresetArtwork(bytes,label){
  return {width:metadata.width,height:metadata.height,decoratedEdges:bands};
 }
 
+// Examine the exported JPEG itself: corresponding halves must be matching
+// keepsakes. JPEG block boundaries can differ slightly at the centre seam.
+export async function assertMatchingStripJPEG(bytes,label){
+ const {data,info}=await sharp(bytes).removeAlpha().raw().toBuffer({resolveWithObject:true});
+ assert.equal(info.width,1200);assert.equal(info.height,1800);
+ let totalDifference=0,largeDifferences=0,samples=0;
+ for(let y=0;y<1800;y++)for(let x=4;x<596;x++)for(let channel=0;channel<3;channel++){
+  const left=(y*1200+x)*info.channels+channel,right=(y*1200+x+600)*info.channels+channel,difference=Math.abs(data[left]-data[right]);
+  totalDifference+=difference;largeDifferences+=Number(difference>12);samples++;
+ }
+ const meanDifference=totalDifference/samples,largeDifferenceFraction=largeDifferences/samples;
+ assert(meanDifference<3&&largeDifferenceFraction<.03,label+' exports two matching complete strips, including artwork, text and photographs');
+ return {matchingCopies:2,meanPixelDifference:Number(meanDifference.toFixed(3)),differentPixelFraction:Number(largeDifferenceFraction.toFixed(4))};
+}
+
 export async function assertUploadedArtworkEdges(bytes,expectedHex,label){
  const rgb=expectedHex.match(/[0-9a-f]{2}/gi).map(value=>parseInt(value,16)),samples=[];
  // The fixture artwork deliberately has a different aspect ratio from paper.
