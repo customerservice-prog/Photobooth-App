@@ -1,0 +1,19 @@
+{
+  "name": "Friendly Photo Booth — Owner",
+  "short_name": "Friendly Booth",
+  "description": "Manage Friendly Party Rental photo booth events, galleries, and prints",
+  "id": "/dashboard",
+  "start_url": "/dashboard",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#f7f8f5",
+  "theme_color": "#182a25",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}
