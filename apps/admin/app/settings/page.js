@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import DesktopInstall from '../DesktopInstall';
 import {prisma} from '../../lib/prisma';
 import {BOOTH_URL,BOOTH_START_URL,BOOTH_SETUP_URL,BOOTH_PREPARATION_URL,guestHandoffMessage} from '../../lib/studio-experience.mjs';
 import {PageHeader,DatabaseError} from '../StudioUI';
@@ -13,6 +14,7 @@ export default async function SettingsPage(){
  return <main className="page">
   <Link href="/dashboard" className="btnPlain ownerBackLink">← Back to workspace</Link>
   <PageHeader eyebrow="SETTINGS & SUPPORT" title="Booth settings, made simple" subtitle="Find the equipment and staff information that matters. Changes to event names, colors and print options are made from the Events page."><Link className="btn" href="/events">Manage events →</Link></PageHeader>
+  <DesktopInstall/>
   {error?<DatabaseError topic="admin settings"/>:<div className="uiGrid">
    <div className="uiStack">
     <section className="card cardPad"><div className="eyebrow">YOUR BUSINESS</div><h2 className="sectionTitle">{org?.name||'Friendly Party Rental'}</h2><p className="sectionLead">Photo booth operations · Syracuse, New York · Canon SELPHY 4×6 printing.</p><div className="buttonRow"><Link href="/booths" className="btn btn2 btnSm">My booths</Link><Link href="/employees" className="btn btn2 btnSm">Team</Link></div></section>
